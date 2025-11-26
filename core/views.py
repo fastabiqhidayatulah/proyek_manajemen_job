@@ -725,14 +725,31 @@ def export_daily_jobs_pdf(request):
     """
     user = request.user
     
-    # === 1. LOGIKA FILTER (BULAN & TAHUN) ===
+    # === 1. LOGIKA FILTER (BULAN & TAHUN) - SAMA SEPERTI DASHBOARD ===
     now = datetime.datetime.now()
     try:
-        current_year = int(request.GET.get('year', now.year))
-        current_month = int(request.GET.get('month', now.month))
+        current_year_param = request.GET.get('year', '')
+        current_month_param = request.GET.get('month', '')
+        
+        # Jika kosong atau '0', gunakan nilai default
+        if current_year_param and current_year_param != '0':
+            current_year = int(current_year_param)
+        else:
+            current_year = 0  # Artinya "Semua tahun"
+        
+        if current_month_param and current_month_param != '0':
+            current_month = int(current_month_param)
+            # Jika user pilih bulan tapi tidak pilih tahun, default ke tahun sekarang
+            if current_year == 0:
+                current_year = now.year
+        else:
+            current_month = 0  # Artinya "Semua bulan"
     except ValueError:
-        current_year = now.year
-        current_month = now.month
+        current_year = 0
+        current_month = 0
+    
+    # Flag untuk menentukan apakah filter aktif atau "Semua"
+    filter_all_dates = (current_month == 0 and current_year == 0)
     
     # === 2. LOGIKA FILTER PIC ===
     subordinate_ids = user.get_all_subordinates()
@@ -757,7 +774,7 @@ def export_daily_jobs_pdf(request):
     selected_sub_mesin_id = request.GET.get('sub_mesin', '')
     
     # === 4. LOGIKA DATA TABEL ===
-    all_jobs_team_base = Job.objects.filter(team_query).distinct()
+    all_jobs_team_base = Job.objects.filter(team_query, tipe_job='Daily').distinct()
     
     if selected_sub_mesin_id:
         all_jobs_team_base = all_jobs_team_base.filter(aset_id=selected_sub_mesin_id)
@@ -766,20 +783,35 @@ def export_daily_jobs_pdf(request):
     elif selected_line_id:
         all_jobs_team_base = all_jobs_team_base.filter(aset__parent__parent_id=selected_line_id)
     
-    # Filter untuk Daily Jobs di bulan/tahun terpilih
-    daily_job_data = all_jobs_team_base.filter(
-        tipe_job='Daily',
-        tanggal_pelaksanaan__tanggal__month=current_month,
-        tanggal_pelaksanaan__tanggal__year=current_year
-    ).select_related(
-        'pic', 
-        'project',
-        'aset__parent__parent' 
-    ).prefetch_related(
-        'personil_ditugaskan', 
-        'tanggal_pelaksanaan',
-        'attachments'
-    ).distinct()
+    # Filter untuk Daily Jobs (sama seperti dashboard)
+    if filter_all_dates:
+        # Ambil semua daily jobs tanpa filter tanggal
+        daily_job_data = all_jobs_team_base.select_related(
+            'pic', 
+            'project',
+            'aset__parent__parent' 
+        ).prefetch_related(
+            'personil_ditugaskan', 
+            'tanggal_pelaksanaan',
+            'attachments'
+        ).order_by('nama_pekerjaan').distinct()
+    else:
+        # Build filter dynamically based on what user selected
+        date_filter = Q()
+        if current_month != 0:
+            date_filter &= Q(tanggal_pelaksanaan__tanggal__month=current_month)
+        if current_year != 0:
+            date_filter &= Q(tanggal_pelaksanaan__tanggal__year=current_year)
+        
+        daily_job_data = all_jobs_team_base.filter(date_filter).select_related(
+            'pic', 
+            'project',
+            'aset__parent__parent' 
+        ).prefetch_related(
+            'personil_ditugaskan', 
+            'tanggal_pelaksanaan',
+            'attachments'
+        ).order_by('nama_pekerjaan').distinct()
 
     # === 5. HITUNG SUMMARY ===
     summary = calculate_daily_jobs_summary(daily_job_data)
@@ -833,27 +865,62 @@ def export_daily_jobs_pdf(request):
 def export_daily_jobs_excel(request):
     user = request.user
     
-    # === 1. LOGIKA FILTER (BULAN & TAHUN) ===
+    # === 1. LOGIKA FILTER (BULAN & TAHUN) - SAMA SEPERTI DASHBOARD ===
     now = datetime.datetime.now()
     try:
-        current_year = int(request.GET.get('year', now.year))
-        current_month = int(request.GET.get('month', now.month))
+        current_year_param = request.GET.get('year', '')
+        current_month_param = request.GET.get('month', '')
+        
+        # Jika kosong atau '0', gunakan nilai default
+        if current_year_param and current_year_param != '0':
+            current_year = int(current_year_param)
+        else:
+            current_year = 0  # Artinya "Semua tahun"
+        
+        if current_month_param and current_month_param != '0':
+            current_month = int(current_month_param)
+            # Jika user pilih bulan tapi tidak pilih tahun, default ke tahun sekarang
+            if current_year == 0:
+                current_year = now.year
+        else:
+            current_month = 0  # Artinya "Semua bulan"
     except ValueError:
-        current_year = now.year
-        current_month = now.month
+        current_year = 0
+        current_month = 0
+    
+    # Flag untuk menentukan apakah filter aktif atau "Semua"
+    filter_all_dates = (current_month == 0 and current_year == 0)
     
     # === 2. AMBIL DATA JOBS SESUAI FILTER ===
-    first_day = datetime.date(current_year, current_month, 1)
-    last_day = datetime.date(current_year, current_month, calendar.monthrange(current_year, current_month)[1])
-    
-    # Ambil job_ids yang punya tanggal dalam range DAN TIDAK PUNYA PROJECT
-    job_ids = JobDate.objects.filter(
-        tanggal__gte=first_day,
-        tanggal__lte=last_day,
-        job__project__isnull=True  # Hanya job tanpa project
-    ).values_list('job_id', flat=True).distinct()
-    
-    job_data = Job.objects.filter(id__in=job_ids).order_by('nama_pekerjaan')
+    # Filter berdasarkan bulan dan tahun (sama seperti dashboard)
+    if filter_all_dates:
+        # Ambil semua daily jobs tanpa filter tanggal
+        job_data = Job.objects.filter(
+            tipe_job='Daily',
+            project__isnull=True  # Hanya job tanpa project
+        ).select_related(
+            'pic',
+            'aset__parent__parent'
+        ).prefetch_related(
+            'tanggal_pelaksanaan'
+        ).order_by('nama_pekerjaan').distinct()
+    else:
+        # Build filter dynamically based on what user selected
+        date_filter = Q()
+        if current_month != 0:
+            date_filter &= Q(tanggal_pelaksanaan__tanggal__month=current_month)
+        if current_year != 0:
+            date_filter &= Q(tanggal_pelaksanaan__tanggal__year=current_year)
+        
+        job_data = Job.objects.filter(
+            tipe_job='Daily',
+            project__isnull=True  # Hanya job tanpa project
+        ).filter(date_filter).select_related(
+            'pic',
+            'aset__parent__parent'
+        ).prefetch_related(
+            'tanggal_pelaksanaan'
+        ).order_by('nama_pekerjaan').distinct()
     
     # === 3. BUAT WORKBOOK EXCEL ===
     wb = Workbook()
@@ -886,15 +953,23 @@ def export_daily_jobs_excel(request):
     # === 6. ISI DATA ===
     for idx, job in enumerate(job_data, 1):
         # Ambil line, mesin, sub dari aset
-        line = job.aset.parent.parent.nama if job.aset.parent.parent else "-"
-        mesin = job.aset.parent.nama if job.aset.parent else "-"
+        line = job.aset.parent.parent.nama if job.aset and job.aset.parent and job.aset.parent.parent else "-"
+        mesin = job.aset.parent.nama if job.aset and job.aset.parent else "-"
         sub = job.aset.nama if job.aset else "-"
         
-        # Ambil jadwal
-        jadwal_dates = job.tanggal_pelaksanaan.filter(
-            tanggal__gte=first_day,
-            tanggal__lte=last_day
-        ).values_list('tanggal', flat=True)
+        # Ambil jadwal (dengan filter bulan/tahun jika ada)
+        if filter_all_dates:
+            # Tampilkan semua jadwal
+            jadwal_dates = job.tanggal_pelaksanaan.all().values_list('tanggal', flat=True).order_by('tanggal')
+        else:
+            # Ambil jadwal sesuai filter bulan/tahun
+            date_filter_jadwal = Q()
+            if current_month != 0:
+                date_filter_jadwal &= Q(tanggal__month=current_month)
+            if current_year != 0:
+                date_filter_jadwal &= Q(tanggal__year=current_year)
+            jadwal_dates = job.tanggal_pelaksanaan.filter(date_filter_jadwal).values_list('tanggal', flat=True).order_by('tanggal')
+        
         jadwal_str = ", ".join([str(d.strftime("%d/%m")) for d in jadwal_dates]) if jadwal_dates else "-"
         
         # Ambil progress
