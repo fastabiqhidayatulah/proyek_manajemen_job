@@ -994,14 +994,21 @@ def export_project_jobs_excel(request):
     elif selected_line_id:
         all_jobs_team_base = all_jobs_team_base.filter(aset__parent__parent_id=selected_line_id)
     
-    # Ambil semua project jobs (tanpa batasan tanggal)
-    project_jobs = all_jobs_team_base.select_related(
+    # Filter berdasarkan bulan dan tahun yang dipilih
+    first_day = datetime.date(current_year, current_month, 1)
+    last_day = datetime.date(current_year, current_month, calendar.monthrange(current_year, current_month)[1])
+    
+    # Ambil project jobs yang punya jadwal di bulan/tahun yang dipilih
+    project_jobs = all_jobs_team_base.filter(
+        tanggal_pelaksanaan__tanggal__gte=first_day,
+        tanggal_pelaksanaan__tanggal__lte=last_day
+    ).select_related(
         'pic', 
         'project',
         'aset',
         'aset__parent',
         'aset__parent__parent'
-    ).prefetch_related('tanggal_pelaksanaan').order_by('project__nama_project', 'nama_pekerjaan')
+    ).prefetch_related('tanggal_pelaksanaan').order_by('project__nama_project', 'nama_pekerjaan').distinct()
     
     # === 5. BUAT WORKBOOK EXCEL ===
     wb = Workbook()
@@ -1024,7 +1031,7 @@ def export_project_jobs_excel(request):
     )
     
     # === 7. BUAT HEADER ROW ===
-    headers = ["No", "Project", "Nama Pekerjaan", "PIC", "Line", "Mesin", "Sub", "Fokus", "Prioritas", "Progress (%)"]
+    headers = ["No", "Project", "Nama Pekerjaan", "PIC", "Line", "Mesin", "Sub", "Fokus", "Prioritas", "Jadwal", "Progress (%)"]
     ws.append(headers)
     
     # Style header
@@ -1081,6 +1088,13 @@ def export_project_jobs_excel(request):
             mesin = job.aset.parent.nama if job.aset and job.aset.parent else "-"
             sub = job.aset.nama if job.aset else "-"
             
+            # Ambil jadwal untuk bulan/tahun yang dipilih
+            jadwal_dates = job.tanggal_pelaksanaan.filter(
+                tanggal__gte=first_day,
+                tanggal__lte=last_day
+            ).values_list('tanggal', flat=True).order_by('tanggal')
+            jadwal_str = ", ".join([str(d.strftime("%d/%m")) for d in jadwal_dates]) if jadwal_dates else "-"
+            
             # Ambil progress
             progress = job.get_progress_percent()
             
@@ -1094,6 +1108,7 @@ def export_project_jobs_excel(request):
                 sub,
                 job.get_fokus_display(),
                 job.get_prioritas_display(),
+                jadwal_str,
                 progress
             ]
             
@@ -1114,7 +1129,8 @@ def export_project_jobs_excel(request):
     ws.column_dimensions['G'].width = 15
     ws.column_dimensions['H'].width = 12
     ws.column_dimensions['I'].width = 12
-    ws.column_dimensions['J'].width = 12
+    ws.column_dimensions['J'].width = 20
+    ws.column_dimensions['K'].width = 12
     
     # === 8. GENERATE FILENAME ===
     month_name = get_month_name_id(current_month)
@@ -1180,9 +1196,14 @@ def export_project_jobs_pdf(request):
     elif selected_line_id:
         all_jobs_team_base = all_jobs_team_base.filter(aset__parent__parent_id=selected_line_id)
     
-    # Filter untuk Project Jobs (semua, tanpa batasan tanggal)
+    # Filter untuk Project Jobs dengan bulan/tahun yang dipilih
+    first_day = datetime.date(current_year, current_month, 1)
+    last_day = datetime.date(current_year, current_month, calendar.monthrange(current_year, current_month)[1])
+    
     project_jobs = all_jobs_team_base.filter(
-        tipe_job='Project'
+        tipe_job='Project',
+        tanggal_pelaksanaan__tanggal__gte=first_day,
+        tanggal_pelaksanaan__tanggal__lte=last_day
     ).select_related(
         'pic', 
         'project',
