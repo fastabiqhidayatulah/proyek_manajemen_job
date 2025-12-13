@@ -265,10 +265,10 @@
                 <ul class="pagination">
                     {% if executions.has_previous %}
                         <li class="page-item">
-                            <a class="page-link" href="?page=1">Pertama</a>
+                            <a class="page-link" href="?page=1{% if tab %}&tab={{ tab }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if selected_month %}&month={{ selected_month }}{% endif %}{% if selected_year %}&year={{ selected_year }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}{% if sort_param %}&sort={{ sort_param }}{% endif %}">Pertama</a>
                         </li>
                         <li class="page-item">
-                            <a class="page-link" href="?page={{ executions.previous_page_number }}">Sebelumnya</a>
+                            <a class="page-link" href="?page={{ executions.previous_page_number }}{% if tab %}&tab={{ tab }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if selected_month %}&month={{ selected_month }}{% endif %}{% if selected_year %}&year={{ selected_year }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}{% if sort_param %}&sort={{ sort_param }}{% endif %}">Sebelumnya</a>
                         </li>
                     {% endif %}
 
@@ -279,17 +279,17 @@
                         </li>
                         {% else %}
                         <li class="page-item">
-                            <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                            <a class="page-link" href="?page={{ num }}{% if tab %}&tab={{ tab }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if selected_month %}&month={{ selected_month }}{% endif %}{% if selected_year %}&year={{ selected_year }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}{% if sort_param %}&sort={{ sort_param }}{% endif %}">{{ num }}</a>
                         </li>
                         {% endif %}
                     {% endfor %}
 
                     {% if executions.has_next %}
                         <li class="page-item">
-                            <a class="page-link" href="?page={{ executions.next_page_number }}">Berikutnya</a>
+                            <a class="page-link" href="?page={{ executions.next_page_number }}{% if tab %}&tab={{ tab }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if selected_month %}&month={{ selected_month }}{% endif %}{% if selected_year %}&year={{ selected_year }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}{% if sort_param %}&sort={{ sort_param }}{% endif %}">Berikutnya</a>
                         </li>
                         <li class="page-item">
-                            <a class="page-link" href="?page={{ executions.paginator.num_pages }}">Terakhir</a>
+                            <a class="page-link" href="?page={{ executions.paginator.num_pages }}{% if tab %}&tab={{ tab }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if selected_month %}&month={{ selected_month }}{% endif %}{% if selected_year %}&year={{ selected_year }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}{% if sort_param %}&sort={{ sort_param }}{% endif %}">Terakhir</a>
                         </li>
                     {% endif %}
                 </ul>
