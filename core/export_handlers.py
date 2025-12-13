@@ -20,15 +20,27 @@ def prepare_job_data_for_export(job_ids, export_type="preventif"):
     export_type: "preventif" atau "evaluasi"
     Returns: dict dengan structured data sesuai Google Apps Script template
     """
+    # Fetch jobs tapi MAINTAIN urutan dari job_ids array (penting untuk sort)
+    jobs_dict = {}
     jobs = Job.objects.filter(id__in=job_ids).select_related(
         'aset', 'aset__parent', 'aset__parent__parent'
     ).prefetch_related('personil_ditugaskan', 'tanggal_pelaksanaan')
     
-    if not jobs.exists():
+    # Convert ke dict for ordering
+    for job in jobs:
+        jobs_dict[job.id] = job
+    
+    # Rebuild jobs list dalam urutan job_ids (PENTING: respect sort order dari frontend)
+    jobs_ordered = []
+    for job_id in job_ids:
+        if job_id in jobs_dict:
+            jobs_ordered.append(jobs_dict[job_id])
+    
+    if not jobs_ordered:
         return None
     
     # Ambil first job untuk tanggal (semua job seharusnya same day)
-    first_job = jobs.first()
+    first_job = jobs_ordered[0]
     tanggal = first_job.tanggal_pelaksanaan.first().tanggal if first_job.tanggal_pelaksanaan.exists() else None
     
     # Kumpulkan unique values
@@ -37,7 +49,8 @@ def prepare_job_data_for_export(job_ids, export_type="preventif"):
     prioritas_set = set()
     job_data_list = []
     
-    for job in jobs:
+    # Process jobs dalam urutan yang sudah di-sort (dari frontend)
+    for job in jobs_ordered:
         # Collect unique mesin/sub mesin
         if job.aset:
             if job.aset.level == 2:  # Sub Mesin
