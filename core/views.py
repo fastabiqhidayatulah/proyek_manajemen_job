@@ -838,6 +838,16 @@ def export_daily_jobs_pdf(request):
     selected_mesin_id = request.GET.get('mesin', '')
     selected_sub_mesin_id = request.GET.get('sub_mesin', '')
     
+    # === 3b. LOGIKA SORT ===
+    sort_by = request.GET.get('sort_by', 'nama_pekerjaan')
+    sort_order = request.GET.get('sort_order', 'asc')
+    
+    # Build sort field (add '-' prefix for descending)
+    if sort_order == 'desc':
+        sort_field = f'-{sort_by}'
+    else:
+        sort_field = sort_by
+    
     # === 4. LOGIKA DATA TABEL ===
     all_jobs_team_base = Job.objects.filter(team_query, tipe_job='Daily').distinct()
     
@@ -859,7 +869,7 @@ def export_daily_jobs_pdf(request):
             'personil_ditugaskan', 
             'tanggal_pelaksanaan',
             'attachments'
-        ).order_by('nama_pekerjaan').distinct()
+        ).order_by(sort_field).distinct()
     else:
         # Build filter dynamically based on what user selected
         date_filter = Q()
@@ -895,7 +905,7 @@ def export_daily_jobs_pdf(request):
             'personil_ditugaskan', 
             'tanggal_pelaksanaan',
             'attachments'
-        ).order_by('nama_pekerjaan').distinct()
+        ).order_by(sort_field).distinct()
 
     # === 5. HITUNG SUMMARY ===
     summary = calculate_daily_jobs_summary(daily_job_data)
@@ -980,6 +990,16 @@ def export_daily_jobs_excel(request):
     # Flag untuk menentukan apakah filter aktif atau "Semua"
     filter_all_dates = (current_month == 0 and current_year == 0) and not has_date_range
     
+    # === 1c. LOGIKA SORT ===
+    sort_by = request.GET.get('sort_by', 'nama_pekerjaan')
+    sort_order = request.GET.get('sort_order', 'asc')
+    
+    # Build sort field (add '-' prefix for descending)
+    if sort_order == 'desc':
+        sort_field = f'-{sort_by}'
+    else:
+        sort_field = sort_by
+    
     # === 2. AMBIL DATA JOBS SESUAI FILTER ===
     # Filter berdasarkan bulan dan tahun (sama seperti dashboard)
     if filter_all_dates:
@@ -992,7 +1012,7 @@ def export_daily_jobs_excel(request):
             'aset__parent__parent'
         ).prefetch_related(
             'tanggal_pelaksanaan'
-        ).order_by('nama_pekerjaan').distinct()
+        ).order_by(sort_field).distinct()
     else:
         # Build filter dynamically based on what user selected
         date_filter = Q()
@@ -1028,7 +1048,7 @@ def export_daily_jobs_excel(request):
             'aset__parent__parent'
         ).prefetch_related(
             'tanggal_pelaksanaan'
-        ).order_by('nama_pekerjaan').distinct()
+        ).order_by(sort_field).distinct()
     
     # === 3. BUAT WORKBOOK EXCEL ===
     wb = Workbook()
