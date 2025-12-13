@@ -173,7 +173,7 @@
                     <th class="sortable-header" onclick="sortTable('mesin')">Mesin <span class="sort-icon">⇅</span></th>
                     <th class="sortable-header" onclick="sortTable('submesin')">Sub Mesin <span class="sort-icon">⇅</span></th>
                     <th class="sortable-header" onclick="sortTable('pic')">PIC <span class="sort-icon">⇅</span></th>
-                    <th>Personil</th>
+                    <th class="sortable-header" onclick="sortTable('personil')">Personil <span class="sort-icon">⇅</span></th>
                     <th class="sortable-header" onclick="sortTable('prioritas')">Prioritas <span class="sort-icon">⇅</span></th>
                     <th class="sortable-header" onclick="sortTable('fokus')">Fokus <span class="sort-icon">⇅</span></th>
                     <th class="sortable-header" onclick="sortTable('progress')">Progress <span class="sort-icon">⇅</span></th>
@@ -190,6 +190,7 @@
                     data-nama_pekerjaan="{{ job.nama_pekerjaan|lower }}"
                     data-tipe="{{ job.tipe_job|lower }}"
                     data-pic="{{ job.pic.username|lower }}"
+                    data-personil="{{ job.personil_ditugaskan.all.0.nama_lengkap|default:''|lower }}"
                     data-prioritas="{{ job.get_prioritas_display|lower }}"
                     data-fokus="{{ job.get_fokus_display|lower }}">
                     <td>
