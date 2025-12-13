@@ -1012,7 +1012,7 @@ def export_daily_jobs_excel(request):
             'aset__parent__parent'
         ).prefetch_related(
             'tanggal_pelaksanaan'
-        ).order_by(sort_field).distinct()
+        ).distinct()
     else:
         # Build filter dynamically based on what user selected
         date_filter = Q()
@@ -1048,7 +1048,34 @@ def export_daily_jobs_excel(request):
             'aset__parent__parent'
         ).prefetch_related(
             'tanggal_pelaksanaan'
-        ).order_by(sort_field).distinct()
+        ).distinct()
+    
+    # === 2b. SORT DATA DENGAN PYTHON (LEBIH FLEXIBLE) ===
+    # Convert ke list dulu untuk Python sorting
+    job_data = list(job_data)
+    
+    # Define sort key function
+    def get_sort_value(job):
+        if sort_by == 'nama_pekerjaan':
+            return job.nama_pekerjaan.lower()
+        elif sort_by == 'pic':
+            return (job.pic.username if job.pic else '').lower()
+        elif sort_by == 'prioritas':
+            return job.prioritas if job.prioritas else 999
+        elif sort_by == 'fokus':
+            return job.get_fokus_display().lower() if job.fokus else ''
+        elif sort_by == 'aset':
+            return (job.aset.nama if job.aset else '').lower()
+        else:
+            return job.nama_pekerjaan.lower()
+    
+    # Apply sort
+    reverse_sort = (sort_order == 'desc')
+    try:
+        job_data.sort(key=get_sort_value, reverse=reverse_sort)
+    except Exception as e:
+        # If sort fails, keep original order
+        pass
     
     # === 3. BUAT WORKBOOK EXCEL ===
     wb = Workbook()
