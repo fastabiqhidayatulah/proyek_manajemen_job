@@ -324,10 +324,24 @@ function toggleSelectAll() {
     updateSelectedCount();
 }
 
-// Track selected jobs
+// Track selected jobs - RESPECT CURRENT SORT ORDER
 function getSelectedJobIds() {
     const checkboxes = document.querySelectorAll('.job-checkbox:checked');
-    return Array.from(checkboxes).map(cb => parseInt(cb.dataset.jobId));
+    // Get rows in their current DOM order (which reflects current sort)
+    const selectedRows = [];
+    document.querySelectorAll('.job-row').forEach(row => {
+        if (row.style.display !== 'none') {  // Only visible rows
+            const checkbox = row.querySelector('.job-checkbox');
+            if (checkbox && checkbox.checked) {
+                selectedRows.push({
+                    id: parseInt(checkbox.dataset.jobId),
+                    element: row
+                });
+            }
+        }
+    });
+    // Return IDs in sorted order
+    return selectedRows.map(item => item.id);
 }
 
 // Update row styling saat checkbox berubah
