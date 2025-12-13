@@ -990,24 +990,48 @@ def export_daily_jobs_excel(request):
     # Flag untuk menentukan apakah filter aktif atau "Semua"
     filter_all_dates = (current_month == 0 and current_year == 0) and not has_date_range
     
-    # === 1c. LOGIKA SORT ===
+    # === 1c. LOGIKA FILTER PIC ===
+    subordinate_ids = user.get_all_subordinates()
+    selected_pic_id = request.GET.get('pic', '')
+    
+    if selected_pic_id == 'my_jobs':
+        team_query = Q(pic=user)
+    elif selected_pic_id:
+        try:
+            selected_user = get_object_or_404(CustomUser, id=int(selected_pic_id))
+            selected_user_sub_ids = selected_user.get_all_subordinates()
+            team_ids = selected_user_sub_ids + [selected_user.id]
+            team_query = Q(pic_id__in=team_ids)
+        except (ValueError, CustomUser.DoesNotExist):
+            team_query = Q(pic=user) | Q(pic_id__in=subordinate_ids)
+    else:
+        team_query = Q(pic=user) | Q(pic_id__in=subordinate_ids)
+    
+    # === 1d. LOGIKA FILTER ASET ===
+    selected_line_id = request.GET.get('line', '')
+    selected_mesin_id = request.GET.get('mesin', '')
+    selected_sub_mesin_id = request.GET.get('sub_mesin', '')
+    
+    # === 1e. LOGIKA SORT ===
     sort_by = request.GET.get('sort_by', 'nama_pekerjaan')
     sort_order = request.GET.get('sort_order', 'asc')
     
-    # Build sort field (add '-' prefix for descending)
-    if sort_order == 'desc':
-        sort_field = f'-{sort_by}'
-    else:
-        sort_field = sort_by
-    
     # === 2. AMBIL DATA JOBS SESUAI FILTER ===
+    # Base query dengan filter PIC
+    all_jobs_team_base = Job.objects.filter(team_query, tipe_job='Daily').distinct()
+    
+    # Apply aset filters
+    if selected_sub_mesin_id:
+        all_jobs_team_base = all_jobs_team_base.filter(aset_id=selected_sub_mesin_id)
+    elif selected_mesin_id:
+        all_jobs_team_base = all_jobs_team_base.filter(aset__parent_id=selected_mesin_id)
+    elif selected_line_id:
+        all_jobs_team_base = all_jobs_team_base.filter(aset__parent__parent_id=selected_line_id)
+    
     # Filter berdasarkan bulan dan tahun (sama seperti dashboard)
     if filter_all_dates:
         # Ambil semua daily jobs tanpa filter tanggal
-        job_data = Job.objects.filter(
-            tipe_job='Daily',
-            project__isnull=True  # Hanya job tanpa project
-        ).select_related(
+        job_data = all_jobs_team_base.select_related(
             'pic',
             'aset__parent__parent'
         ).prefetch_related(
@@ -1040,10 +1064,7 @@ def export_daily_jobs_excel(request):
             except (ValueError, TypeError):
                 pass
         
-        job_data = Job.objects.filter(
-            tipe_job='Daily',
-            project__isnull=True  # Hanya job tanpa project
-        ).filter(date_filter).select_related(
+        job_data = all_jobs_team_base.filter(date_filter).select_related(
             'pic',
             'aset__parent__parent'
         ).prefetch_related(
