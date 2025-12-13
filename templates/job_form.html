@@ -13,7 +13,11 @@
 {% endblock %}
 
 {% block content %}
-<form method="post" enctype="multipart/form-data" id="job-form">
+{% if form.instance.id %}
+    <form method="post" enctype="multipart/form-data" id="job-form" action="{% url 'core:job_edit' form.instance.id %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}">
+{% else %}
+    <form method="post" enctype="multipart/form-data" id="job-form" action="{% url 'core:job_add' %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}">
+{% endif %}
     {% csrf_token %}
     
     <div class="row">
@@ -79,27 +83,35 @@
                     Aset, Penugasan & Kategori
                 </div>
                 <div class="card-body p-4">
+                    <div class="alert alert-info alert-sm mb-3" role="alert">
+                        <i class="bi bi-info-circle"></i>
+                        <strong>Panduan Aset:</strong> Pilih <u>Line</u> (wajib). <u>Mesin</u> dan <u>Sub Mesin</u> opsional. 
+                        Jika hanya pilih Line, pekerjaan berlaku untuk semua mesin. Jika pilih Line+Mesin, berlaku untuk semua sub-mesin di mesin tersebut.
+                    </div>
                     <h6 class="text-muted">Pilih Aset (Line/Mesin)</h6>
                     <div class="row g-3 mb-3">
                         <div class="col-md-4">
                             <label for="{{ form.line.id_for_label }}" class="form-label">
-                                {{ form.line.label }}
+                                {{ form.line.label }} <span class="text-danger">*</span>
                             </label>
                             {{ form.line }}
+                            <small class="form-text text-muted d-block mt-1">Wajib dipilih</small>
                             <div class="text-danger small">{{ form.line.errors }}</div>
                         </div>
                         <div class="col-md-4">
                             <label for="{{ form.mesin.id_for_label }}" class="form-label">
-                                {{ form.mesin.label }}
+                                {{ form.mesin.label }} <span class="badge bg-secondary">Opsional</span>
                             </label>
                             {{ form.mesin }}
+                            <small class="form-text text-muted d-block mt-1">Kosongkan untuk semua mesin</small>
                             <div class="text-danger small">{{ form.mesin.errors }}</div>
                         </div>
                         <div class="col-md-4">
                             <label for="{{ form.sub_mesin.id_for_label }}" class="form-label">
-                                {{ form.sub_mesin.label }}
+                                {{ form.sub_mesin.label }} <span class="badge bg-secondary">Opsional</span>
                             </label>
                             {{ form.sub_mesin }}
+                            <small class="form-text text-muted d-block mt-1">Kosongkan untuk semua sub-mesin</small>
                             <div class="text-danger small">{{ form.sub_mesin.errors }}</div>
                         </div>
                     </div>
@@ -456,5 +468,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
 });
+
 </script>
 {% endblock %}

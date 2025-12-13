@@ -1,7 +1,8 @@
 {% load core_filters %}
 
+<!-- DEBUG: job_type={{ job_type }} -->
 <div class="table-responsive">
-    <table class="table table-bordered table-striped table-hover mb-0 table-job-list">
+    <table class="table table-bordered table-striped table-hover mb-0 table-job-list {% if job_type == 'daily' %}job-table-daily{% elif job_type == 'project' %}job-table-project{% endif %}">
         <thead class="text-center align-middle">
             <tr>
                 <th>No</th>
@@ -28,12 +29,65 @@
 {% else %}<strong>{{ data.nama_pekerjaan }}</strong>{% if data.assigned_to %}{% if data.pic == request.user %}<br><span class="badge text-bg-warning"><i class="bi bi-arrow-right-circle"></i> Assign To: {{ data.assigned_to.username }}</span>{% else %}<br><span class="badge text-bg-secondary"><i class="bi bi-arrow-left-circle"></i> Assign From: {{ data.pic.username }}</span>{% endif %}{% endif %}{% endif %}</td>
 <td class="text-center">{{ data.pic.username }}</td>
 <td class="p-1"><div class="d-flex flex-wrap">{% for personil in data.personil_ditugaskan.all %}<span class="badge badge-personil">{{ personil.nama_lengkap }}</span>{% empty %}<span class="text-muted small"><em>(Belum ada)</em></span>{% endfor %}</div></td>
-<td>{{ data.aset.parent.parent.nama|default:'-' }}</td>
-<td>{{ data.aset.parent.nama|default:'-' }}</td>
-<td>{{ data.aset.nama|default:'-' }}</td>
+<!-- Display aset based on actual level (0=Line, 1=Mesin, 2=Sub Mesin) -->
+{% if data.aset.level == 0 %}
+    <!-- Asset is Line level -->
+    <td><strong>{{ data.aset.nama }}</strong></td>
+    <td class="text-muted">-</td>
+    <td class="text-muted">-</td>
+{% elif data.aset.level == 1 %}
+    <!-- Asset is Mesin level -->
+    <td>{{ data.aset.parent.nama|default:'-' }}</td>
+    <td><strong>{{ data.aset.nama }}</strong></td>
+    <td class="text-muted">-</td>
+{% else %}
+    <!-- Asset is Sub Mesin level (default) -->
+    <td>{{ data.aset.parent.parent.nama|default:'-' }}</td>
+    <td>{{ data.aset.parent.nama|default:'-' }}</td>
+    <td><strong>{{ data.aset.nama }}</strong></td>
+{% endif %}
 <td class="text-center">{{ data.get_fokus_display }}</td>
 <td class="text-center"><span class="badge {% if data.prioritas == 'P1' %}badge-p1{% elif data.prioritas == 'P2' %}badge-p2{% elif data.prioritas == 'P3' %}badge-p3{% else %}badge-p4{% endif %}">{{ data.get_prioritas_display }}</span></td>
-<td class="p-1"><div class="jadwal-btn-list">{% for jd in data.tanggal_pelaksanaan.all|slice:":10" %}<button type="button" class="btn jadwal-btn {% if jd.status == 'Done' %}btn-success{% endif %}{% if jd.status == 'Open' %}btn-outline-danger{% endif %}{% if jd.status == 'Pending' %}btn-warning{% endif %}{% if jd.status == 'N/A' %}btn-secondary{% endif %}" data-bs-toggle="modal" data-bs-target="#jobDateModal" data-jobdate-id="{{ jd.id }}" data-jobdate-status="{{ jd.status }}" data-jobdate-catatan="{{ jd.catatan|default:'' }}" data-jobdate-info="{{ data.nama_pekerjaan }} ({{ jd.tanggal|date:'d M Y' }})">{{ jd.tanggal|date:"d M" }} ({{ jd.status }})</button>{% endfor %}{% if data.tanggal_pelaksanaan.all|length > 10 %}<span class="text-muted small">(...dan lainnya)</span>{% endif %}</div></td>
+<td class="p-1">
+<div class="jadwal-container">
+    <!-- Tampilkan 5 item pertama inline -->
+    <div class="jadwal-btn-list">
+        {% for jd in data.tanggal_pelaksanaan.all|slice:":5" %}
+        <button type="button" class="btn jadwal-btn {% if jd.status == 'Done' %}btn-success{% endif %}{% if jd.status == 'Open' %}btn-outline-danger{% endif %}{% if jd.status == 'Pending' %}btn-warning{% endif %}{% if jd.status == 'N/A' %}btn-secondary{% endif %}" data-bs-toggle="modal" data-bs-target="#jobDateModal" data-jobdate-id="{{ jd.id }}" data-jobdate-status="{{ jd.status }}" data-jobdate-catatan="{{ jd.catatan|default:'' }}" data-jobdate-info="{{ data.nama_pekerjaan }} ({{ jd.tanggal|date:'d M Y' }})">{{ jd.tanggal|date:"d M" }} ({{ jd.status }})</button>
+        {% endfor %}
+    </div>
+    
+    <!-- Jika ada lebih dari 5 item, tampilkan toggle button untuk lihat semua dalam modal -->
+    {% if data.tanggal_pelaksanaan.all|length > 5 %}
+    <div class="jadwal-toggle-wrapper" style="margin-top: 6px;">
+        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#jadwalLengkapModal-{{ data.id }}" title="Lihat semua tanggal">
+            <i class="bi bi-plus-circle"></i> +{{ data.tanggal_pelaksanaan.all|length|add:"-5" }} lainnya
+        </button>
+    </div>
+    
+    <!-- Modal untuk menampilkan semua tanggal -->
+    <div class="modal fade" id="jadwalLengkapModal-{{ data.id }}" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Semua Jadwal Rencana - {{ data.nama_pekerjaan }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="d-flex flex-wrap gap-2">
+                        {% for jd in data.tanggal_pelaksanaan.all %}
+                        <button type="button" class="btn btn-sm {% if jd.status == 'Done' %}btn-success{% elif jd.status == 'Open' %}btn-outline-danger{% elif jd.status == 'Pending' %}btn-warning{% else %}btn-secondary{% endif %}" data-bs-toggle="modal" data-bs-target="#jobDateModal" data-bs-dismiss="modal" data-jobdate-id="{{ jd.id }}" data-jobdate-status="{{ jd.status }}" data-jobdate-catatan="{{ jd.catatan|default:'' }}" data-jobdate-info="{{ data.nama_pekerjaan }} ({{ jd.tanggal|date:'d M Y' }})">
+                            {{ jd.tanggal|date:"d M Y" }} - {{ jd.status }}
+                        </button>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+</td>
 <td class="text-center"><div class="progress" style="min-width:60px" role="progressbar" aria-valuenow="{{ data.get_progress_percent }}" aria-valuemin="0" aria-valuemax="100"><div class="progress-bar bg-success" style="width:{{ data.get_progress_percent }}%">{{ data.get_progress_percent }}%</div></div></td>
 <td class="p-1">
     <div class="d-grid" style="grid-template-columns: repeat(2, 1fr); gap: 4px; max-width: 100px;">
@@ -46,7 +100,7 @@
            title="{{ att.deskripsi|default:att.file.name }}"
            onclick="loadAttachmentGallery({{ data.id }}, {{ forloop.counter0 }}); return false;">
             {% if att.tipe_file == 'Image' %}
-                <img src="{{ att.file.url }}" class="thumbnail-pic" alt="{{ att.deskripsi }}" style="width: 45px; height: 45px;">
+                <img src="{% if att.file %}{{ att.file.url }}{% endif %}" class="thumbnail-pic" alt="{{ att.deskripsi }}" style="width: 45px; height: 45px; object-fit: cover;">
             {% else %}
                 <i class="bi bi-file-earmark-text-fill" style="font-size: 2rem; color: #6c757d;"></i>
             {% endif %}
@@ -64,6 +118,22 @@
     </div>
     {% endif %}
 </td>
+
+<!-- Embed attachment data for JavaScript -->
+<script>
+if (!window.jobAttachments) window.jobAttachments = {};
+window.jobAttachments[{{ data.id }}] = [
+    {% for att in data.attachments.all %}
+    {
+        id: {{ att.id }},
+        filename: "{{ att.file.name|escapejs }}",
+        url: "{{ att.file.url }}",
+        deskripsi: "{{ att.deskripsi|default:''|escapejs }}",
+        tipe_file: "{{ att.tipe_file }}"
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+];
+</script>
 <td class="text-center">{% if data|can_edit_job:request.user %}<a href="{% url 'core:job_edit' data.id %}" class="btn btn-sm btn-outline-warning py-0 px-1" title="Edit Job"><i class="bi bi-pencil"></i></a> <a href="{% url 'core:job_delete' data.id %}" class="btn btn-sm btn-outline-danger py-0 px-1" title="Hapus Job" onclick="return confirm('Anda yakin ingin menghapus job: {{ data.nama_pekerjaan }}?')"><i class="bi bi-trash"></i></a>{% endif %}</td>
 </tr>
 {% empty %}

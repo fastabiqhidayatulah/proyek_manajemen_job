@@ -119,6 +119,36 @@
         </div>
     </div>
 </div>
+
+<!-- Attachment Gallery Modal -->
+<div class="modal fade" id="attachmentModal" tabindex="-1" aria-labelledby="attachmentModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="attachmentModalLabel">Galeri Lampiran</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="attachmentCarousel" class="carousel slide" data-bs-ride="carousel">
+                    <div class="carousel-inner" id="carouselInner">
+                        <!-- Filled by JavaScript -->
+                    </div>
+                    <button class="carousel-control-prev" type="button" data-bs-target="#attachmentCarousel" data-bs-slide="prev">
+                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                        <span class="visually-hidden">Previous</span>
+                    </button>
+                    <button class="carousel-control-next" type="button" data-bs-target="#attachmentCarousel" data-bs-slide="next">
+                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                        <span class="visually-hidden">Next</span>
+                    </button>
+                </div>
+                <div id="attachmentInfo" class="mt-3 text-center">
+                    <!-- Filled by JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %} 
 
 {% block extra_js %}
@@ -146,5 +176,46 @@ document.addEventListener('DOMContentLoaded', function() {
         modalCatatanTextarea.value = jobDateCatatan;
     });
 });
+
+// Function untuk load attachment gallery (Simple version)
+function loadAttachmentGallery(jobId, startIndex) {
+    // Data dari HTML (embedded dalam template)
+    const jobData = window.jobAttachments && window.jobAttachments[jobId];
+    
+    if (!jobData || jobData.length === 0) {
+        document.getElementById('carouselInner').innerHTML = '<p class="text-center">Tidak ada lampiran</p>';
+        return;
+    }
+    
+    const carouselInner = document.getElementById('carouselInner');
+    carouselInner.innerHTML = '';
+    
+    jobData.forEach((att, index) => {
+        const isActive = index === startIndex ? 'active' : '';
+        const carouselItem = document.createElement('div');
+        carouselItem.className = `carousel-item ${isActive}`;
+        
+        if (att.tipe_file === 'Image') {
+            carouselItem.innerHTML = `<img src="${att.url}" class="d-block w-100" style="max-height: 400px; object-fit: contain; background: #f0f0f0;">`;
+        } else {
+            carouselItem.innerHTML = `<div class="d-flex justify-content-center align-items-center" style="height: 400px; background: #f0f0f0;"><i class="bi bi-file-earmark" style="font-size: 3rem; color: #999;"></i></div>`;
+        }
+        carouselInner.appendChild(carouselItem);
+    });
+    
+    // Update info
+    const currentAtt = jobData[startIndex];
+    document.getElementById('attachmentInfo').innerHTML = `
+        <strong>${currentAtt.deskripsi || currentAtt.filename}</strong><br>
+        <small class="text-muted">Tipe: ${currentAtt.tipe_file} | ${startIndex + 1}/${jobData.length}</small>
+    `;
+    
+    // Re-initialize carousel
+    const carouselElement = document.getElementById('attachmentCarousel');
+    if (carouselElement.querySelector('.carousel-inner')) {
+        const carousel = new bootstrap.Carousel(carouselElement);
+        carousel.to(startIndex);
+    }
+}
 </script>
 {% endblock %}

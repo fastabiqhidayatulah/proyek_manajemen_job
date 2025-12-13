@@ -1,0 +1,521 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ title }} - Preventive Job V2{% endblock %}
+
+{% block content %}
+
+<style>
+    /* Styling untuk searchable select */
+    .searchable-select {
+        padding: 8px 12px;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        font-size: 14px;
+        max-height: 250px;
+        overflow-y: auto;
+    }
+    
+    .searchable-select:focus {
+        border-color: #80bdff;
+        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+        outline: none;
+    }
+    
+    .searchable-select option {
+        padding: 8px;
+        line-height: 1.5;
+    }
+    
+    .searchable-select option:hover {
+        background-color: #007bff;
+        color: white;
+    }
+    
+    .searchable-select option:checked {
+        background-color: #007bff;
+        color: white;
+    }
+</style>
+
+<div class="container-fluid mt-4">
+    <!-- PAGE HEADER -->
+    <div class="row mb-4">
+        <div class="col">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2>{{ title }}</h2>
+                <a href="{% url 'preventive_jobs:index' %}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Kembali ke Preventive
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- FORM PREVENTIVE JOB TEMPLATE -->
+    <form method="POST" class="needs-validation" novalidate>
+        {% csrf_token %}
+        
+        <!-- Hidden field untuk next parameter -->
+        {% if next %}
+            <input type="hidden" name="next" value="{{ next }}">
+        {% endif %}
+
+        <div class="row">
+            <!-- SECTION 1: INFO DASAR -->
+            <div class="col-md-8">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>1️⃣ Informasi Dasar</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label for="{{ form.nama_pekerjaan.id_for_label }}">{{ form.nama_pekerjaan.label }} *</label>
+                            {{ form.nama_pekerjaan }}
+                            {% if form.nama_pekerjaan.errors %}
+                            <div class="invalid-feedback d-block">{{ form.nama_pekerjaan.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-group">
+                            <label for="{{ form.deskripsi.id_for_label }}">{{ form.deskripsi.label }}</label>
+                            {{ form.deskripsi }}
+                            {% if form.deskripsi.errors %}
+                            <div class="invalid-feedback d-block">{{ form.deskripsi.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="{{ form.fokus.id_for_label }}">{{ form.fokus.label }} *</label>
+                                    {{ form.fokus }}
+                                    {% if form.fokus.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.fokus.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="{{ form.kategori.id_for_label }}">{{ form.kategori.label }} *</label>
+                                    {{ form.kategori }}
+                                    {% if form.kategori.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.kategori.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="{{ form.prioritas.id_for_label }}">{{ form.prioritas.label }} *</label>
+                            {{ form.prioritas }}
+                            {% if form.prioritas.errors %}
+                            <div class="invalid-feedback d-block">{{ form.prioritas.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECTION 2: JADWAL & INTERVAL -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>2️⃣ Jadwal & Interval Pengulangan</h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- SCHEDULE TYPE RADIO -->
+                        <div class="form-group mb-4">
+                            <label>{{ form.schedule_type.label }} *</label>
+                            <div class="schedule-type-group">
+                                {% for radio in form.schedule_type %}
+                                <div class="form-check">
+                                    {{ radio.tag }}
+                                    <label class="form-check-label" for="{{ radio.id_for_label }}">
+                                        {{ radio.choice_label }}
+                                    </label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% if form.schedule_type.errors %}
+                            <div class="invalid-feedback d-block">{{ form.schedule_type.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- INTERVAL HARI (untuk interval-based) -->
+                        <div id="interval_section" class="form-group">
+                            <label for="{{ form.interval_hari.id_for_label }}">{{ form.interval_hari.label }} *</label>
+                            {{ form.interval_hari }}
+                            <small class="form-text text-muted">Contoh: 1 (harian), 7 (mingguan), 30 (bulanan), 365 (tahunan)</small>
+                            {% if form.interval_hari.errors %}
+                            <div class="invalid-feedback d-block">{{ form.interval_hari.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- CUSTOM DATES PICKER (untuk custom schedule) -->
+                        <div id="custom_dates_section" class="form-group" style="display: none;">
+                            <label>Pilih Tanggal Setiap Bulan *</label>
+                            <div class="alert alert-info mb-3">
+                                <small>💡 Klik tanggal yang Anda inginkan. Contoh: 2, 7, 14, 28 = maintenance pada tgl 2, 7, 14, 28 setiap bulannya.</small>
+                            </div>
+                            <div class="date-picker-grid" id="date_picker_grid" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px;">
+                                <!-- Akan di-generate oleh JavaScript -->
+                            </div>
+                            {{ form.custom_dates }}
+                            <div class="mt-2">
+                                <small id="selected_dates_display" class="text-success"></small>
+                            </div>
+                            {% if form.custom_dates.errors %}
+                            <div class="invalid-feedback d-block">{{ form.custom_dates.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="flatpickr_tanggal_mulai">{{ form.tanggal_mulai.label }} *</label>
+                                    <input type="text" 
+                                           id="flatpickr_tanggal_mulai" 
+                                           name="tanggal_mulai" 
+                                           class="form-control" 
+                                           placeholder="Klik untuk memilih tanggal..."
+                                           value="{% if form.instance.pk %}{{ form.instance.tanggal_mulai|date:'Y-m-d' }}{% endif %}">
+                                    {% if form.tanggal_mulai.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.tanggal_mulai.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="flatpickr_tanggal_berakhir">{{ form.tanggal_berakhir.label }}</label>
+                                    <input type="text" 
+                                           id="flatpickr_tanggal_berakhir" 
+                                           name="tanggal_berakhir" 
+                                           class="form-control" 
+                                           placeholder="Klik untuk memilih tanggal (opsional)..."
+                                           value="{% if form.instance.pk and form.instance.tanggal_berakhir %}{{ form.instance.tanggal_berakhir|date:'Y-m-d' }}{% endif %}">
+                                    <small class="form-text text-muted">Kosongkan untuk ongoing</small>
+                                    {% if form.tanggal_berakhir.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.tanggal_berakhir.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SIDEBAR: MESIN & PIC -->
+            <div class="col-md-4">
+                <!-- SECTION 3: PILIH MESIN -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>3️⃣ Pilih Mesin/Aset</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label for="{{ form.aset_mesin.id_for_label }}">{{ form.aset_mesin.label }} *</label>
+                            <!-- SEARCH INPUT -->
+                            <input type="text" 
+                                   id="aset_search" 
+                                   class="form-control mb-2" 
+                                   placeholder="🔍 Cari mesin/aset..."
+                                   style="font-size: 14px;">
+                            <!-- SELECT BOX dengan style bagus -->
+                            <select id="aset_mesin_select" 
+                                    name="aset_mesin" 
+                                    multiple 
+                                    class="form-control searchable-select"
+                                    style="min-height: 200px;">
+                                {% for value, label in form.aset_mesin.field.choices %}
+                                    <option value="{{ value }}" 
+                                            {% if value in form.aset_mesin.value %}selected{% endif %}>
+                                        {{ label }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            <small class="form-text text-muted d-block mt-2">
+                                💡 Tips: Gunakan CTRL+Click untuk pilih multiple, atau Shift+Click untuk range
+                            </small>
+                            {% if form.aset_mesin.errors %}
+                            <div class="invalid-feedback d-block">{{ form.aset_mesin.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECTION 4: PENUGASAN & NOTIFIKASI -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>4️⃣ Penugasan & Notifikasi</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label for="{{ form.pic.id_for_label }}">{{ form.pic.label }} *</label>
+                            {{ form.pic }}
+                            {% if form.pic.errors %}
+                            <div class="invalid-feedback d-block">{{ form.pic.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-group">
+                            <label for="{{ form.checklist_template.id_for_label }}">{{ form.checklist_template.label }}</label>
+                            <!-- SEARCH INPUT -->
+                            <input type="text" 
+                                   id="checklist_search" 
+                                   class="form-control mb-2" 
+                                   placeholder="🔍 Cari checklist..."
+                                   autocomplete="off"
+                                   style="font-size: 14px;">
+                            <!-- SELECT BOX dengan size untuk dropdown -->
+                            <select id="checklist_template_select" 
+                                    name="checklist_template" 
+                                    class="form-control"
+                                    size="6"
+                                    style="min-height: 120px;">
+                                <option value="">--- Pilih Checklist (Opsional) ---</option>
+                                {% for value, label in form.checklist_template.field.choices %}
+                                    {% if value != "" %}
+                                        <option value="{{ value }}" 
+                                                {% if value|stringformat:"s" == form.checklist_template.value|stringformat:"s" %}selected{% endif %}>
+                                            {{ label }}
+                                        </option>
+                                    {% endif %}
+                                {% endfor %}
+                            </select>
+                            <small class="form-text text-muted d-block mt-2">Pilih checklist yang harus diisi saat job ditutup</small>
+                            {% if form.checklist_template.errors %}
+                            <div class="invalid-feedback d-block">{{ form.checklist_template.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-group">
+                            <label>Notifikasi Reminder:</label>
+                            <div class="form-check">
+                                {{ form.notify_24h_before }}
+                                <label class="form-check-label" for="{{ form.notify_24h_before.id_for_label }}">
+                                    {{ form.notify_24h_before.label }}
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                {{ form.notify_2h_before }}
+                                <label class="form-check-label" for="{{ form.notify_2h_before.id_for_label }}">
+                                    {{ form.notify_2h_before.label }}
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                {{ form.notify_on_schedule }}
+                                <label class="form-check-label" for="{{ form.notify_on_schedule.id_for_label }}">
+                                    {{ form.notify_on_schedule.label }}
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-check">
+                                {{ form.is_active }}
+                                <span class="form-check-label">{{ form.is_active.label }}</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ACTION BUTTONS -->
+        <div class="row">
+            <div class="col">
+                {% if next %}
+                    <a href="{{ next }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Kembali
+                    </a>
+                {% else %}
+                    <a href="{% url 'preventive_jobs:template_list' %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Kembali
+                    </a>
+                {% endif %}
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Simpan Template
+                </button>
+            </div>
+        </div>
+    </form>
+
+</div>
+
+<script>
+    // Bootstrap form validation
+    (function() {
+        'use strict';
+        window.addEventListener('load', function() {
+            var forms = document.getElementsByClassName('needs-validation');
+            var validation = Array.prototype.filter.call(forms, function(form) {
+                form.addEventListener('submit', function(event) {
+                    if (form.checkValidity() === false) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                    }
+                    form.classList.add('was-validated');
+                }, false);
+            });
+        }, false);
+    })();
+
+    // DATE PICKER LOGIC FOR CUSTOM SCHEDULE
+    document.addEventListener('DOMContentLoaded', function() {
+        const scheduleTypeRadios = document.querySelectorAll('input[name="schedule_type"]');
+        const intervalSection = document.getElementById('interval_section');
+        const customDatesSection = document.getElementById('custom_dates_section');
+        const datePickerGrid = document.getElementById('date_picker_grid');
+        const customDatesInput = document.getElementById('custom_dates_input');
+        const selectedDatesDisplay = document.getElementById('selected_dates_display');
+        
+        let selectedDates = [];
+
+        // Load existing custom dates if editing
+        const existingCustomDates = {{ form.instance.custom_dates|safe }};
+        if (existingCustomDates && existingCustomDates.length > 0) {
+            selectedDates = existingCustomDates;
+        }
+
+        // Generate date picker grid (1-31)
+        function generateDatePicker() {
+            datePickerGrid.innerHTML = '';
+            for (let day = 1; day <= 31; day++) {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'btn btn-sm btn-outline-primary';
+                button.textContent = day;
+                button.style.padding = '10px';
+                button.style.fontSize = '14px';
+                
+                // Mark as selected if in selectedDates
+                if (selectedDates.includes(day)) {
+                    button.className = 'btn btn-sm btn-primary';
+                }
+                
+                button.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    
+                    if (selectedDates.includes(day)) {
+                        selectedDates = selectedDates.filter(d => d !== day);
+                        button.className = 'btn btn-sm btn-outline-primary';
+                    } else {
+                        selectedDates.push(day);
+                        selectedDates.sort((a, b) => a - b);
+                        button.className = 'btn btn-sm btn-primary';
+                    }
+                    
+                    updateDisplay();
+                });
+                
+                datePickerGrid.appendChild(button);
+            }
+            updateDisplay();
+        }
+
+        // Update display and hidden input
+        function updateDisplay() {
+            customDatesInput.value = JSON.stringify(selectedDates);
+            
+            if (selectedDates.length > 0) {
+                selectedDatesDisplay.textContent = `✅ Tanggal terpilih: ${selectedDates.join(', ')}`;
+            } else {
+                selectedDatesDisplay.textContent = '⚠️ Belum ada tanggal yang dipilih';
+            }
+        }
+
+        // Handle schedule type change
+        scheduleTypeRadios.forEach(radio => {
+            radio.addEventListener('change', function() {
+                if (this.value === 'interval') {
+                    intervalSection.style.display = 'block';
+                    customDatesSection.style.display = 'none';
+                } else if (this.value === 'custom') {
+                    intervalSection.style.display = 'none';
+                    customDatesSection.style.display = 'block';
+                    generateDatePicker();
+                }
+            });
+        });
+
+        // Initialize on page load
+        const currentScheduleType = document.querySelector('input[name="schedule_type"]:checked');
+        if (currentScheduleType) {
+            if (currentScheduleType.value === 'custom') {
+                intervalSection.style.display = 'none';
+                customDatesSection.style.display = 'block';
+                generateDatePicker();
+            } else {
+                intervalSection.style.display = 'block';
+                customDatesSection.style.display = 'none';
+            }
+        }
+
+        // === INITIALIZE FLATPICKR FOR DATE INPUTS ===
+        if (typeof flatpickr !== 'undefined') {
+            // Tanggal Mulai
+            flatpickr('#flatpickr_tanggal_mulai', {
+                mode: 'single',
+                dateFormat: 'Y-m-d',
+                locale: 'id',
+            });
+
+            // Tanggal Berakhir
+            flatpickr('#flatpickr_tanggal_berakhir', {
+                mode: 'single',
+                dateFormat: 'Y-m-d',
+                locale: 'id',
+            });
+        }
+
+        // === SEARCH FUNCTIONALITY FOR SELECT DROPDOWNS ===
+        
+        // Aset Mesin Search
+        const asetSearchInput = document.getElementById('aset_search');
+        const asetSelect = document.getElementById('aset_mesin_select');
+        
+        if (asetSearchInput && asetSelect) {
+            asetSearchInput.addEventListener('keyup', function() {
+                const searchText = this.value.toLowerCase().trim();
+                const options = asetSelect.querySelectorAll('option');
+                
+                options.forEach(option => {
+                    const optionText = option.textContent.toLowerCase();
+                    
+                    if (searchText === '' || optionText.includes(searchText)) {
+                        option.style.display = '';
+                    } else {
+                        option.style.display = 'none';
+                    }
+                });
+            });
+        }
+        
+        // Checklist Template Search - SIMPLIFIED
+        const checklistSearchInput = document.getElementById('checklist_search');
+        const checklistSelect = document.getElementById('checklist_template_select');
+        
+        if (checklistSearchInput && checklistSelect) {
+            checklistSearchInput.addEventListener('keypress', function(e) {
+                // Allow all keys, just for filtering
+                return true;
+            });
+            
+            checklistSearchInput.addEventListener('input', function(e) {
+                const searchText = this.value.toLowerCase().trim();
+                const options = checklistSelect.querySelectorAll('option');
+                
+                // Filter options
+                options.forEach(option => {
+                    const optionText = option.textContent.toLowerCase();
+                    
+                    if (option.value === "" || searchText === '' || optionText.includes(searchText)) {
+                        option.style.display = '';
+                    } else {
+                        option.style.display = 'none';
+                    }
+                });
+            });
+        }
+    });
+</script>
+
+{% endblock %}

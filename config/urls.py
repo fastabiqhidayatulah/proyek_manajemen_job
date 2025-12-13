@@ -9,8 +9,11 @@ from django.conf.urls.static import static
 urlpatterns = [
     path('admin/', admin.site.urls),
     
-    # <<< PENTING: Ini adalah baris yang kita tambahkan
+    # Core URLs (V1)
     path('', include('core.urls', namespace='core')),
+    
+    # Preventive Job URLs (V2)
+    path('preventive/', include('preventive_jobs.urls', namespace='preventive_jobs')),
 ]
 
 # Baris ini tetap di bawah (tidak berubah)

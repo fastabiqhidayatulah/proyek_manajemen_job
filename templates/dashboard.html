@@ -19,6 +19,18 @@
     .table-job-list td {
         vertical-align: middle;
         font-size: 0.9rem;
+        overflow: visible;
+    }
+
+    /* Ensure table doesn't clip fixed position elements */
+    .table-responsive {
+        overflow: visible !important;
+        position: relative;
+    }
+
+    table {
+        overflow: visible;
+        position: relative;
     }
 
     .badge-p1 {
@@ -108,7 +120,7 @@
 </div>
 
 <!-- ============================================== -->
-<!-- 2. DASBOR PROGRES MESIN (KONSEP BARU ANDA) -->
+<!-- 3. DASBOR PROGRES MESIN (KONSEP BARU ANDA) -->
 <!-- ============================================== -->
 {% if progress_data %}
 <!-- Ganti mb-3 menjadi mb-2 -->
@@ -142,7 +154,7 @@
 
 
 <!-- ============================================== -->
-<!-- 3. FILTER (DENGAN FILTER PIC & ASET BARU) -->
+<!-- 4. FILTER (DENGAN FILTER PIC & ASET BARU) -->
 <!-- ============================================== -->
 <!-- Ganti mb-3 menjadi mb-2 -->
 <div class="card shadow-sm mb-2">
@@ -150,7 +162,7 @@
     <div class="card-body p-2">
         <form method="get" action="{% url 'core:dashboard' %}" class="row g-2 align-items-end">
             <!-- Filter Bulan -->
-            <div class="col-md-2">
+            <div class="col-lg-auto col-md-2">
                 <label for="month-filter" class="form-label">Bulan</label>
                 <select name="month" id="month-filter" class="form-select form-select-sm">
                     <option value="0" {% if current_month == 0 %}selected{% endif %}>
@@ -164,7 +176,7 @@
                 </select>
             </div>
             <!-- Filter Tahun -->
-            <div class="col-md-1">
+            <div class="col-lg-auto col-md-2">
                 <label for="year-filter" class="form-label">Tahun</label>
                 <select name="year" id="year-filter" class="form-select form-select-sm">
                     <option value="0" {% if current_year == 0 %}selected{% endif %}>
@@ -178,9 +190,19 @@
                 </select>
             </div>
 
+            <!-- Filter Tanggal From - To (BARU) -->
+            <div class="col-lg-auto col-md-2">
+                <label for="date-from-filter" class="form-label">Dari Tanggal</label>
+                <input type="date" name="date_from" id="date-from-filter" class="form-control form-control-sm" value="{{ selected_date_from }}">
+            </div>
+            <div class="col-lg-auto col-md-2">
+                <label for="date-to-filter" class="form-label">Sampai Tanggal</label>
+                <input type="date" name="date_to" id="date-to-filter" class="form-control form-control-sm" value="{{ selected_date_to }}">
+            </div>
+
             <!-- === FILTER PIC === -->
-            <div class="col-md-2">
-                <label for="pic-filter" class="form-label">Filter PIC</label>
+            <div class="col-lg-auto col-md-2">
+                <label for="pic-filter" class="form-label">PIC</label>
                 <select name="pic" id="pic-filter" class="form-select form-select-sm">
                     <option value="" {% if not selected_pic_id %}selected{% endif %}>Semua Tim</option>
                     <option value="my_jobs" {% if selected_pic_id == 'my_jobs' %}selected{% endif %}>Job Saya</option>
@@ -195,7 +217,7 @@
 
             
             <!-- === FILTER ASET (BARU - CASCADING) === -->
-            <div class="col-md-2">
+            <div class="col-lg-auto col-md-2">
                 <label for="line-filter" class="form-label">Line</label>
                 <select name="line" id="line-filter" class="form-select form-select-sm">
                     <option value="">Semua Line</option>
@@ -207,7 +229,7 @@
                 </select>
             </div>
 
-<div class="col-md-2">
+            <div class="col-lg-auto col-md-2">
                 <label for="mesin-filter" class="form-label">Mesin</label>
                 <select name="mesin" id="mesin-filter" class="form-select form-select-sm">
                     <option value="">Semua Mesin</option>
@@ -219,7 +241,7 @@
                 </select>
             </div>
 
-            <div class="col-md-2">
+            <div class="col-lg-auto col-md-2">
                 <label for="sub-mesin-filter" class="form-label">Sub Mesin</label>
                 <select name="sub_mesin" id="sub-mesin-filter" class="form-select form-select-sm">
                     <option value="">Semua Sub</option>
@@ -231,36 +253,66 @@
                 </select>
             </div>
 
-            <div class="col-md-1">
-                <button type="submit" class="btn btn-primary btn-sm w-100">Filter</button>
+            <!-- Hidden fields untuk sort (untuk persistence) -->
+            <input type="hidden" name="sort" id="sort-filter" value="{{ sort_by }}">
+            <input type="hidden" name="order" id="order-filter" value="{{ sort_order }}">
+            <input type="hidden" name="page_size" id="page-size-filter" value="{{ page_size }}">
+
+            <div class="col-lg-auto col-md-2 d-flex gap-1 ms-auto">
+                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="bi bi-funnel"></i> Filter
+                </button>
+                <button type="button" class="btn btn-warning btn-sm" onclick="dashboardFilters.clear()" title="Hapus filter tersimpan">
+                    <i class="bi bi-arrow-counterclockwise"></i> Reset
+                </button>
             </div>
         </form>
+        <!-- Info Message -->
+        <div class="alert alert-info small mb-0 mt-2" role="alert">
+            <i class="bi bi-info-circle"></i>
+            <strong>Tip:</strong> Jika menggunakan filter "Dari/Sampai Tanggal", filter Bulan/Tahun akan diabaikan (Date Range lebih prioritas).
+        </div>
     </div>
 </div>
 
 <!-- ============================================== -->
-<!-- 4. TABEL DAILY JOB -->
+<!-- 5. TABEL DAILY JOB -->
 <!-- ============================================== -->
 <!-- Ganti mb-3 menjadi mb-2 -->
 <div class="card shadow-sm mb-2">
-    <div class="card-header fs-5 d-flex justify-content-between align-items-center">
-        <div>
-            <i class="bi bi-calendar-day"></i>
-            Daily Jobs ({{ daily_total_count }})
+    <div class="card-header fs-5">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <div>
+                <i class="bi bi-calendar-day"></i>
+                Daily Jobs ({{ daily_total_count }})
+            </div>
+            <div class="gap-2 d-flex">
+                <a href="{% url 'core:export_daily_jobs_pdf' %}?{{ filter_params }}" class="btn btn-sm btn-danger" target="_blank">
+                    <i class="bi bi-file-pdf"></i> Export PDF
+                </a>
+                <a href="{% url 'core:export_daily_jobs_excel' %}?{{ filter_params }}" class="btn btn-sm btn-success" target="_blank">
+                    <i class="bi bi-file-earmark-excel"></i> Export Excel
+                </a>
+            </div>
         </div>
-        <div class="gap-2 d-flex">
-            <a href="{% url 'core:export_daily_jobs_pdf' %}?{{ filter_params }}" class="btn btn-sm btn-danger" target="_blank">
-                <i class="bi bi-file-pdf"></i> Export PDF
-            </a>
-            <a href="{% url 'core:export_daily_jobs_excel' %}?{{ filter_params }}" class="btn btn-sm btn-success" target="_blank">
-                <i class="bi bi-file-earmark-excel"></i> Export Excel
-            </a>
+        <!-- Search Box untuk Daily Jobs -->
+        <div class="input-group input-group-sm">
+            <span class="input-group-text bg-white">
+                <i class="bi bi-search"></i>
+            </span>
+            <input type="text" id="daily-search" class="form-control form-control-sm" placeholder="Cari nama pekerjaan, PIC, atau notes...">
+            <button class="btn btn-outline-secondary btn-sm" type="button" id="daily-search-clear" title="Clear search">
+                <i class="bi bi-x-circle"></i>
+            </button>
         </div>
     </div>
     <div class="card-body p-0">
-        {% with job_data=daily_job_data filter_params=filter_params %}
-        {% include 'job_table.html' %}
-        {% endwith %}
+        <!-- Daily Jobs Table -->
+        <div class="daily-jobs-table" data-job-type="daily">
+            {% with job_data=daily_job_data filter_params=filter_params %}
+            {% include 'job_table.html' with job_type='daily' %}
+            {% endwith %}
+        </div>
     </div>
     <!-- Pagination Controls untuk Daily Jobs -->
     <div class="card-footer bg-light">
@@ -288,10 +340,10 @@
                     <ul class="pagination justify-content-end mb-0">
                         {% if daily_page_obj.has_previous %}
                         <li class="page-item">
-                            <a class="page-link" href="?daily_page=1&page_size={{ page_size }}&month={{ current_month }}&year={{ current_year }}&pic={{ selected_pic_id }}&line={{ selected_line_id }}&mesin={{ selected_mesin_id }}&sub_mesin={{ selected_sub_mesin_id }}&sort={{ sort_by }}&order={{ sort_order }}">Awal</a>
+                            <a class="page-link" href="?daily_page=1&page_size={{ page_size }}&month={{ current_month }}&year={{ current_year }}&pic={{ selected_pic_id }}&line={{ selected_line_id }}&mesin={{ selected_mesin_id }}&sub_mesin={{ selected_sub_mesin_id }}&sort={{ sort_by }}&order={{ sort_order }}{% if selected_date_from %}&date_from={{ selected_date_from }}{% endif %}{% if selected_date_to %}&date_to={{ selected_date_to }}{% endif %}">Awal</a>
                         </li>
                         <li class="page-item">
-                            <a class="page-link" href="?daily_page={{ daily_page_obj.previous_page_number }}&page_size={{ page_size }}&month={{ current_month }}&year={{ current_year }}&pic={{ selected_pic_id }}&line={{ selected_line_id }}&mesin={{ selected_mesin_id }}&sub_mesin={{ selected_sub_mesin_id }}&sort={{ sort_by }}&order={{ sort_order }}">← Sebelumnya</a>
+                            <a class="page-link" href="?daily_page={{ daily_page_obj.previous_page_number }}&page_size={{ page_size }}&month={{ current_month }}&year={{ current_year }}&pic={{ selected_pic_id }}&line={{ selected_line_id }}&mesin={{ selected_mesin_id }}&sub_mesin={{ selected_sub_mesin_id }}&sort={{ sort_by }}&order={{ sort_order }}{% if selected_date_from %}&date_from={{ selected_date_from }}{% endif %}{% if selected_date_to %}&date_to={{ selected_date_to }}{% endif %}">← Sebelumnya</a>
                         </li>
                         {% else %}
                         <li class="page-item disabled">
@@ -308,10 +360,10 @@
 
                         {% if daily_page_obj.has_next %}
                         <li class="page-item">
-                            <a class="page-link" href="?daily_page={{ daily_page_obj.next_page_number }}&page_size={{ page_size }}&month={{ current_month }}&year={{ current_year }}&pic={{ selected_pic_id }}&line={{ selected_line_id }}&mesin={{ selected_mesin_id }}&sub_mesin={{ selected_sub_mesin_id }}&sort={{ sort_by }}&order={{ sort_order }}">Selanjutnya →</a>
+                            <a class="page-link" href="?daily_page={{ daily_page_obj.next_page_number }}&page_size={{ page_size }}&month={{ current_month }}&year={{ current_year }}&pic={{ selected_pic_id }}&line={{ selected_line_id }}&mesin={{ selected_mesin_id }}&sub_mesin={{ selected_sub_mesin_id }}&sort={{ sort_by }}&order={{ sort_order }}{% if selected_date_from %}&date_from={{ selected_date_from }}{% endif %}{% if selected_date_to %}&date_to={{ selected_date_to }}{% endif %}">Selanjutnya →</a>
                         </li>
                         <li class="page-item">
-                            <a class="page-link" href="?daily_page={{ daily_paginator.num_pages }}&page_size={{ page_size }}&month={{ current_month }}&year={{ current_year }}&pic={{ selected_pic_id }}&line={{ selected_line_id }}&mesin={{ selected_mesin_id }}&sub_mesin={{ selected_sub_mesin_id }}&sort={{ sort_by }}&order={{ sort_order }}">Akhir</a>
+                            <a class="page-link" href="?daily_page={{ daily_paginator.num_pages }}&page_size={{ page_size }}&month={{ current_month }}&year={{ current_year }}&pic={{ selected_pic_id }}&line={{ selected_line_id }}&mesin={{ selected_mesin_id }}&sub_mesin={{ selected_sub_mesin_id }}&sort={{ sort_by }}&order={{ sort_order }}{% if selected_date_from %}&date_from={{ selected_date_from }}{% endif %}{% if selected_date_to %}&date_to={{ selected_date_to }}{% endif %}">Akhir</a>
                         </li>
                         {% else %}
                         <li class="page-item disabled">
@@ -329,28 +381,43 @@
 </div>
 
 <!-- ============================================== -->
-<!-- 5. TABEL PROJECT JOB (Struktur sama) -->
+<!-- 6. TABEL PROJECT JOB (Struktur sama) -->
 <!-- ============================================== -->
 <!-- Ganti mb-3 menjadi mb-2 -->
 <div class="card shadow-sm mb-2">
-    <div class="card-header fs-5 d-flex justify-content-between align-items-center">
-        <div>
-            <i class="bi bi-diagram-3-fill"></i>
-            Project Jobs ({{ project_total_count }})
+    <div class="card-header fs-5">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <div>
+                <i class="bi bi-diagram-3-fill"></i>
+                Project Jobs ({{ project_total_count }})
+            </div>
+            <div class="gap-2 d-flex">
+                <a href="{% url 'core:export_project_jobs_pdf' %}?{{ filter_params }}" class="btn btn-sm btn-danger" target="_blank">
+                    <i class="bi bi-file-pdf"></i> Export PDF
+                </a>
+                <a href="{% url 'core:export_project_jobs_excel' %}?{{ filter_params }}" class="btn btn-sm btn-success" target="_blank">
+                    <i class="bi bi-file-earmark-excel"></i> Export Excel
+                </a>
+            </div>
         </div>
-        <div class="gap-2 d-flex">
-            <a href="{% url 'core:export_project_jobs_pdf' %}?{{ filter_params }}" class="btn btn-sm btn-danger" target="_blank">
-                <i class="bi bi-file-pdf"></i> Export PDF
-            </a>
-            <a href="{% url 'core:export_project_jobs_excel' %}?{{ filter_params }}" class="btn btn-sm btn-success" target="_blank">
-                <i class="bi bi-file-earmark-excel"></i> Export Excel
-            </a>
+        <!-- Search Box untuk Project Jobs -->
+        <div class="input-group input-group-sm">
+            <span class="input-group-text bg-white">
+                <i class="bi bi-search"></i>
+            </span>
+            <input type="text" id="project-search" class="form-control form-control-sm" placeholder="Cari nama pekerjaan, project, PIC, atau notes...">
+            <button class="btn btn-outline-secondary btn-sm" type="button" id="project-search-clear" title="Clear search">
+                <i class="bi bi-x-circle"></i>
+            </button>
         </div>
     </div>
     <div class="card-body p-0">
-        {% with job_data=project_job_data filter_params=filter_params %}
-        {% include 'job_table.html' %}
-        {% endwith %}
+        <!-- Project Jobs Table -->
+        <div class="project-jobs-table" data-job-type="project">
+            {% with job_data=project_job_data filter_params=filter_params %}
+            {% include 'job_table.html' with job_type='project' %}
+            {% endwith %}
+        </div>
     </div>
     <!-- Pagination Controls untuk Project Jobs -->
     <div class="card-footer bg-light">
@@ -378,10 +445,10 @@
                     <ul class="pagination justify-content-end mb-0">
                         {% if project_page_obj.has_previous %}
                         <li class="page-item">
-                            <a class="page-link" href="?project_page=1&page_size={{ page_size }}&month={{ current_month }}&year={{ current_year }}&pic={{ selected_pic_id }}&line={{ selected_line_id }}&mesin={{ selected_mesin_id }}&sub_mesin={{ selected_sub_mesin_id }}&sort={{ sort_by }}&order={{ sort_order }}">Awal</a>
+                            <a class="page-link" href="?project_page=1&page_size={{ page_size }}&month={{ current_month }}&year={{ current_year }}&pic={{ selected_pic_id }}&line={{ selected_line_id }}&mesin={{ selected_mesin_id }}&sub_mesin={{ selected_sub_mesin_id }}&sort={{ sort_by }}&order={{ sort_order }}{% if selected_date_from %}&date_from={{ selected_date_from }}{% endif %}{% if selected_date_to %}&date_to={{ selected_date_to }}{% endif %}">Awal</a>
                         </li>
                         <li class="page-item">
-                            <a class="page-link" href="?project_page={{ project_page_obj.previous_page_number }}&page_size={{ page_size }}&month={{ current_month }}&year={{ current_year }}&pic={{ selected_pic_id }}&line={{ selected_line_id }}&mesin={{ selected_mesin_id }}&sub_mesin={{ selected_sub_mesin_id }}&sort={{ sort_by }}&order={{ sort_order }}">← Sebelumnya</a>
+                            <a class="page-link" href="?project_page={{ project_page_obj.previous_page_number }}&page_size={{ page_size }}&month={{ current_month }}&year={{ current_year }}&pic={{ selected_pic_id }}&line={{ selected_line_id }}&mesin={{ selected_mesin_id }}&sub_mesin={{ selected_sub_mesin_id }}&sort={{ sort_by }}&order={{ sort_order }}{% if selected_date_from %}&date_from={{ selected_date_from }}{% endif %}{% if selected_date_to %}&date_to={{ selected_date_to }}{% endif %}">← Sebelumnya</a>
                         </li>
                         {% else %}
                         <li class="page-item disabled">
@@ -398,10 +465,10 @@
 
                         {% if project_page_obj.has_next %}
                         <li class="page-item">
-                            <a class="page-link" href="?project_page={{ project_page_obj.next_page_number }}&page_size={{ page_size }}&month={{ current_month }}&year={{ current_year }}&pic={{ selected_pic_id }}&line={{ selected_line_id }}&mesin={{ selected_mesin_id }}&sub_mesin={{ selected_sub_mesin_id }}&sort={{ sort_by }}&order={{ sort_order }}">Selanjutnya →</a>
+                            <a class="page-link" href="?project_page={{ project_page_obj.next_page_number }}&page_size={{ page_size }}&month={{ current_month }}&year={{ current_year }}&pic={{ selected_pic_id }}&line={{ selected_line_id }}&mesin={{ selected_mesin_id }}&sub_mesin={{ selected_sub_mesin_id }}&sort={{ sort_by }}&order={{ sort_order }}{% if selected_date_from %}&date_from={{ selected_date_from }}{% endif %}{% if selected_date_to %}&date_to={{ selected_date_to }}{% endif %}">Selanjutnya →</a>
                         </li>
                         <li class="page-item">
-                            <a class="page-link" href="?project_page={{ project_paginator.num_pages }}&page_size={{ page_size }}&month={{ current_month }}&year={{ current_year }}&pic={{ selected_pic_id }}&line={{ selected_line_id }}&mesin={{ selected_mesin_id }}&sub_mesin={{ selected_sub_mesin_id }}&sort={{ sort_by }}&order={{ sort_order }}">Akhir</a>
+                            <a class="page-link" href="?project_page={{ project_paginator.num_pages }}&page_size={{ page_size }}&month={{ current_month }}&year={{ current_year }}&pic={{ selected_pic_id }}&line={{ selected_line_id }}&mesin={{ selected_mesin_id }}&sub_mesin={{ selected_sub_mesin_id }}&sort={{ sort_by }}&order={{ sort_order }}{% if selected_date_from %}&date_from={{ selected_date_from }}{% endif %}{% if selected_date_to %}&date_to={{ selected_date_to }}{% endif %}">Akhir</a>
                         </li>
                         {% else %}
                         <li class="page-item disabled">
@@ -420,7 +487,7 @@
 
 
 <!-- ============================================== -->
-<!-- 6. MODAL POP-UP (UNTUK CLOSE JOB) -->
+<!-- 7. MODAL POP-UP (UNTUK CLOSE JOB) -->
 <!-- ============================================== -->
 <div class="modal fade" id="jobDateModal" tabindex="-1" aria-labelledby="jobDateModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -457,7 +524,7 @@
 {% endblock %}
 
 <!-- ============================================== -->
-<!-- 7. JAVASCRIPT (UNTUK MODAL & CASCADING FILTER) -->
+<!-- 8. JAVASCRIPT (UNTUK MODAL & CASCADING FILTER) -->
 <!-- ============================================== -->
 {% block extra_js %}
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -626,6 +693,344 @@
                 displayAttachment(currentAttachmentIndex);
             }
         };
-    });
+
+        // ===== AUTO-CLEAR FILTER LOGIC =====
+        // Ketika user input date range, clear bulan/tahun
+        document.getElementById('date-from-filter').addEventListener('change', function() {
+            if (this.value) {
+                // User input date_from, clear bulan dan tahun
+                document.getElementById('month-filter').value = '0';
+                document.getElementById('year-filter').value = '0';
+            }
+        });
+
+        document.getElementById('date-to-filter').addEventListener('change', function() {
+            if (this.value) {
+                // User input date_to, clear bulan dan tahun
+                document.getElementById('month-filter').value = '0';
+                document.getElementById('year-filter').value = '0';
+            }
+        });
+
+        // Ketika user ubah bulan/tahun, clear date range
+        document.getElementById('month-filter').addEventListener('change', function() {
+            if (this.value !== '0') {
+                // User ubah bulan, clear date range
+                document.getElementById('date-from-filter').value = '';
+                document.getElementById('date-to-filter').value = '';
+            }
+        });
+
+        document.getElementById('year-filter').addEventListener('change', function() {
+            if (this.value !== '0') {
+                // User ubah tahun, clear date range
+                document.getElementById('date-from-filter').value = '';
+                document.getElementById('date-to-filter').value = '';
+            }
+        });
+
+        // ===== JADWAL DROPDOWN FUNCTIONS (REMOVED - using Bootstrap Modal instead) =====
+        // All jadwal handling is now done with Bootstrap modal data-bs-toggle
+
+        // ===== FUNCTION: Filter Job Table berdasarkan Search Term =====
+        function filterJobTable(tableType, searchTerm) {
+            // Tentukan table row selector berdasarkan type
+            let tableSelector = tableType === 'daily' ? '.job-table-daily tbody tr' : '.job-table-project tbody tr';
+            let rows = document.querySelectorAll(tableSelector);
+            
+            if (!rows || rows.length === 0) {
+                // Coba fallback selector
+                if (tableType === 'daily') {
+                    let table = document.querySelector('.job-table-daily');
+                    if (table) {
+                        rows = table.querySelectorAll('tbody tr');
+                    }
+                } else {
+                    let table = document.querySelector('.job-table-project');
+                    if (table) {
+                        rows = table.querySelectorAll('tbody tr');
+                    }
+                }
+                
+                if (!rows || rows.length === 0) {
+                    return;
+                }
+            }
+
+            const searchTermLower = searchTerm.toLowerCase().trim();
+            let visibleCount = 0;
+
+            rows.forEach(function(row, index) {
+                // Skip no-results rows
+                if (row.classList.contains('daily-no-results') || row.classList.contains('project-no-results')) {
+                    return;
+                }
+                
+                // Ambil text content dari seluruh row
+                const rowText = row.textContent.toLowerCase();
+                
+                // Cek apakah search term ada di row
+                const matches = !searchTerm || rowText.includes(searchTermLower);
+                
+                if (matches) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            // Tampilkan pesan jika tidak ada hasil
+            const noResultsMsg = tableType === 'daily' ? '.daily-no-results' : '.project-no-results';
+            let noResultsElement = document.querySelector(noResultsMsg);
+            
+            if (visibleCount === 0 && searchTerm) {
+                if (!noResultsElement) {
+                    // Buat element jika belum ada
+                    const tableBody = document.querySelector(tableType === 'daily' ? '.job-table-daily tbody' : '.job-table-project tbody');
+                    if (tableBody) {
+                        const noResultsRow = document.createElement('tr');
+                        noResultsRow.className = tableType === 'daily' ? 'daily-no-results' : 'project-no-results';
+                        noResultsRow.innerHTML = `
+                            <td colspan="100%" class="text-center text-muted py-4">
+                                <i class="bi bi-search"></i> Tidak ada hasil untuk pencarian "<strong>${searchTerm}</strong>"
+                            </td>
+                        `;
+                        tableBody.appendChild(noResultsRow);
+                    }
+                }
+            } else if (noResultsElement) {
+                // Hapus no results message jika ada hasil atau search cleared
+                noResultsElement.remove();
+            }
+        }
+
+        // ===== FUNCTION: Setup Daily Job Search =====
+        function setupDailyJobSearch() {
+            const dailyTable = document.querySelector('.job-table-daily');
+            const dailyTbody = document.querySelector('.job-table-daily tbody');
+            const dailyRows = document.querySelectorAll('.job-table-daily tbody tr');
+            
+            const dailySearchInput = document.getElementById('daily-search');
+            const dailySearchClear = document.getElementById('daily-search-clear');
+            
+            if (dailySearchInput) {
+                // Add inline handler to test immediately
+                dailySearchInput.addEventListener('keyup', function(e) {
+                    dailySearchHandler.call(this);
+                });
+                dailySearchInput.addEventListener('input', function(e) {
+                    dailySearchHandler.call(this);
+                });
+            }
+            
+            if (dailySearchClear) {
+                dailySearchClear.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    if (dailySearchInput) {
+                        dailySearchInput.value = '';
+                        dailySearchHandler.call(dailySearchInput);
+                        dailySearchInput.focus();
+                    }
+                });
+            }
+        }
+
+        function dailySearchHandler() {
+            console.log('[dailySearchHandler] Called with value:', this.value);
+            filterJobTable('daily', this.value);
+        }
+
+        // ===== FUNCTION: Setup Project Job Search =====
+        function setupProjectJobSearch() {
+            const projectTable = document.querySelector('.job-table-project');
+            const projectTbody = document.querySelector('.job-table-project tbody');
+            const projectRows = document.querySelectorAll('.job-table-project tbody tr');
+            
+            const projectSearchInput = document.getElementById('project-search');
+            const projectSearchClear = document.getElementById('project-search-clear');
+            
+            if (projectSearchInput) {
+                // Add inline handler to test immediately
+                projectSearchInput.addEventListener('keyup', function(e) {
+                    projectSearchHandler.call(this);
+                });
+                projectSearchInput.addEventListener('input', function(e) {
+                    projectSearchHandler.call(this);
+                });
+            }
+            
+            if (projectSearchClear) {
+                projectSearchClear.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    if (projectSearchInput) {
+                        projectSearchInput.value = '';
+                        projectSearchHandler.call(projectSearchInput);
+                        projectSearchInput.focus();
+                    }
+                });
+            }
+        }
+
+        function projectSearchHandler() {
+            console.log('[projectSearchHandler] Called with value:', this.value);
+            filterJobTable('project', this.value);
+        }
+
+        // ===== SEARCH/FILTER FUNCTIONS UNTUK DAILY & PROJECT JOBS =====
+        
+        // Setup search dengan delay untuk ensure element sudah loaded
+        setTimeout(function() {
+            setupDailyJobSearch();
+            setupProjectJobSearch();
+        }, 100);
+    }); // Close DOMContentLoaded event listener
 </script>
+
+<!-- Load Filter Persistence Script -->
+<script src="{% static 'js/filter-persistence.js' %}"></script>
+
+<!-- Debug Helper - Test dari Console -->
+<script>
+    // Expose helper functions untuk debug dari console
+    window.debugSearch = function() {
+        console.log('=== SEARCH DEBUG ===');
+        const dailyInput = document.getElementById('daily-search');
+        const projectInput = document.getElementById('project-search');
+        const dailyTable = document.querySelector('.job-table-daily');
+        const projectTable = document.querySelector('.job-table-project');
+        
+        console.log('Daily Search Input:', dailyInput);
+        console.log('Project Search Input:', projectInput);
+        console.log('Daily Table:', dailyTable);
+        console.log('Project Table:', projectTable);
+        
+        if (dailyInput) {
+            console.log('Daily Input ID:', dailyInput.id);
+            console.log('Daily Input value:', dailyInput.value);
+            console.log('Daily Input listeners:', getEventListeners ? getEventListeners(dailyInput) : 'N/A (getEventListeners not available)');
+        }
+        
+        if (dailyTable) {
+            const rows = dailyTable.querySelectorAll('tbody tr');
+            console.log('Daily Table rows found:', rows.length);
+        }
+    };
+    
+    // Manual attach function
+    window.manualAttachSearch = function() {
+        console.log('=== MANUALLY ATTACHING SEARCH LISTENERS ===');
+        const dailyInput = document.getElementById('daily-search');
+        const projectInput = document.getElementById('project-search');
+        
+        if (!dailyInput) {
+            console.error('daily-search element not found!');
+            return;
+        }
+        
+        if (!projectInput) {
+            console.error('project-search element not found!');
+            return;
+        }
+        
+        // Define filter function here since we can't access it from DOMContentLoaded scope
+        const filterTable = function(tableType, searchTerm) {
+            console.log(`[filterTable] Called with type="${tableType}", searchTerm="${searchTerm}"`);
+            let tableSelector = tableType === 'daily' ? '.job-table-daily tbody tr' : '.job-table-project tbody tr';
+            let rows = document.querySelectorAll(tableSelector);
+            console.log(`[filterTable] Rows found: ${rows.length}`);
+            
+            const searchTermLower = searchTerm.toLowerCase().trim();
+            let visibleCount = 0;
+            
+            rows.forEach(function(row) {
+                const rowText = row.textContent.toLowerCase();
+                const matches = !searchTerm || rowText.includes(searchTermLower);
+                
+                if (matches) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+            
+            console.log(`[filterTable] Visible rows: ${visibleCount}`);
+        };
+        
+        // Attach daily search
+        dailyInput.addEventListener('keyup', function(e) {
+            console.log('[MANUAL] Daily keyup - value:', this.value);
+            filterTable('daily', this.value);
+        });
+        
+        dailyInput.addEventListener('input', function(e) {
+            console.log('[MANUAL] Daily input - value:', this.value);
+            filterTable('daily', this.value);
+        });
+        
+        console.log('✓ Daily search listeners attached');
+        
+        // Attach project search
+        projectInput.addEventListener('keyup', function(e) {
+            console.log('[MANUAL] Project keyup - value:', this.value);
+            filterTable('project', this.value);
+        });
+        
+        projectInput.addEventListener('input', function(e) {
+            console.log('[MANUAL] Project input - value:', this.value);
+            filterTable('project', this.value);
+        });
+        
+        console.log('✓ Project search listeners attached');
+        console.log('Try typing in the search box now!');
+    };
+    
+    // Helper untuk test manual dari console
+    window.testSearch = function(type, term) {
+        console.log(`[TEST] Manual test - type=${type}, term=${term}`);
+        // Coba call langsung via querySelector method
+        const tableType = type;
+        const searchTerm = term;
+        
+        let tableSelector = tableType === 'daily' ? '.job-table-daily tbody tr' : '.job-table-project tbody tr';
+        let rows = document.querySelectorAll(tableSelector);
+        
+        console.log(`[testSearch] Selector: "${tableSelector}", Rows found: ${rows.length}`);
+        
+        if (!rows || rows.length === 0) {
+            if (tableType === 'daily') {
+                let table = document.querySelector('.job-table-daily');
+                if (table) {
+                    rows = table.querySelectorAll('tbody tr');
+                }
+            } else {
+                let table = document.querySelector('.job-table-project');
+                if (table) {
+                    rows = table.querySelectorAll('tbody tr');
+                }
+            }
+        }
+
+        const searchTermLower = searchTerm.toLowerCase().trim();
+        let visibleCount = 0;
+
+        rows.forEach(function(row) {
+            if (row.classList.contains('daily-no-results') || row.classList.contains('project-no-results')) {
+                return;
+            }
+            
+            const rowText = row.textContent.toLowerCase();
+            const matches = !searchTerm || rowText.includes(searchTermLower);
+            
+            if (matches) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    };
+</script>
+
 {% endblock %}

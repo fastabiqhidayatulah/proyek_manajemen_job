@@ -1,0 +1,591 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Management Preventive Job - V2{% endblock %}
+
+{% block content %}
+
+<div class="container-fluid mt-4">
+    <!-- PAGE HEADER -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h2>🔧 Management Preventive Job</h2>
+            <small class="text-muted">Master Data Template</small>
+        </div>
+        <div class="col-md-6 text-right">
+            <a href="{% url 'preventive_jobs:index' %}" class="btn btn-secondary me-2">
+                <i class="bi bi-arrow-left"></i> Kembali ke Preventive
+            </a>
+            <a href="{% url 'preventive_jobs:recycle_bin' %}" class="btn btn-warning me-2">
+                <i class="bi bi-trash3"></i> ♻️ Recycle Bin
+            </a>
+            <a href="{% url 'preventive_jobs:template_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Buat Template Baru
+            </a>
+        </div>
+    </div>
+
+    <!-- FILTER & SEARCH -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="form-inline">
+                <div class="form-group mr-3">
+                    <label for="status" class="mr-2">Status:</label>
+                    <select name="status" id="status" class="form-control">
+                        <option value="">Semua</option>
+                        <option value="active" {% if selected_status == 'active' %}selected{% endif %}>Aktif</option>
+                        <option value="inactive" {% if selected_status == 'inactive' %}selected{% endif %}>Nonaktif</option>
+                    </select>
+                </div>
+                <div class="form-group mr-3">
+                    <input type="text" name="q" class="form-control" placeholder="Cari nama job..." value="{{ search_query }}">
+                </div>
+                <button type="submit" class="btn btn-secondary">🔍 Cari</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- KATEGORI TABS -->
+    <div class="card mb-4">
+        <div class="card-header bg-light">
+            <ul class="nav nav-tabs card-header-tabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="all-tab" data-bs-toggle="tab" data-bs-target="#all-content" 
+                            type="button" role="tab" aria-controls="all-content" aria-selected="true">
+                        <i class="fas fa-list"></i> Semua
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="mekanik-tab" data-bs-toggle="tab" data-bs-target="#mekanik-content" 
+                            type="button" role="tab" aria-controls="mekanik-content" aria-selected="false">
+                        <i class="fas fa-tools"></i> Mekanik
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="elektrik-tab" data-bs-toggle="tab" data-bs-target="#elektrik-content" 
+                            type="button" role="tab" aria-controls="elektrik-content" aria-selected="false">
+                        <i class="fas fa-bolt"></i> Elektrik
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="utility-tab" data-bs-toggle="tab" data-bs-target="#utility-content" 
+                            type="button" role="tab" aria-controls="utility-content" aria-selected="false">
+                        <i class="fas fa-wrench"></i> Utility
+                    </button>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- TEMPLATES TABLE -->
+    <div class="tab-content">
+        <!-- ALL TEMPLATES TAB -->
+        <div class="tab-pane fade show active" id="all-content" role="tabpanel" aria-labelledby="all-tab">
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped">
+                            <thead class="table-dark text-white">
+                                <tr>
+                                    <th style="color: white;">ID</th>
+                                    <th style="color: white;">Nama Job</th>
+                                    <th style="color: white;">Kategori</th>
+                                    <th style="color: white;">Line</th>
+                                    <th style="color: white;">Mesin</th>
+                                    <th style="color: white;">Sub Mesin</th>
+                                    <th style="color: white;">Interval (Hari)</th>
+                                    <th style="color: white;">PIC</th>
+                                    <th style="color: white;">Prioritas</th>
+                                    <th style="color: white;">Status</th>
+                                    <th style="color: white;">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for template in templates %}
+                                <tr>
+                                    <td>{{ template.id }}</td>
+                                    <td>
+                                        <strong>{{ template.nama_pekerjaan }}</strong><br>
+                                        <small class="text-muted">{{ template.get_fokus_display }}</small>
+                                    </td>
+                                    <td>
+                                        {% if template.kategori == 'Mekanik' %}
+                                            <span class="badge bg-primary"><i class="fas fa-tools"></i> Mekanik</span>
+                                        {% elif template.kategori == 'Elektrik' %}
+                                            <span class="badge bg-warning text-dark"><i class="fas fa-bolt"></i> Elektrik</span>
+                                        {% elif template.kategori == 'Utility' %}
+                                            <span class="badge bg-info"><i class="fas fa-wrench"></i> Utility</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% for aset in template.aset_mesin.all %}
+                                            {% with root=aset.get_root %}
+                                                <span class="badge bg-secondary text-white">{{ root.nama }}</span>
+                                            {% endwith %}
+                                        {% empty %}
+                                            <span class="text-muted">-</span>
+                                        {% endfor %}
+                                    </td>
+                                    <td>
+                                        {% for aset in template.aset_mesin.all %}
+                                            {% with parent=aset.parent %}
+                                                {% if parent and parent.parent %}
+                                                    <span class="badge bg-info text-white">{{ parent.nama }}</span>
+                                                {% elif parent %}
+                                                    <span class="badge bg-info text-white">{{ parent.nama }}</span>
+                                                {% endif %}
+                                            {% endwith %}
+                                        {% empty %}
+                                            <span class="text-muted">-</span>
+                                        {% endfor %}
+                                    </td>
+                                    <td>
+                                        {% for aset in template.aset_mesin.all %}
+                                            <span class="badge bg-primary text-white">{{ aset.nama }}</span>
+                                        {% empty %}
+                                            <span class="text-muted">-</span>
+                                        {% endfor %}
+                                    </td>
+                                    <td><span class="badge bg-light text-dark"><i class="fas fa-calendar-days"></i> {{ template.interval_hari }} hari</span></td>
+                                    <td>{{ template.pic.username }}</td>
+                                    <td>
+                                        <span class="badge {% if template.prioritas == 'P1' %}bg-danger{% elif template.prioritas == 'P2' %}bg-warning text-dark{% elif template.prioritas == 'P3' %}bg-info{% else %}bg-success{% endif %}">
+                                            {{ template.get_prioritas_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if template.is_active %}
+                                            <span class="badge bg-success">✅ Aktif</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">⛔ Nonaktif</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group" style="gap: 3px;">
+                                            <a href="{% url 'preventive_jobs:template_detail' template.id %}?next={% url 'preventive_jobs:template_list' %}" class="btn btn-sm btn-info text-white" title="Lihat Detail Template">
+                                                <i class="fas fa-eye"></i> Lihat
+                                            </a>
+                                            <a href="{% url 'preventive_jobs:template_edit' template.id %}?next={% url 'preventive_jobs:template_list' %}" class="btn btn-sm btn-warning text-dark" title="Edit Template">
+                                                <i class="fas fa-edit"></i> Edit
+                                            </a>
+                                            <a href="{% url 'preventive_jobs:template_duplicate' template.id %}?next={% url 'preventive_jobs:template_list' %}" class="btn btn-sm btn-success" title="Duplicate untuk periode berbeda">
+                                                <i class="bi bi-files"></i> Dup
+                                            </a>
+                                            <form method="POST" action="{% url 'preventive_jobs:template_toggle' template.id %}" style="display: inline;">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-sm {% if template.is_active %}btn-danger{% else %}btn-success{% endif %}" title="{% if template.is_active %}Matikan{% else %}Nyalakan{% endif %}">
+                                                    <i class="fas fa-power-off"></i> {% if template.is_active %}Matikan{% else %}Nyalakan{% endif %}
+                                                </button>
+                                            </form>
+                                            <button type="button" class="btn btn-sm btn-danger" title="Hapus Template" data-bs-toggle="modal" data-bs-target="#deleteModal" data-template-id="{{ template.id }}" data-template-name="{{ template.nama_pekerjaan }}">
+                                                <i class="fas fa-trash-alt"></i> Hapus
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="11" class="text-center text-muted py-3">Tidak ada template preventive job</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MEKANIK TAB -->
+        <div class="tab-pane fade" id="mekanik-content" role="tabpanel" aria-labelledby="mekanik-tab">
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped">
+                            <thead class="table-dark text-white">
+                                <tr>
+                                    <th style="color: white;">ID</th>
+                                    <th style="color: white;">Nama Job</th>
+                                    <th style="color: white;">Line</th>
+                                    <th style="color: white;">Mesin</th>
+                                    <th style="color: white;">Sub Mesin</th>
+                                    <th style="color: white;">Interval (Hari)</th>
+                                    <th style="color: white;">PIC</th>
+                                    <th style="color: white;">Prioritas</th>
+                                    <th style="color: white;">Status</th>
+                                    <th style="color: white;">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for template in templates %}
+                                    {% if template.kategori == 'Mekanik' %}
+                                    <tr>
+                                        <td>{{ template.id }}</td>
+                                        <td>
+                                            <strong>{{ template.nama_pekerjaan }}</strong><br>
+                                            <small class="text-muted">{{ template.get_fokus_display }}</small>
+                                        </td>
+                                        <td>
+                                            {% for aset in template.aset_mesin.all %}
+                                                {% with root=aset.get_root %}
+                                                    <span class="badge bg-secondary text-white">{{ root.nama }}</span>
+                                                {% endwith %}
+                                            {% empty %}
+                                                <span class="text-muted">-</span>
+                                            {% endfor %}
+                                        </td>
+                                        <td>
+                                            {% for aset in template.aset_mesin.all %}
+                                                {% with parent=aset.parent %}
+                                                    {% if parent and parent.parent %}
+                                                        <span class="badge bg-info text-white">{{ parent.nama }}</span>
+                                                    {% elif parent %}
+                                                        <span class="badge bg-info text-white">{{ parent.nama }}</span>
+                                                    {% endif %}
+                                                {% endwith %}
+                                            {% empty %}
+                                                <span class="text-muted">-</span>
+                                            {% endfor %}
+                                        </td>
+                                        <td>
+                                            {% for aset in template.aset_mesin.all %}
+                                                <span class="badge bg-primary text-white">{{ aset.nama }}</span>
+                                            {% empty %}
+                                                <span class="text-muted">-</span>
+                                            {% endfor %}
+                                        </td>
+                                        <td><span class="badge bg-light text-dark"><i class="fas fa-calendar-days"></i> {{ template.interval_hari }} hari</span></td>
+                                        <td>{{ template.pic.username }}</td>
+                                        <td>
+                                            <span class="badge {% if template.prioritas == 'P1' %}bg-danger{% elif template.prioritas == 'P2' %}bg-warning text-dark{% elif template.prioritas == 'P3' %}bg-info{% else %}bg-success{% endif %}">
+                                                {{ template.get_prioritas_display }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            {% if template.is_active %}
+                                                <span class="badge bg-success">✅ Aktif</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">⛔ Nonaktif</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="btn-group" role="group" style="gap: 3px;">
+                                                <a href="{% url 'preventive_jobs:template_detail' template.id %}" class="btn btn-sm btn-info text-white" title="Lihat Detail Template">
+                                                    <i class="fas fa-eye"></i> Lihat
+                                                </a>
+                                                <a href="{% url 'preventive_jobs:template_edit' template.id %}" class="btn btn-sm btn-warning text-dark" title="Edit Template">
+                                                    <i class="fas fa-edit"></i> Edit
+                                                </a>
+                                                <form method="POST" action="{% url 'preventive_jobs:template_toggle' template.id %}" style="display: inline;">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn btn-sm {% if template.is_active %}btn-danger{% else %}btn-success{% endif %}" title="{% if template.is_active %}Matikan{% else %}Nyalakan{% endif %}">
+                                                        <i class="fas fa-power-off"></i> {% if template.is_active %}Matikan{% else %}Nyalakan{% endif %}
+                                                    </button>
+                                                </form>
+                                                <button type="button" class="btn btn-sm btn-danger" title="Hapus Template" data-bs-toggle="modal" data-bs-target="#deleteModal" data-template-id="{{ template.id }}" data-template-name="{{ template.nama_pekerjaan }}">
+                                                    <i class="fas fa-trash-alt"></i> Hapus
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endif %}
+                                {% empty %}
+                                <tr>
+                                    <td colspan="8" class="text-center text-muted py-3">Tidak ada template Mekanik</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ELEKTRIK TAB -->
+        <div class="tab-pane fade" id="elektrik-content" role="tabpanel" aria-labelledby="elektrik-tab">
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped">
+                            <thead class="table-dark text-white">
+                                <tr>
+                                    <th style="color: white;">ID</th>
+                                    <th style="color: white;">Nama Job</th>
+                                    <th style="color: white;">Line</th>
+                                    <th style="color: white;">Mesin</th>
+                                    <th style="color: white;">Sub Mesin</th>
+                                    <th style="color: white;">Interval (Hari)</th>
+                                    <th style="color: white;">PIC</th>
+                                    <th style="color: white;">Prioritas</th>
+                                    <th style="color: white;">Status</th>
+                                    <th style="color: white;">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for template in templates %}
+                                    {% if template.kategori == 'Elektrik' %}
+                                    <tr>
+                                        <td>{{ template.id }}</td>
+                                        <td>
+                                            <strong>{{ template.nama_pekerjaan }}</strong><br>
+                                            <small class="text-muted">{{ template.get_fokus_display }}</small>
+                                        </td>
+                                        <td>
+                                            {% for aset in template.aset_mesin.all %}
+                                                {% with root=aset.get_root %}
+                                                    <span class="badge bg-secondary text-white">{{ root.nama }}</span>
+                                                {% endwith %}
+                                            {% empty %}
+                                                <span class="text-muted">-</span>
+                                            {% endfor %}
+                                        </td>
+                                        <td>
+                                            {% for aset in template.aset_mesin.all %}
+                                                {% with parent=aset.parent %}
+                                                    {% if parent and parent.parent %}
+                                                        <span class="badge bg-info text-white">{{ parent.nama }}</span>
+                                                    {% elif parent %}
+                                                        <span class="badge bg-info text-white">{{ parent.nama }}</span>
+                                                    {% endif %}
+                                                {% endwith %}
+                                            {% empty %}
+                                                <span class="text-muted">-</span>
+                                            {% endfor %}
+                                        </td>
+                                        <td>
+                                            {% for aset in template.aset_mesin.all %}
+                                                <span class="badge bg-primary text-white">{{ aset.nama }}</span>
+                                            {% empty %}
+                                                <span class="text-muted">-</span>
+                                            {% endfor %}
+                                        </td>
+                                        <td><span class="badge bg-light text-dark"><i class="fas fa-calendar-days"></i> {{ template.interval_hari }} hari</span></td>
+                                        <td>{{ template.pic.username }}</td>
+                                        <td>
+                                            <span class="badge {% if template.prioritas == 'P1' %}bg-danger{% elif template.prioritas == 'P2' %}bg-warning text-dark{% elif template.prioritas == 'P3' %}bg-info{% else %}bg-success{% endif %}">
+                                                {{ template.get_prioritas_display }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            {% if template.is_active %}
+                                                <span class="badge bg-success">✅ Aktif</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">⛔ Nonaktif</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="btn-group" role="group" style="gap: 3px;">
+                                                <a href="{% url 'preventive_jobs:template_detail' template.id %}" class="btn btn-sm btn-info text-white" title="Lihat Detail Template">
+                                                    <i class="fas fa-eye"></i> Lihat
+                                                </a>
+                                                <a href="{% url 'preventive_jobs:template_edit' template.id %}" class="btn btn-sm btn-warning text-dark" title="Edit Template">
+                                                    <i class="fas fa-edit"></i> Edit
+                                                </a>
+                                                <form method="POST" action="{% url 'preventive_jobs:template_toggle' template.id %}" style="display: inline;">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn btn-sm {% if template.is_active %}btn-danger{% else %}btn-success{% endif %}" title="{% if template.is_active %}Matikan{% else %}Nyalakan{% endif %}">
+                                                        <i class="fas fa-power-off"></i> {% if template.is_active %}Matikan{% else %}Nyalakan{% endif %}
+                                                    </button>
+                                                </form>
+                                                <button type="button" class="btn btn-sm btn-danger" title="Hapus Template" data-bs-toggle="modal" data-bs-target="#deleteModal" data-template-id="{{ template.id }}" data-template-name="{{ template.nama_pekerjaan }}">
+                                                    <i class="fas fa-trash-alt"></i> Hapus
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endif %}
+                                {% empty %}
+                                <tr>
+                                    <td colspan="10" class="text-center text-muted py-3">Tidak ada template Elektrik</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- UTILITY TAB -->
+        <div class="tab-pane fade" id="utility-content" role="tabpanel" aria-labelledby="utility-tab">
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped">
+                            <thead class="table-dark text-white">
+                                <tr>
+                                    <th style="color: white;">ID</th>
+                                    <th style="color: white;">Nama Job</th>
+                                    <th style="color: white;">Line</th>
+                                    <th style="color: white;">Mesin</th>
+                                    <th style="color: white;">Sub Mesin</th>
+                                    <th style="color: white;">Interval (Hari)</th>
+                                    <th style="color: white;">PIC</th>
+                                    <th style="color: white;">Prioritas</th>
+                                    <th style="color: white;">Status</th>
+                                    <th style="color: white;">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for template in templates %}
+                                    {% if template.kategori == 'Utility' %}
+                                    <tr>
+                                        <td>{{ template.id }}</td>
+                                        <td>
+                                            <strong>{{ template.nama_pekerjaan }}</strong><br>
+                                            <small class="text-muted">{{ template.get_fokus_display }}</small>
+                                        </td>
+                                        <td>
+                                            {% for aset in template.aset_mesin.all %}
+                                                {% with root=aset.get_root %}
+                                                    <span class="badge bg-secondary text-white">{{ root.nama }}</span>
+                                                {% endwith %}
+                                            {% empty %}
+                                                <span class="text-muted">-</span>
+                                            {% endfor %}
+                                        </td>
+                                        <td>
+                                            {% for aset in template.aset_mesin.all %}
+                                                {% with parent=aset.parent %}
+                                                    {% if parent and parent.parent %}
+                                                        <span class="badge bg-info text-white">{{ parent.nama }}</span>
+                                                    {% elif parent %}
+                                                        <span class="badge bg-info text-white">{{ parent.nama }}</span>
+                                                    {% endif %}
+                                                {% endwith %}
+                                            {% empty %}
+                                                <span class="text-muted">-</span>
+                                            {% endfor %}
+                                        </td>
+                                        <td>
+                                            {% for aset in template.aset_mesin.all %}
+                                                <span class="badge bg-primary text-white">{{ aset.nama }}</span>
+                                            {% empty %}
+                                                <span class="text-muted">-</span>
+                                            {% endfor %}
+                                        </td>
+                                        <td><span class="badge bg-light text-dark"><i class="fas fa-calendar-days"></i> {{ template.interval_hari }} hari</span></td>
+                                        <td>{{ template.pic.username }}</td>
+                                        <td>
+                                            <span class="badge {% if template.prioritas == 'P1' %}bg-danger{% elif template.prioritas == 'P2' %}bg-warning text-dark{% elif template.prioritas == 'P3' %}bg-info{% else %}bg-success{% endif %}">
+                                                {{ template.get_prioritas_display }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            {% if template.is_active %}
+                                                <span class="badge bg-success">✅ Aktif</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">⛔ Nonaktif</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="btn-group" role="group" style="gap: 3px;">
+                                                <a href="{% url 'preventive_jobs:template_detail' template.id %}" class="btn btn-sm btn-info text-white" title="Lihat Detail Template">
+                                                    <i class="fas fa-eye"></i> Lihat
+                                                </a>
+                                                <a href="{% url 'preventive_jobs:template_edit' template.id %}" class="btn btn-sm btn-warning text-dark" title="Edit Template">
+                                                    <i class="fas fa-edit"></i> Edit
+                                                </a>
+                                                <form method="POST" action="{% url 'preventive_jobs:template_toggle' template.id %}" style="display: inline;">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn btn-sm {% if template.is_active %}btn-danger{% else %}btn-success{% endif %}" title="{% if template.is_active %}Matikan{% else %}Nyalakan{% endif %}">
+                                                        <i class="fas fa-power-off"></i> {% if template.is_active %}Matikan{% else %}Nyalakan{% endif %}
+                                                    </button>
+                                                </form>
+                                                <button type="button" class="btn btn-sm btn-danger" title="Hapus Template" data-bs-toggle="modal" data-bs-target="#deleteModal" data-template-id="{{ template.id }}" data-template-name="{{ template.nama_pekerjaan }}">
+                                                    <i class="fas fa-trash-alt"></i> Hapus
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endif %}
+                                {% empty %}
+                                <tr>
+                                    <td colspan="10" class="text-center text-muted py-3">Tidak ada template Utility</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PAGINATION -->
+    {% if templates.has_other_pages %}
+    <nav aria-label="Page navigation" class="mt-4">
+        <ul class="pagination">
+            {% if templates.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page=1">Pertama</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ templates.previous_page_number }}">Sebelumnya</a>
+                </li>
+            {% endif %}
+
+            {% for num in templates.paginator.page_range %}
+                {% if templates.number == num %}
+                <li class="page-item active">
+                    <span class="page-link">{{ num }}</span>
+                </li>
+                {% else %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                </li>
+                {% endif %}
+            {% endfor %}
+
+            {% if templates.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ templates.next_page_number }}">Berikutnya</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ templates.paginator.num_pages }}">Terakhir</a>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+
+</div>
+
+<!-- MODAL DELETE TEMPLATE -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="deleteModalLabel"><i class="fas fa-trash"></i> Hapus Template</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Anda yakin ingin menghapus template <strong id="deleteTemplateName"></strong>?</p>
+                <p class="text-danger"><i class="fas fa-warning"></i> <strong>PERINGATAN:</strong> Semua execution records dari template ini juga akan dihapus!</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                <form id="deleteForm" method="POST" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">Hapus Sekarang</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Handle delete modal
+    document.addEventListener('DOMContentLoaded', function () {
+        const deleteModal = document.getElementById('deleteModal');
+        deleteModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            const templateId = button.getAttribute('data-template-id');
+            const templateName = button.getAttribute('data-template-name');
+            
+            document.getElementById('deleteTemplateName').textContent = templateName;
+            document.getElementById('deleteForm').action = `/preventive/template/${templateId}/delete/`;
+        });
+    });
+</script>
+
+{% endblock %}

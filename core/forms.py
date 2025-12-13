@@ -71,14 +71,14 @@ class JobForm(forms.ModelForm):
     )
     mesin = forms.ModelChoiceField(
         queryset=AsetMesin.objects.none(), # Kosong, diisi JS
-        label="Mesin",
-        required=True,
+        label="Mesin (Optional - kosongkan untuk semua mesin di line)",
+        required=False,
         widget=forms.Select(attrs={'class': 'form-select', 'id': 'id_mesin'})
     )
     sub_mesin = forms.ModelChoiceField(
         queryset=AsetMesin.objects.none(), # Kosong, diisi JS
-        label="Sub Mesin",
-        required=True,
+        label="Sub Mesin (Optional - kosongkan untuk semua sub mesin di mesin)",
+        required=False,
         widget=forms.Select(attrs={'class': 'form-select', 'id': 'id_sub_mesin'})
     )
 

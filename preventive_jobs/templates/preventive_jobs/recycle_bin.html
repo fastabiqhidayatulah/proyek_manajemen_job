@@ -1,0 +1,175 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Recycle Bin - Preventive Job Templates{% endblock %}
+
+{% block content %}
+
+<div class="container-fluid mt-4">
+    <!-- PAGE HEADER -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h2>♻️ Recycle Bin - Preventive Job Templates</h2>
+            <small class="text-muted">Template yang sudah dihapus dan bisa di-restore</small>
+        </div>
+        <div class="col-md-6 text-right">
+            <a href="{% url 'preventive_jobs:template_list' %}" class="btn btn-secondary me-2">
+                <i class="bi bi-arrow-left"></i> Kembali ke Template
+            </a>
+        </div>
+    </div>
+
+    <!-- FILTER & SEARCH -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="form-inline">
+                <div class="form-group mr-3">
+                    <input type="text" name="q" class="form-control" placeholder="Cari nama job..." value="{{ search_query }}">
+                </div>
+                <div class="form-group mr-3">
+                    <select name="sort" class="form-control">
+                        <option value="-deleted_at" {% if sort_param == '-deleted_at' %}selected{% endif %}>Terbaru Dihapus</option>
+                        <option value="deleted_at" {% if sort_param == 'deleted_at' %}selected{% endif %}>Terlama Dihapus</option>
+                        <option value="nama_pekerjaan" {% if sort_param == 'nama_pekerjaan' %}selected{% endif %}>Nama A-Z</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-secondary">🔍 Cari</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- NOTICE -->
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i> 
+        Template di recycle bin dapat di-<strong>restore</strong> untuk mengembalikannya ke daftar template aktif beserta semua execution records-nya, 
+        atau di-<strong>hapus permanen</strong> untuk menghapusnya selamanya dari sistem.
+    </div>
+
+    <!-- TABLE -->
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 35%;">Nama Template</th>
+                        <th style="width: 15%;">Execution Terhapus</th>
+                        <th style="width: 15%;">Dihapus Oleh</th>
+                        <th style="width: 20%;">Tanggal Dihapus</th>
+                        <th style="width: 15%;">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if templates %}
+                        {% for item in templates %}
+                            <tr>
+                                <td>
+                                    <strong>{{ item.template.nama_pekerjaan }}</strong>
+                                    {% if item.template.deskripsi %}
+                                        <br>
+                                        <small class="text-muted">{{ item.template.deskripsi|truncatewords:10 }}</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge bg-warning text-dark">{{ item.execution_count }} records</span>
+                                </td>
+                                <td>
+                                    {% if item.template.deleted_by %}
+                                        <small>{{ item.template.deleted_by.get_full_name|default:item.template.deleted_by.username }}</small>
+                                    {% else %}
+                                        <small class="text-muted">-</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if item.template.deleted_at %}
+                                        <small>{{ item.template.deleted_at|date:"d M Y, H:i" }}</small>
+                                    {% else %}
+                                        <small class="text-muted">-</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <!-- RESTORE BUTTON -->
+                                    <form method="POST" action="{% url 'preventive_jobs:template_restore' item.template.id %}" 
+                                          style="display: inline;" 
+                                          onsubmit="return confirm('Restore template ini? Semua {{ item.execution_count }} execution records juga akan di-restore.');">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-success" title="Restore template">
+                                            <i class="bi bi-arrow-counterclockwise"></i> Restore
+                                        </button>
+                                    </form>
+
+                                    <!-- PERMANENT DELETE BUTTON -->
+                                    <form method="POST" action="{% url 'preventive_jobs:template_permanent_delete' item.template.id %}" 
+                                          style="display: inline;" 
+                                          onsubmit="return confirm('⚠️ PERHATIAN! Ini akan MENGHAPUS PERMANEN template dan {{ item.execution_count }} execution records. Ini tidak bisa di-undo. Lanjutkan?');">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-danger" title="Hapus permanen">
+                                            <i class="bi bi-trash"></i> Hapus Permanen
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-4">
+                                <i class="bi bi-inbox" style="font-size: 2rem;"></i>
+                                <p class="mt-2">Recycle bin kosong. Belum ada template yang dihapus.</p>
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- PAGINATION -->
+    {% if templates.paginator.count > 0 %}
+        <nav class="mt-4">
+            <ul class="pagination justify-content-center">
+                {% if templates.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1">First</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ templates.previous_page_number }}">« Previous</a>
+                    </li>
+                {% endif %}
+
+                {% for num in templates.paginator.page_range %}
+                    {% if templates.number == num %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ num }}</span>
+                        </li>
+                    {% elif num > templates.number|add:'-3' and num < templates.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if templates.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ templates.next_page_number }}">Next »</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ templates.paginator.num_pages }}">Last</a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    {% endif %}
+
+</div>
+
+<style>
+    .form-inline .form-group {
+        display: inline-block;
+        margin-right: 15px;
+    }
+    
+    .form-inline .form-control {
+        width: auto;
+    }
+</style>
+
+{% endblock %}

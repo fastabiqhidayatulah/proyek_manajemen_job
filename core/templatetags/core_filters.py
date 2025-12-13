@@ -2,6 +2,18 @@ from django import template
 
 register = template.Library()
 
+@register.filter(name='abs')
+def abs_filter(value):
+    """
+    Filter untuk mendapatkan nilai absolute (positif).
+    Contoh: {{ -5|abs }} → 5
+    """
+    try:
+        return abs(int(value))
+    except (ValueError, TypeError):
+        return value
+
+
 @register.filter(name='get')
 def get(dictionary, key):
     """

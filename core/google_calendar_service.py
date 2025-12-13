@@ -37,6 +37,7 @@ class GoogleCalendarService:
     def create_event(self, nama_orang, tipe_ijin, tanggal_list, deskripsi=None):
         """
         Create event di Google Calendar
+        Untuk multiple non-continuous dates, create individual all-day events
         
         Args:
             nama_orang (str): Nama orang yang ijin/cuti
@@ -57,14 +58,20 @@ class GoogleCalendarService:
             if deskripsi:
                 description += f"\nKeterangan: {deskripsi}"
             
-            # Tentukan apakah single date atau multi date
-            if len(tanggal_list) == 1:
-                # Single date event
-                tgl = tanggal_list[0]
+            # Convert semua tanggal ke date objects dan sort
+            tgl_list = []
+            for tgl in tanggal_list:
                 if isinstance(tgl, str):
                     tgl = datetime.strptime(tgl, '%Y-%m-%d').date()
-                
-                # Format untuk single date (all-day event)
+                tgl_list.append(tgl)
+            
+            tgl_list.sort()
+            
+            # Create individual all-day events untuk setiap tanggal
+            # (bukan 1 range event)
+            created_events = []
+            
+            for tgl in tgl_list:
                 event_body = {
                     'summary': event_title,
                     'description': description,
@@ -72,42 +79,31 @@ class GoogleCalendarService:
                         'date': tgl.isoformat(),
                     },
                     'end': {
-                        'date': (tgl + timedelta(days=1)).isoformat(),  # End date exclusive
+                        'date': (tgl + timedelta(days=1)).isoformat(),
                     },
                 }
-            else:
-                # Multi-date event (dari tanggal awal ke tanggal akhir)
-                tgl_list = []
-                for tgl in tanggal_list:
-                    if isinstance(tgl, str):
-                        tgl = datetime.strptime(tgl, '%Y-%m-%d').date()
-                    tgl_list.append(tgl)
                 
-                # Sort untuk get start & end
-                tgl_list.sort()
-                start_date = tgl_list[0]
-                end_date = tgl_list[-1]
+                # Create event
+                event = self.service.events().insert(
+                    calendarId=self.calendar_id,
+                    body=event_body
+                ).execute()
                 
-                # Format untuk multi-date range (all-day event)
-                event_body = {
-                    'summary': event_title,
-                    'description': description,
-                    'start': {
-                        'date': start_date.isoformat(),
-                    },
-                    'end': {
-                        'date': (end_date + timedelta(days=1)).isoformat(),  # End date exclusive
-                    },
-                }
+                created_events.append(event)
+                print(f"Event created for {tgl}: {event.get('id')}")
             
-            # Create event
-            event = self.service.events().insert(
-                calendarId=self.calendar_id,
-                body=event_body
-            ).execute()
+            # Return object dengan semua event IDs (comma-separated)
+            if created_events:
+                event_ids = [e.get('id') for e in created_events]
+                # Gabung semua IDs dengan koma
+                combined_id = ','.join(event_ids)
+                # Create response object dengan combined ID
+                response = created_events[0].copy()
+                response['id'] = combined_id  # Override dengan combined ID
+                response['ids'] = event_ids   # Juga simpan list lengkap
+                return response
             
-            print(f"Event created: {event.get('id')}")
-            return event
+            return None
             
         except Exception as e:
             print(f"Error creating event: {str(e)}")
@@ -133,25 +129,38 @@ class GoogleCalendarService:
             print(f"Error getting event: {str(e)}")
             return None
     
-    def delete_event(self, event_id):
+    def delete_event(self, event_ids):
         """
-        Delete event dari Google Calendar
+        Delete event(s) dari Google Calendar
+        Bisa single event_id atau comma-separated multiple event IDs
         
         Args:
-            event_id (str): Event ID dari Google Calendar
+            event_ids (str): Event ID (single) atau comma-separated IDs (multiple)
         
         Returns:
-            bool: True jika sukses, False jika gagal
+            bool: True jika semua sukses, False jika ada yang gagal
         """
         try:
-            self.service.events().delete(
-                calendarId=self.calendar_id,
-                eventId=event_id
-            ).execute()
-            print(f"Event deleted: {event_id}")
-            return True
+            # Parse event_ids (bisa single atau comma-separated)
+            ids_list = [eid.strip() for eid in str(event_ids).split(',') if eid.strip()]
+            
+            success_count = 0
+            for event_id in ids_list:
+                try:
+                    self.service.events().delete(
+                        calendarId=self.calendar_id,
+                        eventId=event_id
+                    ).execute()
+                    print(f"Event deleted: {event_id}")
+                    success_count += 1
+                except Exception as e:
+                    print(f"Error deleting event {event_id}: {str(e)}")
+            
+            # Return True jika semua berhasil
+            return success_count == len(ids_list)
+            
         except Exception as e:
-            print(f"Error deleting event: {str(e)}")
+            print(f"Error in delete_event: {str(e)}")
             return False
     
     def update_event(self, event_id, **kwargs):

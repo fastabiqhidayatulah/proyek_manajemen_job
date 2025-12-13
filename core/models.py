@@ -25,18 +25,77 @@ class CustomUser(AbstractUser):
         blank=True, 
         related_name='bawahan' 
     )
+    nomor_telepon = models.CharField(
+        max_length=20, 
+        blank=True, 
+        null=True,
+        help_text="Nomor telepon untuk integrasi WA Fontte (e.g., 62812XXXXXXXX)"
+    )
     class Meta:
         verbose_name = "Pengguna"
         verbose_name_plural = "Daftar Pengguna" 
     def __str__(self):
         return self.username
     
-    def get_all_subordinates(self):
+    def normalize_nomor_telepon(self, nomor):
+        """
+        Normalize nomor telepon dari format lokal ke internasional
+        0812345678 -> 628123456789
+        628123456789 -> 628123456789 (already correct)
+        """
+        if not nomor:
+            return None
+        
+        # Hapus semua karakter non-digit
+        nomor_clean = ''.join(filter(str.isdigit, nomor))
+        
+        # Jika kosong setelah cleaning
+        if not nomor_clean:
+            return None
+        
+        # Jika sudah format internasional (dimulai dengan 62)
+        if nomor_clean.startswith('62'):
+            return nomor_clean
+        
+        # Jika format lokal (dimulai dengan 0)
+        if nomor_clean.startswith('0'):
+            # Hapus 0 di awal dan tambah 62
+            return '62' + nomor_clean[1:]
+        
+        # Format tidak dikenali, return as is
+        return nomor_clean
+    
+    def save(self, *args, **kwargs):
+        """Override save untuk auto-normalize nomor telepon"""
+        if self.nomor_telepon:
+            self.nomor_telepon = self.normalize_nomor_telepon(self.nomor_telepon)
+        super().save(*args, **kwargs)
+    
+    def get_all_subordinates(self, _visited=None):
+        """
+        Get all subordinates recursively with circular reference prevention.
+        Args:
+            _visited: Set of visited IDs (for internal recursion tracking)
+        Returns:
+            List of subordinate user IDs
+        """
+        if _visited is None:
+            _visited = set()
+        
+        # Prevent infinite loops due to circular organizational references
+        if self.id in _visited:
+            return []
+        
+        _visited.add(self.id)
         subordinates = []
         direct_subs = self.bawahan.all()
+        
         for sub in direct_subs:
-            subordinates.append(sub.id)
-            subordinates.extend(sub.get_all_subordinates())
+            if sub.id not in _visited:
+                subordinates.append(sub.id)
+                # Recursively get subordinates of this user
+                subordinates.extend(sub.get_all_subordinates(_visited=_visited.copy()))
+        
         return list(set(subordinates)) 
 
 # ==============================================================================
@@ -214,6 +273,83 @@ class Job(models.Model):
         # Hitung persentase
         progress = (done_dates / total_dates) * 100
         return int(progress) # Kembalikan sebagai integer (misal: 50)
+    
+    def get_aset_level_display(self):
+        """
+        Return tingkat aset yang dipilih: 'Line', 'Mesin', atau 'Sub Mesin'
+        """
+        if not self.aset:
+            return None
+        return ['Line', 'Mesin', 'Sub Mesin'][self.aset.level]
+    
+    # ========== OVERDUE TRACKING METHODS ==========
+    def get_overdue_dates(self):
+        """
+        Return queryset of overdue JobDate records (Open/Pending with tanggal < today)
+        """
+        from django.utils import timezone
+        today = timezone.now().date()
+        return self.tanggal_pelaksanaan.filter(
+            tanggal__lt=today,
+            status__in=['Open', 'Pending']
+        )
+    
+    def get_overdue_count(self):
+        """
+        Return count of overdue dates
+        """
+        return self.get_overdue_dates().count()
+    
+    def has_overdue(self):
+        """
+        Check if job has any overdue dates
+        """
+        return self.get_overdue_count() > 0
+    
+    def get_summary_stats(self):
+        """
+        Return dict with job status summary
+        {
+            'total': 15,
+            'done': 6,
+            'pending': 1,
+            'overdue': 3,
+            'open': 5,
+            'na': 0,
+            'progress_percent': 40
+        }
+        """
+        all_dates = self.tanggal_pelaksanaan.all()
+        total = all_dates.count()
+        
+        if total == 0:
+            return {
+                'total': 0,
+                'done': 0,
+                'pending': 0,
+                'overdue': 0,
+                'open': 0,
+                'na': 0,
+                'progress_percent': 0
+            }
+        
+        done = all_dates.filter(status='Done').count()
+        pending = all_dates.filter(status='Pending').count()
+        open_count = all_dates.filter(status='Open').count()
+        na = all_dates.filter(status='N/A').count()
+        overdue = self.get_overdue_count()
+        
+        progress_percent = int((done / total) * 100) if total > 0 else 0
+        
+        return {
+            'total': total,
+            'done': done,
+            'pending': pending,
+            'overdue': overdue,
+            'open': open_count,
+            'na': na,
+            'progress_percent': progress_percent
+        }
 
 
 class JobDate(models.Model):
@@ -249,6 +385,40 @@ class JobDate(models.Model):
 
     def __str__(self):
         return f"{self.job.nama_pekerjaan} - {self.tanggal} ({self.status})"
+    
+    # ========== OVERDUE TRACKING METHODS ==========
+    def is_overdue(self):
+        """
+        Check if this date is overdue (tanggal < today AND status is Open/Pending)
+        """
+        from django.utils import timezone
+        today = timezone.now().date()
+        return (
+            self.tanggal < today and 
+            self.status in ['Open', 'Pending']
+        )
+    
+    def days_overdue(self):
+        """
+        Return number of days overdue (0 if not overdue)
+        """
+        from django.utils import timezone
+        if not self.is_overdue():
+            return 0
+        today = timezone.now().date()
+        delta = today - self.tanggal
+        return delta.days
+    
+    def days_until_overdue(self):
+        """
+        Return number of days until overdue (negative if already overdue)
+        """
+        from django.utils import timezone
+        today = timezone.now().date()
+        if self.status in ['Done', 'N/A']:
+            return None  # Not applicable
+        delta = self.tanggal - today
+        return delta.days
 
 class Attachment(models.Model):
     """
@@ -378,11 +548,12 @@ class LeaveEvent(models.Model):
     )
     
     # Link ke Google Calendar
+    # Format: event_id1,event_id2,event_id3 (comma-separated untuk multiple events)
     google_event_id = models.CharField(
-        max_length=255, 
+        max_length=500, 
         blank=True, 
         null=True,
-        help_text="Event ID dari Google Calendar"
+        help_text="Event IDs dari Google Calendar (comma-separated untuk multiple events)"
     )
     
     created_by = models.ForeignKey(
@@ -408,3 +579,57 @@ class LeaveEvent(models.Model):
     def get_tanggal_list(self):
         """Parse comma-separated dates into list"""
         return [tgl.strip() for tgl in self.tanggal.split(',') if tgl.strip()]
+    
+    def get_google_event_ids(self):
+        """Parse comma-separated event IDs into list"""
+        if self.google_event_id:
+            return [eid.strip() for eid in self.google_event_id.split(',') if eid.strip()]
+        return []
+
+
+# 8. MODEL MAINTENANCE MODE
+# ==============================================================================
+class MaintenanceMode(models.Model):
+    """
+    Model untuk control Maintenance Mode aplikasi
+    Admin bisa toggle on/off dari Django admin untuk menampilkan halaman maintenance
+    """
+    is_active = models.BooleanField(
+        default=False,
+        verbose_name="Aktifkan Maintenance Mode",
+        help_text="Jika diaktifkan, user akan melihat halaman maintenance"
+    )
+    
+    message = models.TextField(
+        default="Aplikasi sedang dalam proses maintenance. Mohon tunggu beberapa saat...",
+        verbose_name="Pesan Maintenance",
+        help_text="Pesan yang ditampilkan ke user saat maintenance mode aktif"
+    )
+    
+    estimated_time = models.CharField(
+        max_length=100,
+        blank=True,
+        default="Estimasi selesai dalam 15 menit",
+        verbose_name="Estimasi Waktu Selesai",
+        help_text="Contoh: 'Estimasi selesai dalam 15 menit' atau '10:30 AM'"
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Maintenance Mode"
+        verbose_name_plural = "Maintenance Mode"
+    
+    def __str__(self):
+        status = "AKTIF" if self.is_active else "NONAKTIF"
+        return f"Maintenance Mode: {status}"
+    
+    @staticmethod
+    def is_maintenance_active():
+        """Cek apakah maintenance mode aktif"""
+        try:
+            mode = MaintenanceMode.objects.first()
+            return mode.is_active if mode else False
+        except:
+            return False

@@ -1,0 +1,270 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Dashboard Preventive Job - V2{% endblock %}
+
+{% block content %}
+
+<div class="container-fluid mt-4">
+    <!-- PAGE HEADER -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h2>📊 Dashboard Preventive Job</h2>
+        </div>
+        <div class="col-md-6 text-right">
+            <a href="{% url 'preventive_jobs:index' %}" class="btn btn-secondary me-2">
+                <i class="bi bi-arrow-left"></i> Kembali ke Preventive
+            </a>
+            <a href="{% url 'preventive_jobs:template_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Buat Template Baru
+            </a>
+        </div>
+    </div>
+
+    <!-- FILTER BAR -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET">
+                <div class="row g-3">
+                    <div class="col-auto">
+                        <label for="month" class="form-label">Bulan:</label>
+                        <select name="month" id="month" class="form-select form-select-sm">
+                            <option value="" {% if filter_all_months %}selected{% endif %}>Semua</option>
+                            {% for month in month_list %}
+                            <option value="{{ month }}" {% if month == current_month and not filter_all_months %}selected{% endif %}>
+                                {% if month == 1 %}Januari
+                                {% elif month == 2 %}Februari
+                                {% elif month == 3 %}Maret
+                                {% elif month == 4 %}April
+                                {% elif month == 5 %}Mei
+                                {% elif month == 6 %}Juni
+                                {% elif month == 7 %}Juli
+                                {% elif month == 8 %}Agustus
+                                {% elif month == 9 %}September
+                                {% elif month == 10 %}Oktober
+                                {% elif month == 11 %}November
+                                {% elif month == 12 %}Desember
+                                {% endif %}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-auto">
+                        <label for="year" class="form-label">Tahun:</label>
+                        <select name="year" id="year" class="form-select form-select-sm">
+                            <option value="0" {% if filter_all_years %}selected{% endif %}>Semua</option>
+                            {% for year in year_list %}
+                            <option value="{{ year }}" {% if year == current_year and not filter_all_years %}selected{% endif %}>{{ year }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-auto">
+                        <label for="status" class="form-label">Status:</label>
+                        <select name="status" id="status" class="form-select form-select-sm">
+                            <option value="">Semua</option>
+                            <option value="Scheduled" {% if selected_status == 'Scheduled' %}selected{% endif %}>Scheduled</option>
+                            <option value="Done" {% if selected_status == 'Done' %}selected{% endif %}>Done</option>
+                            <option value="Skipped" {% if selected_status == 'Skipped' %}selected{% endif %}>Skipped</option>
+                            <option value="N/A" {% if selected_status == 'N/A' %}selected{% endif %}>N/A</option>
+                        </select>
+                    </div>
+                    <div class="col-auto d-flex align-items-end">
+                        <button type="submit" class="btn btn-secondary btn-sm">🔍 Filter</button>
+                        <a href="{% url 'preventive_jobs:dashboard' %}" class="btn btn-outline-secondary btn-sm ms-2">✕ Reset</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- KPI CARDS -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-left-primary">
+                <div class="card-body">
+                    <div class="text-primary font-weight-bold text-uppercase mb-1">Total Job Terjadwal</div>
+                    <div class="h3 mb-0">{{ total_jobs }}</div>
+                    <small class="text-muted">
+                        {% if filter_all_months and filter_all_years %}
+                            Tahun ini
+                        {% elif filter_all_months %}
+                            Tahun {{ current_year }}
+                        {% elif filter_all_years %}
+                            Semua tahun
+                        {% else %}
+                            Periode terpilih
+                        {% endif %}
+                    </small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-left-success">
+                <div class="card-body">
+                    <div class="text-success font-weight-bold text-uppercase mb-1">Terpenuhi</div>
+                    <div class="h3 mb-0">✅ {{ done_jobs }} ({{ compliance_rate }}%)</div>
+                    <small class="text-muted">Status Done</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-left-warning">
+                <div class="card-body">
+                    <div class="text-warning font-weight-bold text-uppercase mb-1">Terlambat</div>
+                    <div class="h3 mb-0">⚠️ {{ late_jobs }}</div>
+                    <small class="text-muted">Overdue</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-left-info">
+                <div class="card-body">
+                    <div class="text-info font-weight-bold text-uppercase mb-1">Compliance Rate</div>
+                    <div class="h3 mb-0">📈 {{ compliance_rate }}%</div>
+                    <small class="text-muted">Target: 85%</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- COMPLIANCE TREND CHART -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">📊 Trend Compliance Rate (6 Bulan)</h5>
+        </div>
+        <div class="card-body" style="max-height: 300px; padding: 10px;">
+            <canvas id="complianceChart" style="max-height: 250px;"></canvas>
+        </div>
+    </div>
+
+    <!-- UPCOMING EXECUTIONS -->
+    <div class="card">
+        <div class="card-header bg-white border-bottom-2">
+            <h5 class="mb-0">📅 Execution Terdekat (This Week)</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-sm table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 3%;">No</th>
+                            <th style="width: 35%;">Nama Job</th>
+                            <th style="width: 7%;">Line</th>
+                            <th style="width: 8%;">Mesin</th>
+                            <th style="width: 10%;">Sub Mesin</th>
+                            <th style="width: 10%;">Jadwal</th>
+                            <th style="width: 9%;">Status</th>
+                            <th style="width: 10%;">PIC</th>
+                            <th style="width: 3%;">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for exec in upcoming_executions %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>
+                                <strong>{{ exec.template.nama_pekerjaan }}</strong><br>
+                                <small class="text-muted">{{ exec.template.get_fokus_display }}</small>
+                            </td>
+                            <td>
+                                {% with root=exec.aset.get_root %}
+                                    {{ root.nama }}
+                                {% endwith %}
+                            </td>
+                            <td>
+                                {% with parent=exec.aset.parent %}
+                                    {% if parent and parent.parent %}
+                                        {{ parent.nama }}
+                                    {% elif parent %}
+                                        {{ parent.nama }}
+                                    {% endif %}
+                                {% endwith %}
+                            </td>
+                            <td>{{ exec.aset.nama }}</td>
+                            <td>{{ exec.scheduled_date|date:"d M Y" }}</td>
+                            <td>
+                                {% if exec.status == 'Done' %}
+                                    <span class="badge bg-success">✅ Done</span>
+                                {% elif exec.status == 'Scheduled' %}
+                                    {% if exec.is_overdue %}
+                                        <span class="badge bg-danger">⚠️ OVERDUE</span>
+                                    {% else %}
+                                        <span class="badge bg-warning text-dark">⏳ Open</span>
+                                    {% endif %}
+                                {% elif exec.status == 'Skipped' %}
+                                    <span class="badge bg-info">⊘ Skipped</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">❌ {{ exec.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if exec.template.pic %}
+                                    <span class="badge bg-info text-white">{{ exec.template.pic.get_full_name|default:exec.template.pic.username }}</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Unassigned</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'preventive_jobs:execution_detail' exec.id %}" class="btn btn-sm btn-info" title="Lihat Detail">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="9" class="text-center text-muted py-3">Tidak ada execution minggu ini</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Chart Compliance Trend
+    const trendData = {{ compliance_trend|safe }};
+    const ctx = document.getElementById('complianceChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: trendData.map(d => d.month),
+            datasets: [{
+                label: 'Compliance Rate (%)',
+                data: trendData.map(d => d.rate),
+                borderColor: '#007bff',
+                backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                tension: 0.4,
+                fill: true,
+                pointRadius: 4,
+                pointHoverRadius: 6,
+                borderWidth: 2,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: { 
+                    display: true,
+                    labels: { font: { size: 12 } }
+                }
+            },
+            scales: {
+                y: { 
+                    beginAtZero: true, 
+                    max: 100,
+                    ticks: { font: { size: 11 } }
+                },
+                x: {
+                    ticks: { font: { size: 11 } }
+                }
+            }
+        }
+    });
+</script>
+
+{% endblock %}

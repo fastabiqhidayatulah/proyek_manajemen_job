@@ -18,7 +18,8 @@ from .models import (
     JobDate, 
     Attachment,
     Karyawan,
-    LeaveEvent
+    LeaveEvent,
+    MaintenanceMode
 )
 
 # ============================================================
@@ -204,3 +205,37 @@ class JobAdmin(admin.ModelAdmin):
 admin.site.site_header = "Admin Panel Manajemen Pekerjaan"
 admin.site.site_title = "Admin Panel"
 admin.site.index_title = "Selamat Datang di Admin Panel"
+
+# ============================================================
+# 6. SETUP MAINTENANCE MODE (ADMIN CONTROL)
+# ============================================================
+@admin.register(MaintenanceMode)
+class MaintenanceModeAdmin(admin.ModelAdmin):
+    list_display = ('get_status', 'message', 'estimated_time', 'updated_at')
+    
+    fieldsets = (
+        ('Status Maintenance', {
+            'fields': ('is_active',)
+        }),
+        ('Pesan untuk User', {
+            'fields': ('message', 'estimated_time')
+        }),
+        ('Metadata', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    readonly_fields = ('created_at', 'updated_at')
+    
+    def get_status(self, obj):
+        """Tampilkan status dengan warna"""
+        if obj.is_active:
+            return format_html(
+                '<span style="color: red; font-weight: bold;">🔴 MAINTENANCE AKTIF</span>'
+            )
+        else:
+            return format_html(
+                '<span style="color: green; font-weight: bold;">🟢 NORMAL</span>'
+            )
+    get_status.short_description = 'Status'

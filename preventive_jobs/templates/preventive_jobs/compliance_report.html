@@ -1,0 +1,258 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Compliance Report - Preventive Job V2{% endblock %}
+
+{% block content %}
+
+<div class="container-fluid mt-4">
+    <!-- PAGE HEADER -->
+    <div class="row mb-4">
+        <div class="col-md-10">
+            <h2>📈 Compliance Report & Analytics</h2>
+        </div>
+        <div class="col-md-2 text-right">
+            <a href="{% url 'preventive_jobs:index' %}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Kembali ke Preventive
+            </a>
+        </div>
+    </div>
+
+    <!-- FILTER PERIODE -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="form-inline">
+                <div class="form-group mr-3">
+                    <label class="mr-2">Dari:</label>
+                    <select name="from_month" id="from_month" class="form-control mr-2">
+                        {% for i in "123456789101112"|make_list %}
+                        <option value="{{ i }}" {% if i|add:"0" == from_month %}selected{% endif %}>
+                            {{ i|add:"0"|date:"F" }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <select name="from_year" id="from_year" class="form-control mr-3">
+                        <option value="2023" {% if from_year == 2023 %}selected{% endif %}>2023</option>
+                        <option value="2024" {% if from_year == 2024 %}selected{% endif %}>2024</option>
+                        <option value="2025" {% if from_year == 2025 %}selected{% endif %}>2025</option>
+                        <option value="2026" {% if from_year == 2026 %}selected{% endif %}>2026</option>
+                    </select>
+                </div>
+                <div class="form-group mr-3">
+                    <label class="mr-2">Ke:</label>
+                    <select name="to_month" id="to_month" class="form-control mr-2">
+                        {% for i in "123456789101112"|make_list %}
+                        <option value="{{ i }}" {% if i|add:"0" == to_month %}selected{% endif %}>
+                            {{ i|add:"0"|date:"F" }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <select name="to_year" id="to_year" class="form-control mr-3">
+                        <option value="2023" {% if to_year == 2023 %}selected{% endif %}>2023</option>
+                        <option value="2024" {% if to_year == 2024 %}selected{% endif %}>2024</option>
+                        <option value="2025" {% if to_year == 2025 %}selected{% endif %}>2025</option>
+                        <option value="2026" {% if to_year == 2026 %}selected{% endif %}>2026</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-secondary">🔍 Generate Report</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- KPI SUMMARY -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-left-primary">
+                <div class="card-body">
+                    <div class="text-primary font-weight-bold text-uppercase mb-1">Total Jobs</div>
+                    <div class="h3 mb-0">{{ total_jobs }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-left-success">
+                <div class="card-body">
+                    <div class="text-success font-weight-bold text-uppercase mb-1">Done</div>
+                    <div class="h3 mb-0">{{ done_jobs }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-left-info">
+                <div class="card-body">
+                    <div class="text-info font-weight-bold text-uppercase mb-1">Overall Compliance</div>
+                    <div class="h3 mb-0">📊 {{ overall_compliance }}%</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-left-warning">
+                <div class="card-body">
+                    <div class="text-warning font-weight-bold text-uppercase mb-1">Avg Overdue (Days)</div>
+                    <div class="h3 mb-0">{{ avg_overdue_days }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- COMPLIANCE TREND CHART -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5>📊 Compliance Trend (12 Bulan)</h5>
+        </div>
+        <div class="card-body">
+            <canvas id="trendChart"></canvas>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <!-- TOP 5 MESIN TERENDAH -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>⚠️ Top 5 Mesin Compliance Terendah</h5>
+                </div>
+                <div class="card-body">
+                    {% for stat in mesin_stats %}
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <strong>{{ stat.mesin.nama }}</strong>
+                            <span class="text-danger">{{ stat.compliance }}%</span>
+                        </div>
+                        <div class="progress" style="height: 20px;">
+                            <div class="progress-bar bg-danger" 
+                                 role="progressbar" 
+                                 style="width: {{ stat.compliance }}%;" 
+                                 aria-valuenow="{{ stat.compliance }}" 
+                                 aria-valuemin="0" 
+                                 aria-valuemax="100">
+                            </div>
+                        </div>
+                        <small class="text-muted">{{ stat.done }}/{{ stat.total }} selesai</small>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted">Tidak ada data mesin</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- ACTION REQUIRED -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>🎯 Action Items</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <strong>Total Executions:</strong> {{ total_jobs }} job
+                    </div>
+                    <div class="alert alert-success">
+                        <strong>Completed:</strong> {{ done_jobs }} job ({{ overall_compliance }}%)
+                    </div>
+                    <div class="alert alert-warning">
+                        <strong>Average Overdue:</strong> {{ avg_overdue_days }} hari
+                    </div>
+                    <div class="alert alert-danger">
+                        <strong>Mesin Kritis:</strong> Perlu attention untuk mesin dengan compliance < 70%
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DETAILED TABLE -->
+    <div class="card">
+        <div class="card-header">
+            <h5>📋 Detail Per Mesin</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Mesin</th>
+                            <th>Total Job</th>
+                            <th>Done</th>
+                            <th>Skipped</th>
+                            <th>N/A</th>
+                            <th>Compliance</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for stat in mesin_stats %}
+                        <tr>
+                            <td><strong>{{ stat.mesin.nama }}</strong></td>
+                            <td>{{ stat.total }}</td>
+                            <td>{{ stat.done }}</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>
+                                <div class="progress" style="height: 20px;">
+                                    <div class="progress-bar" 
+                                         style="width: {{ stat.compliance }}%; background-color: {% if stat.compliance >= 90 %}#28a745{% elif stat.compliance >= 70 %}#ffc107{% else %}#dc3545{% endif %};">
+                                        {{ stat.compliance }}%
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                {% if stat.compliance >= 90 %}
+                                <span class="badge badge-success">✅ OK</span>
+                                {% elif stat.compliance >= 70 %}
+                                <span class="badge badge-warning">⚠️ WARN</span>
+                                {% else %}
+                                <span class="badge badge-danger">❌ CRIT</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Chart Compliance Trend
+    const trendData = {{ trend_data|safe }};
+    const ctx = document.getElementById('trendChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: trendData.map(d => d.month),
+            datasets: [{
+                label: 'Compliance Rate (%)',
+                data: trendData.map(d => d.compliance),
+                borderColor: '#007bff',
+                backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                tension: 0.4,
+                fill: true,
+                pointBackgroundColor: '#007bff',
+                pointRadius: 5,
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: true }
+            },
+            scales: {
+                y: { 
+                    beginAtZero: true, 
+                    max: 100,
+                    ticks: {
+                        callback: function(value) {
+                            return value + '%';
+                        }
+                    }
+                }
+            }
+        }
+    });
+</script>
+
+{% endblock %}

@@ -1,0 +1,457 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ title }} - Preventive Job V2{% endblock %}
+
+{% block extra_css %}
+<style>
+    .formset-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .formset-table thead {
+        background-color: #f8f9fa;
+    }
+    
+    .formset-table th, .formset-table td {
+        padding: 10px;
+        border-bottom: 1px solid #dee2e6;
+        text-align: left;
+    }
+    
+    .formset-table tbody tr:hover {
+        background-color: #f8f9fa;
+    }
+    
+    .formset-row {
+        display: none;
+    }
+    
+    .formset-row.active {
+        display: table-row;
+    }
+    
+    .form-control {
+        border: 1px solid #ced4da;
+    }
+    
+    .form-control:focus {
+        border-color: #80bdff;
+        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    }
+    
+    .delete-checkbox {
+        cursor: pointer;
+    }
+    
+    .btn-add-item {
+        margin-top: 10px;
+    }
+    
+    .invalid-feedback {
+        display: block;
+        color: #dc3545;
+        margin-top: 0.25rem;
+        font-size: 0.875rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="container-fluid mt-4">
+    <!-- PAGE HEADER -->
+    <div class="row mb-4">
+        <div class="col">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2>{{ title }}</h2>
+                <a href="{% url 'preventive_jobs:index' %}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Kembali ke Preventive
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- FORM CHECKLIST TEMPLATE -->
+    <form method="POST" class="needs-validation" novalidate>
+        {% csrf_token %}
+
+        <div class="row">
+            <!-- MAIN COLUMN -->
+            <div class="col-md-8">
+                <!-- SECTION 1: INFORMASI DASAR CHECKLIST -->
+                <div class="card mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">1️⃣ Informasi Dasar Checklist</h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Nama -->
+                        <div class="form-group mb-3">
+                            <label for="{{ form.nama.id_for_label }}" class="form-label">
+                                {{ form.nama.label }} <span class="text-danger">*</span>
+                            </label>
+                            {{ form.nama }}
+                            {% if form.nama.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.nama.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Kategori & Deskripsi -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label for="{{ form.kategori.id_for_label }}" class="form-label">
+                                        {{ form.kategori.label }} <span class="text-danger">*</span>
+                                    </label>
+                                    {{ form.kategori }}
+                                    {% if form.kategori.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.kategori.errors.0 }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label for="{{ form.is_active.id_for_label }}" class="form-label">
+                                        Status
+                                    </label>
+                                    <div class="form-check mt-2">
+                                        {{ form.is_active }}
+                                        <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                                            Checklist ini aktif
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Deskripsi -->
+                        <div class="form-group mb-3">
+                            <label for="{{ form.deskripsi.id_for_label }}" class="form-label">
+                                {{ form.deskripsi.label }}
+                            </label>
+                            {{ form.deskripsi }}
+                            <small class="form-text text-muted">
+                                Deskripsi singkat tentang checklist ini
+                            </small>
+                            {% if form.deskripsi.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.deskripsi.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- File Template -->
+                        <div class="form-group mb-0">
+                            <label for="{{ form.file_template.id_for_label }}" class="form-label">
+                                {{ form.file_template.label }}
+                            </label>
+                            {{ form.file_template }}
+                            <small class="form-text text-muted d-block">
+                                Upload file template (PDF, Excel, dll) jika ada. Opsional.
+                            </small>
+                            {% if form.instance.pk and form.instance.file_template %}
+                                <div class="mt-2">
+                                    <a href="{{ form.instance.file_template.url }}" target="_blank" class="btn btn-sm btn-outline-secondary">
+                                        <i class="fas fa-download"></i> Download File Saat Ini
+                                    </a>
+                                </div>
+                            {% endif %}
+                            {% if form.file_template.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.file_template.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECTION 2: ITEM CHECKLIST -->
+                <div class="card mb-4">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">2️⃣ Item Checklist</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info" role="alert">
+                            <i class="fas fa-info-circle"></i>
+                            Tambahkan item-item yang akan dicek dalam setiap pelaksanaan preventive job.
+                        </div>
+
+                        <!-- FORMSET MANAGEMENT FORM -->
+                        {{ formset.management_form }}
+
+                        <!-- FORMSET ERRORS -->
+                        {% if formset.non_form_errors %}
+                            <div class="alert alert-danger" role="alert">
+                                <strong>Error:</strong>
+                                {% for error in formset.non_form_errors %}
+                                    <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+
+                        <!-- FORMSET TABLE -->
+                        <div class="table-responsive">
+                            <table class="table table-bordered formset-table">
+                                <thead>
+                                    <tr>
+                                        <th width="5%" class="text-center">No</th>
+                                        <th width="25%">Item Pemeriksaan</th>
+                                        <th width="15%">Standar Normal</th>
+                                        <th width="10%">Unit</th>
+                                        <th width="12%">Min</th>
+                                        <th width="12%">Max</th>
+                                        <th width="15%">Tindakan/Remark</th>
+                                        <th width="6%" class="text-center">Hapus</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="formset-tbody">
+                                    {% for form in formset %}
+                                        <tr class="formset-row {% if not form.instance.pk or form.instance.pk %}active{% endif %}">
+                                            <td class="text-center">
+                                                <span class="item-number">{{ forloop.counter }}</span>
+                                            </td>
+                                            <td>
+                                                {{ form.item_pemeriksaan }}
+                                                {% if form.item_pemeriksaan.errors %}
+                                                    <div class="invalid-feedback d-block">
+                                                        {{ form.item_pemeriksaan.errors.0 }}
+                                                    </div>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {{ form.standar_normal }}
+                                                {% if form.standar_normal.errors %}
+                                                    <div class="invalid-feedback d-block">
+                                                        {{ form.standar_normal.errors.0 }}
+                                                    </div>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {{ form.unit }}
+                                                {% if form.unit.errors %}
+                                                    <div class="invalid-feedback d-block">
+                                                        {{ form.unit.errors.0 }}
+                                                    </div>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {{ form.nilai_min }}
+                                                {% if form.nilai_min.errors %}
+                                                    <div class="invalid-feedback d-block">
+                                                        {{ form.nilai_min.errors.0 }}
+                                                    </div>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {{ form.nilai_max }}
+                                                {% if form.nilai_max.errors %}
+                                                    <div class="invalid-feedback d-block">
+                                                        {{ form.nilai_max.errors.0 }}
+                                                    </div>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {{ form.tindakan_remark }}
+                                                {% if form.tindakan_remark.errors %}
+                                                    <div class="invalid-feedback d-block">
+                                                        {{ form.tindakan_remark.errors.0 }}
+                                                    </div>
+                                                {% endif %}
+                                            </td>
+                                            <td class="text-center">
+                                                {{ form.DELETE }}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- ADD NEW ITEM BUTTON -->
+                        <button type="button" class="btn btn-outline-success btn-add-item" id="add-formset-row">
+                            <i class="fas fa-plus-circle"></i> Tambah Item Baru
+                        </button>
+                    </div>
+                </div>
+
+                <!-- FOOTER BUTTONS -->
+                <div class="row mb-4">
+                    <div class="col">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-save"></i> 
+                            {% if is_create %}Buat Checklist{% else %}Update Checklist{% endif %}
+                        </button>
+                        <a href="{% url 'preventive_jobs:checklist_list' %}" class="btn btn-secondary btn-lg">
+                            <i class="fas fa-times"></i> Batal
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SIDEBAR -->
+            <div class="col-md-4">
+                <!-- INFO BOX -->
+                <div class="card mb-4">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0"><i class="fas fa-lightbulb"></i> Panduan</h6>
+                    </div>
+                    <div class="card-body small">
+                        <p><strong>Item Pemeriksaan:</strong><br>
+                        Deskripsi singkat item yang akan diperiksa</p>
+
+                        <p><strong>Standar Normal:</strong><br>
+                        Nilai atau kondisi yang normal/baik</p>
+
+                        <p><strong>Unit:</strong><br>
+                        Satuan pengukuran (V, A, %, RPM, °C, dll)</p>
+
+                        <p><strong>Min/Max:</strong><br>
+                        Range nilai yang dapat diterima untuk validasi</p>
+
+                        <p><strong>Tindakan/Remark:</strong><br>
+                        Catatan atau tindakan jika nilai di luar range</p>
+                    </div>
+                </div>
+
+                <!-- CHECKLIST INFO -->
+                {% if not is_create %}
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0"><i class="fas fa-info-circle"></i> Informasi</h6>
+                    </div>
+                    <div class="card-body small">
+                        <p>
+                            <strong>Nomor:</strong><br>
+                            <code>{{ form.instance.nomor }}</code>
+                        </p>
+                        <p>
+                            <strong>Dibuat:</strong><br>
+                            {{ form.instance.created_at|date:"d/m/Y H:i" }}
+                        </p>
+                        <p>
+                            <strong>Diupdate:</strong><br>
+                            {{ form.instance.updated_at|date:"d/m/Y H:i" }}
+                        </p>
+                        <p>
+                            <strong>Digunakan di:</strong><br>
+                            {{ form.instance.template_set.count }} template
+                        </p>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </form>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Formset dynamic row management
+    document.addEventListener('DOMContentLoaded', function() {
+        const tbody = document.getElementById('formset-tbody');
+        const addButton = document.getElementById('add-formset-row');
+        const totalForms = document.getElementById('id_checklistitem_set-TOTAL_FORMS');
+        
+        // Initialize form styling
+        updateFormElements();
+        
+        // Add new row functionality
+        addButton.addEventListener('click', function(e) {
+            e.preventDefault();
+            addNewFormRow();
+        });
+        
+        // Delete row functionality
+        document.addEventListener('change', function(e) {
+            if (e.target.matches('.formset-row [name*="-DELETE"]')) {
+                const row = e.target.closest('tr');
+                if (e.target.checked) {
+                    row.style.opacity = '0.5';
+                } else {
+                    row.style.opacity = '1';
+                }
+            }
+        });
+    });
+    
+    function addNewFormRow() {
+        const tbody = document.getElementById('formset-tbody');
+        const totalForms = document.getElementById('id_checklistitem_set-TOTAL_FORMS');
+        const formCount = parseInt(totalForms.value);
+        
+        // Clone the last form (excluding delete checkbox)
+        const lastRow = tbody.querySelector('tr:last-child');
+        const newRow = lastRow.cloneNode(true);
+        
+        // Update field names and IDs
+        const formPrefix = 'checklistitem_set-' + formCount;
+        const fields = newRow.querySelectorAll('input, select, textarea');
+        
+        fields.forEach(field => {
+            const oldName = field.name;
+            if (oldName) {
+                const newName = oldName.replace(/checklistitem_set-\d+/, formPrefix);
+                field.name = newName;
+                
+                if (field.id) {
+                    field.id = 'id_' + newName;
+                }
+                
+                // Clear value
+                if (field.type !== 'checkbox') {
+                    field.value = '';
+                }
+            }
+        });
+        
+        // Update row number
+        const itemNumber = newRow.querySelector('.item-number');
+        if (itemNumber) {
+            itemNumber.textContent = formCount + 1;
+        }
+        
+        // Show the row
+        newRow.classList.add('active');
+        newRow.style.opacity = '1';
+        
+        tbody.appendChild(newRow);
+        
+        // Update total forms count
+        totalForms.value = formCount + 1;
+        
+        // Re-apply styling
+        updateFormElements();
+    }
+    
+    function updateFormElements() {
+        const forms = document.querySelectorAll('.formset-row input:not([name*="-DELETE"]), .formset-row select, .formset-row textarea');
+        forms.forEach(form => {
+            form.classList.add('form-control');
+            form.classList.add('form-control-sm');
+        });
+    }
+    
+    // Form validation
+    (function() {
+        'use strict';
+        
+        const forms = document.querySelectorAll('.needs-validation');
+        Array.from(forms).forEach(form => {
+            form.addEventListener('submit', function(event) {
+                if (!form.checkValidity()) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                form.classList.add('was-validated');
+            }, false);
+        });
+    })();
+</script>
+{% endblock %}

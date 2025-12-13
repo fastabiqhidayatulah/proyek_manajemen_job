@@ -24,6 +24,42 @@
             right: 1rem;
             z-index: 1050;
         }
+        
+        /* ===== OVERDUE JOBS HIGHLIGHTING ===== */
+        /* Mark row as overdue in tables */
+        tr.overdue-row,
+        tr[data-overdue="true"] {
+            background-color: #ffe5e5 !important;
+            border-left: 4px solid #dc3545 !important;
+        }
+        
+        tr.overdue-row:hover,
+        tr[data-overdue="true"]:hover {
+            background-color: #ffd1d1 !important;
+        }
+        
+        /* Overdue badge styling */
+        .badge-overdue {
+            background-color: #dc3545 !important;
+            color: white !important;
+        }
+        
+        .overdue-label {
+            font-size: 11px;
+            font-weight: bold;
+            color: #dc3545;
+            text-transform: uppercase;
+        }
+        
+        /* Navbar bell styling */
+        #overdueJobsBell {
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        
+        #overdueJobsBell:hover {
+            transform: scale(1.1);
+        }
     </style>
 </head>
 <body class="bg-light">
@@ -49,6 +85,14 @@
                                 <i class="bi bi-grid-fill"></i> Dashboard
                             </a>
                         </li>
+
+                        <!-- MENU "PREVENTIVE" -->
+                        <li class="nav-item">
+                            <a class="nav-link {% if 'preventive_jobs' in request.resolver_match.namespace %}active{% endif %}" 
+                               href="{% url 'preventive_jobs:index' %}">
+                                <i class="bi bi-lightning-charge-fill"></i> Preventive
+                            </a>
+                        </li>
                         
                         <!-- MENU "TIM SAYA" -->
                         <li class="nav-item">
@@ -68,9 +112,18 @@
 
                         <!-- MENU "EXPORT JOBS" -->
                         <li class="nav-item">
-                            <a class="nav-link {% if 'job_per_day' in request.resolver_match.url_name %}active{% endif %}" 
+                            <a class="nav-link {% if 'job_per_day' in request.resolver_match.url_name and 'trial' not in request.resolver_match.url_name %}active{% endif %}" 
                                href="{% url 'core:job_per_day' %}">
                                 <i class="bi bi-file-pdf"></i> Export Jobs
+                            </a>
+                        </li>
+
+                        <!-- MENU "EXPORT JOBS TRIAL" -->
+                        <li class="nav-item">
+                            <a class="nav-link {% if 'job_per_day_trial' in request.resolver_match.url_name %}active{% endif %}" 
+                               href="{% url 'preventive_jobs:job_per_day_trial' %}">
+                                <i class="bi bi-file-pdf"></i> Export Jobs Trial
+                                <span class="badge bg-warning text-dark ms-1">TRIAL</span>
                             </a>
                         </li>
 
@@ -84,11 +137,84 @@
                         
                         {% if user.is_staff or user.is_superuser %}
                         <li class="nav-item">
+                            <button class="nav-link btn btn-sm" id="maintenance-toggle-btn" style="border: none; background: transparent;">
+                                <i class="bi bi-gear-fill"></i> <span id="maintenance-status">Mode</span>
+                            </button>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link" href="{% url 'admin:index' %}" target="_blank">
                                 <i class="bi bi-gear-fill"></i> Admin Panel
                             </a>
                         </li>
                         {% endif %}
+
+                        <!-- NAVBAR BELL: OVERDUE JOBS NOTIFICATION -->
+                        <li class="nav-item dropdown">
+                            <a class="nav-link position-relative" href="#" id="overdueJobsBell" role="button" data-bs-toggle="dropdown" aria-expanded="false" title="Overdue Jobs">
+                                <i class="bi bi-bell-fill"></i>
+                                {% if overdue_count > 0 %}
+                                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                        {{ overdue_count }}
+                                        {% if overdue_count > 9 %}<span class="visually-hidden">overdue jobs</span>{% endif %}
+                                    </span>
+                                {% endif %}
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="overdueJobsBell" style="min-width: 350px; max-height: 400px; overflow-y: auto; z-index: 10000;">
+                                <li><h6 class="dropdown-header">
+                                    <i class="bi bi-exclamation-triangle-fill text-danger"></i>
+                                    Overdue Jobs
+                                    {% if overdue_count > 0 %}
+                                        <span class="badge bg-danger ms-2">{{ overdue_count }}</span>
+                                    {% endif %}
+                                </h6></li>
+                                
+                                <li><a class="dropdown-item text-center py-2 fw-bold text-primary" href="{% url 'core:overdue_jobs' %}">
+                                    <i class="bi bi-list-check"></i> View All Overdue Jobs
+                                </a></li>
+                                
+                                {% if overdue_list %}
+                                    <li><hr class="dropdown-divider"></li>
+                                    {% for item in overdue_list %}
+                                        <li>
+                                            <a class="dropdown-item py-2" href="{{ item.url }}">
+                                                <div class="d-flex justify-content-between align-items-start">
+                                                    <div style="flex: 1;">
+                                                        <div class="fw-bold text-dark">{{ item.name }}</div>
+                                                        <small class="text-muted">
+                                                            {% if item.type == 'daily_job' %}
+                                                                Daily Job
+                                                            {% elif item.type == 'project_job' %}
+                                                                Project Job
+                                                            {% else %}
+                                                                Preventive Job
+                                                            {% endif %}
+                                                        </small>
+                                                    </div>
+                                                    <span class="badge bg-danger" style="white-space: nowrap; margin-left: 10px;">
+                                                        {{ item.days_overdue }}d
+                                                    </span>
+                                                </div>
+                                                <small class="text-muted d-block mt-1">
+                                                    {{ item.assigned_to }}
+                                                </small>
+                                            </a>
+                                        </li>
+                                    {% endfor %}
+                                    
+                                    {% if total_overdue_count > 10 %}
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li><a class="dropdown-item text-center py-2 text-primary fw-bold" href="{% url 'core:overdue_jobs' %}" style="cursor: pointer;">
+                                            +{{ total_overdue_count|add:"-10" }} more items
+                                        </a></li>
+                                    {% endif %}
+                                {% else %}
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><div class="dropdown-item text-center py-3 text-success">
+                                        <i class="bi bi-check-circle"></i> No overdue jobs!
+                                    </div></li>
+                                {% endif %}
+                            </ul>
+                        </li>
 
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -97,6 +223,17 @@
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
                                 <li><span class="dropdown-item-text">{{ user.jabatan.nama_jabatan|default:"-" }}</span></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'core:profile' %}">
+                                        <i class="bi bi-person"></i> Profil Saya
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'core:profile_edit' %}">
+                                        <i class="bi bi-pencil"></i> Edit Profil
+                                    </a>
+                                </li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li>
                                     <form id="logout-form" action="{% url 'core:logout' %}" method="post">
@@ -182,5 +319,85 @@
     {% block extra_js %}
     <!-- Blok untuk JS tambahan per halaman -->
     {% endblock %}
+    
+    <!-- JavaScript untuk Maintenance Mode Toggle -->
+    {% if user.is_staff or user.is_superuser %}
+    <script>
+        // Load maintenance status saat halaman dimuat
+        document.addEventListener('DOMContentLoaded', function() {
+            updateMaintenanceStatus();
+            
+            // Setup click handler untuk toggle button
+            const toggleBtn = document.getElementById('maintenance-toggle-btn');
+            if (toggleBtn) {
+                toggleBtn.addEventListener('click', toggleMaintenanceMode);
+            }
+        });
+        
+        function updateMaintenanceStatus() {
+            fetch('{% url "core:get_maintenance_status" %}')
+                .then(response => response.json())
+                .then(data => {
+                    const statusSpan = document.getElementById('maintenance-status');
+                    const toggleBtn = document.getElementById('maintenance-toggle-btn');
+                    
+                    if (data.is_active) {
+                        statusSpan.textContent = '🔴 MAINTENANCE';
+                        toggleBtn.style.color = '#dc3545';
+                        toggleBtn.title = 'Maintenance Mode: AKTIF (Click untuk matikan)';
+                    } else {
+                        statusSpan.textContent = '🟢 NORMAL';
+                        toggleBtn.style.color = '#28a745';
+                        toggleBtn.title = 'Maintenance Mode: NORMAL (Click untuk aktifkan)';
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+        }
+        
+        function toggleMaintenanceMode() {
+            fetch('{% url "core:toggle_maintenance_mode" %}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Show toast notification
+                    showToast(data.message, data.is_active ? 'warning' : 'success');
+                    
+                    // Update status display
+                    updateMaintenanceStatus();
+                } else {
+                    showToast('Error: ' + data.error, 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('Error toggling maintenance mode', 'danger');
+            });
+        }
+        
+        function showToast(message, type = 'info') {
+            // Create toast element
+            const toast = document.createElement('div');
+            toast.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+            toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+            toast.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            document.body.appendChild(toast);
+            
+            // Auto dismiss after 4 seconds
+            setTimeout(() => {
+                toast.remove();
+            }, 4000);
+        }
+    </script>
+    {% endif %}
 </body>
 </html>

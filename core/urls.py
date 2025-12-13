@@ -55,6 +55,14 @@ urlpatterns = [
     path('job/add/', views.job_form_view, name='job_add'),
     path('job/edit/<int:job_id>/', views.job_form_view, name='job_edit'),
     path('job/delete/<int:job_id>/', views.job_delete, name='job_delete'),
+    
+    # URL JOB DETAIL (BARU - OVERDUE TRACKING)
+    path('daily-job/<int:job_id>/', views.daily_job_detail_view, name='daily_job_detail'),
+    path('project-job/<int:job_id>/', views.project_job_detail_view, name='project_job_detail'),
+    path('job/<int:job_id>/quick-update/', views.job_quick_update_api, name='job_quick_update_api'),
+    
+    # URL OVERDUE JOBS LISTING PAGE (BARU)
+    path('overdue-jobs/', views.overdue_jobs_list_view, name='overdue_jobs'),
 
     # URL MODAL POP-UP
     path('job-date/update/<int:job_date_id>/', 
@@ -64,6 +72,10 @@ urlpatterns = [
     # URL AJAX
     path('ajax/load-children/', views.load_children, name='load_children'),
     path('ajax/load-personil/', views.load_personil_by_assigned_to, name='load_personil'),
+    
+    # URL API CASCADING FILTERS (UNTUK FILTER PERSISTENCE)
+    path('api/mesin-by-line/<int:line_id>/', views.api_mesin_by_line, name='api_mesin_by_line'),
+    path('api/sub-mesin-by-mesin/<int:mesin_id>/', views.api_sub_mesin_by_mesin, name='api_sub_mesin_by_mesin'),
     
     # URL API ATTACHMENT GALLERY (BARU)
     path('api/job-attachments/<int:job_id>/', views.api_job_attachments, name='api_job_attachments'),
@@ -84,6 +96,14 @@ urlpatterns = [
     path('leave/list/', views.leave_event_list, name='leave_event_list'),
     path('leave/<int:leave_id>/', views.leave_event_detail, name='leave_event_detail'),
     path('leave/<int:leave_id>/delete/', views.leave_event_delete, name='leave_event_delete'),
+    
+    # MAINTENANCE MODE (ADMIN/STAFF ONLY)
+    path('api/maintenance/toggle/', views.toggle_maintenance_mode, name='toggle_maintenance_mode'),
+    path('api/maintenance/status/', views.get_maintenance_status, name='get_maintenance_status'),
+    
+    # PROFILE (USER PROFILE PAGE & EDIT)
+    path('profile/', views.profile_view, name='profile'),
+    path('profile/edit/', views.profile_edit_view, name='profile_edit'),
     
     # TEMPORARY: Helper untuk run migration
     path('_run_migration/', views.run_migration_helper, name='run_migration_helper'),

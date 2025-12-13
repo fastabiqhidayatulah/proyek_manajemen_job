@@ -1,0 +1,377 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Detail Daily Job - {{ job.nama_pekerjaan }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    
+    <!-- BREADCRUMB -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'core:dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item active">{{ job.nama_pekerjaan }}</li>
+        </ol>
+    </nav>
+
+    <!-- MAIN CONTENT -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                
+                <!-- CARD HEADER: JOB TITLE & OVERALL STATUS -->
+                <div class="card-header bg-white border-bottom">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h2 class="mb-2">{{ job.nama_pekerjaan }}</h2>
+                            <p class="text-muted mb-0">
+                                <strong>Type:</strong> Daily Job | 
+                                <strong>Aset:</strong> 
+                                {% if job.aset %}
+                                    {{ job.aset }}
+                                {% else %}
+                                    <span class="badge bg-warning">Tidak ada aset</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="text-end">
+                            <span class="badge bg-secondary" style="font-size: 12px; padding: 8px 12px;">{{ job.status }}</span>
+                            {% if stats.overdue > 0 %}
+                                <span class="badge bg-danger" style="font-size: 12px; padding: 8px 12px; margin-left: 5px;">
+                                    {{ stats.overdue }} Overdue
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CARD BODY -->
+                <div class="card-body">
+                    
+                    <!-- SECTION 1: JOB INFORMATION GRID -->
+                    <div class="row mb-4">
+                        <div class="col-md-3 mb-3">
+                            <div class="info-card">
+                                <small class="text-muted text-uppercase fw-bold">PIC (Penanggung Jawab)</small>
+                                <div class="mt-2">{{ job.pic.get_full_name|default:job.pic.username }}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="info-card">
+                                <small class="text-muted text-uppercase fw-bold">Ditugaskan Ke</small>
+                                <div class="mt-2">
+                                    {% if job.assigned_to %}
+                                        {{ job.assigned_to.get_full_name|default:job.assigned_to.username }}
+                                    {% else %}
+                                        <span class="badge bg-secondary">Belum ditugaskan</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="info-card">
+                                <small class="text-muted text-uppercase fw-bold">Fokus</small>
+                                <div class="mt-2">
+                                    <span class="badge bg-info">{{ job.fokus|default:"N/A" }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="info-card">
+                                <small class="text-muted text-uppercase fw-bold">Prioritas</small>
+                                <div class="mt-2">
+                                    <span class="badge bg-warning">{{ job.prioritas|default:"N/A" }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-md-3 mb-3">
+                            <div class="info-card">
+                                <small class="text-muted text-uppercase fw-bold">Total Dates</small>
+                                <div class="mt-2 fs-5 fw-bold">{{ stats.total }} dates</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="info-card">
+                                <small class="text-muted text-uppercase fw-bold">Progress</small>
+                                <div class="mt-2">
+                                    <div class="progress" style="height: 25px;">
+                                        <div class="progress-bar" role="progressbar" 
+                                             style="width: {{ stats.progress_percent }}%" 
+                                             aria-valuenow="{{ stats.progress_percent }}" 
+                                             aria-valuemin="0" aria-valuemax="100">
+                                            {{ stats.progress_percent }}%
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="info-card">
+                                <small class="text-muted text-uppercase fw-bold">Created</small>
+                                <div class="mt-2">
+                                    {{ job.created_at|date:"d M Y H:i" }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ACTION BUTTONS -->
+                    <div class="mb-4">
+                        <a href="{% url 'core:job_edit' job.id %}" class="btn btn-primary">
+                            <i class="bi bi-pencil"></i> Edit Job
+                        </a>
+                        <a href="#" class="btn btn-success">
+                            <i class="bi bi-plus-circle"></i> Add Dates
+                        </a>
+                        <a href="#" class="btn btn-info">
+                            <i class="bi bi-file-earmark-pdf"></i> Export PDF
+                        </a>
+                        <a href="{% url 'core:job_delete' job.id %}" class="btn btn-outline-danger" 
+                           onclick="return confirm('Hapus job ini?')">
+                            <i class="bi bi-trash"></i> Delete
+                        </a>
+                    </div>
+
+                    <!-- SECTION 2: JOB DATES TABLE -->
+                    <h5 class="mt-5 mb-3">
+                        <i class="bi bi-calendar-event"></i> Jadwal Pelaksanaan ({{ stats.total }} Dates)
+                    </h5>
+
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 15%;">Tanggal</th>
+                                    <th style="width: 12%;">Hari</th>
+                                    <th style="width: 15%;">Status</th>
+                                    <th style="width: 30%;">Catatan</th>
+                                    <th style="width: 28%;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- OVERDUE ROWS (HIGHLIGHTED) -->
+                                {% for od in overdue_dates %}
+                                <tr class="table-danger" style="background-color: #ffe5e5;">
+                                    <td>
+                                        {{ od.date.tanggal|date:"d M Y" }}
+                                        <br>
+                                        <span class="badge bg-danger" style="font-size: 10px;">
+                                            {{ od.days_overdue }} hari overdue
+                                        </span>
+                                    </td>
+                                    <td>{{ od.date.tanggal|date:"d M Y (l)" }}</td>
+                                    <td>
+                                        <span class="badge bg-danger">{{ od.date.status }} (Overdue)</span>
+                                    </td>
+                                    <td>
+                                        <small>{{ od.date.catatan|default:"-" }}</small>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-success quick-update-btn" 
+                                                data-date-id="{{ od.date.id }}"
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#quickUpdateModal">
+                                            Mark Done
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-secondary">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+
+                                <!-- REGULAR ROWS -->
+                                {% for rd in regular_dates %}
+                                <tr>
+                                    <td>{{ rd.tanggal|date:"d M Y" }}</td>
+                                    <td>{{ rd.tanggal|date:"d M Y (l)" }}</td>
+                                    <td>
+                                        {% if rd.status == 'Done' %}
+                                            <span class="badge bg-success">{{ rd.status }}</span>
+                                        {% elif rd.status == 'Pending' %}
+                                            <span class="badge bg-warning">{{ rd.status }}</span>
+                                        {% elif rd.status == 'N/A' %}
+                                            <span class="badge bg-secondary">{{ rd.status }}</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ rd.status }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <small>{{ rd.catatan|default:"-" }}</small>
+                                    </td>
+                                    <td>
+                                        {% if rd.status != 'Done' and rd.status != 'N/A' %}
+                                            <button class="btn btn-sm btn-success quick-update-btn" 
+                                                    data-date-id="{{ rd.id }}"
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#quickUpdateModal">
+                                                Mark Done
+                                            </button>
+                                        {% endif %}
+                                        <button class="btn btn-sm btn-outline-secondary">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- SECTION 3: SUMMARY -->
+                    <h5 class="mt-5 mb-3">
+                        <i class="bi bi-graph-up"></i> Summary
+                    </h5>
+
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <div class="summary-card bg-success bg-opacity-10 p-3 rounded text-center">
+                                <small class="text-muted text-uppercase d-block">Done</small>
+                                <div class="fs-3 fw-bold text-success mt-2">{{ stats.done }}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="summary-card bg-warning bg-opacity-10 p-3 rounded text-center">
+                                <small class="text-muted text-uppercase d-block">Pending</small>
+                                <div class="fs-3 fw-bold text-warning mt-2">{{ stats.pending }}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="summary-card bg-danger bg-opacity-10 p-3 rounded text-center">
+                                <small class="text-muted text-uppercase d-block">Overdue</small>
+                                <div class="fs-3 fw-bold text-danger mt-2">{{ stats.overdue }}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="summary-card bg-secondary bg-opacity-10 p-3 rounded text-center">
+                                <small class="text-muted text-uppercase d-block">Open</small>
+                                <div class="fs-3 fw-bold text-secondary mt-2">{{ stats.open }}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- QUICK UPDATE MODAL -->
+<div class="modal fade" id="quickUpdateModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Quick Update Status</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info" id="dateInfo">
+                    Loading...
+                </div>
+
+                <form id="quickUpdateForm">
+                    <input type="hidden" id="dateId" name="date_id">
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Status Baru</label>
+                        <select class="form-select" id="newStatus" name="new_status" required>
+                            <option value="">Pilih status...</option>
+                            <option value="Done">✓ Done</option>
+                            <option value="Pending">⏳ Pending</option>
+                            <option value="N/A">⊘ N/A (Tidak Berlaku)</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Catatan (Opsional)</label>
+                        <textarea class="form-control" id="catatan" name="catatan" rows="3" placeholder="Tambahkan catatan..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="submitUpdateBtn">
+                    <i class="bi bi-check"></i> Update Status
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .info-card {
+        background-color: #f8f9fa;
+        padding: 15px;
+        border-radius: 6px;
+        border-left: 3px solid #0d6efd;
+    }
+    .summary-card {
+        border: 1px solid rgba(0,0,0,0.1);
+    }
+    .table-danger {
+        border-left: 4px solid #dc3545 !important;
+    }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle quick update button clicks
+    document.querySelectorAll('.quick-update-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const dateId = this.dataset.dateId;
+            document.getElementById('dateId').value = dateId;
+            
+            // Fetch date info dari table
+            const row = this.closest('tr');
+            const tanggal = row.querySelector('td:first-child').textContent.trim().split('\n')[0];
+            document.getElementById('dateInfo').innerHTML = `<strong>Tanggal:</strong> ${tanggal}`;
+        });
+    });
+
+    // Handle submit button
+    document.getElementById('submitUpdateBtn').addEventListener('click', function() {
+        const dateId = document.getElementById('dateId').value;
+        const newStatus = document.getElementById('newStatus').value;
+        const catatan = document.getElementById('catatan').value;
+
+        if (!newStatus) {
+            alert('Pilih status terlebih dahulu');
+            return;
+        }
+
+        // Send AJAX request
+        fetch(`/job/{{ job.id }}/quick-update/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || ''
+            },
+            body: JSON.stringify({
+                date_id: parseInt(dateId),
+                new_status: newStatus,
+                catatan: catatan
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Close modal and reload page
+                bootstrap.Modal.getInstance(document.getElementById('quickUpdateModal')).hide();
+                alert('Status berhasil diupdate!');
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Terjadi kesalahan');
+        });
+    });
+});
+</script>
+{% endblock %}

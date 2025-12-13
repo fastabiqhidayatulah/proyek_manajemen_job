@@ -1,0 +1,193 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Master Checklist Management - Preventive Job V2{% endblock %}
+
+{% block content %}
+
+<div class="container-fluid mt-4">
+    <!-- PAGE HEADER -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h2>📋 Master Checklist Management</h2>
+            <small class="text-muted">Kelola template checklist untuk preventive job</small>
+        </div>
+        <div class="col-md-6 text-right">
+            <a href="{% url 'preventive_jobs:index' %}" class="btn btn-secondary me-2">
+                <i class="bi bi-arrow-left"></i> Kembali ke Preventive
+            </a>
+            <a href="{% url 'preventive_jobs:checklist_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Buat Checklist Baru
+            </a>
+        </div>
+    </div>
+
+    <!-- FILTER & SEARCH -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-3">
+                    <label for="kategori" class="form-label">Kategori:</label>
+                    <select name="kategori" id="kategori" class="form-select">
+                        <option value="">-- Semua Kategori --</option>
+                        {% for choice in kategori_choices %}
+                            <option value="{{ choice.0 }}" {% if selected_kategori == choice.0 %}selected{% endif %}>
+                                {{ choice.1 }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label for="q" class="form-label">Cari:</label>
+                    <input type="text" name="q" id="q" class="form-control" 
+                           placeholder="Cari nama, nomor, atau deskripsi..." value="{{ search_query }}">
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-secondary w-100">
+                        <i class="fas fa-search"></i> Filter
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- CHECKLIST TABLE -->
+    {% if checklists %}
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th width="5%">No</th>
+                        <th width="15%">Nomor</th>
+                        <th width="25%">Nama Checklist</th>
+                        <th width="15%">Kategori</th>
+                        <th width="10%">Items</th>
+                        <th width="15%">Dibuat Oleh</th>
+                        <th width="12%">Tanggal</th>
+                        <th width="15%" class="text-center">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for checklist in checklists %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>
+                            <span class="badge bg-info">{{ checklist.nomor }}</span>
+                        </td>
+                        <td>
+                            <strong>{{ checklist.nama }}</strong>
+                            {% if checklist.deskripsi %}
+                            <br>
+                            <small class="text-muted">{{ checklist.deskripsi|truncatewords:10 }}</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if checklist.kategori == 'Mekanik' %}
+                                <span class="badge bg-primary"><i class="fas fa-tools"></i> Mekanik</span>
+                            {% elif checklist.kategori == 'Elektrik' %}
+                                <span class="badge bg-warning"><i class="fas fa-bolt"></i> Elektrik</span>
+                            {% elif checklist.kategori == 'Utility' %}
+                                <span class="badge bg-success"><i class="fas fa-wrench"></i> Utility</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge bg-light text-dark">
+                                {{ checklist.items.count }} items
+                            </span>
+                        </td>
+                        <td>{{ checklist.created_by.get_full_name|default:checklist.created_by.username }}</td>
+                        <td>
+                            <small class="text-muted">{{ checklist.created_at|date:"d/m/Y H:i" }}</small>
+                        </td>
+                        <td class="text-center">
+                            <div class="btn-group" role="group">
+                                <a href="{% url 'preventive_jobs:checklist_detail' checklist.pk %}" 
+                                   class="btn btn-sm btn-info" title="Edit">
+                                    <i class="fas fa-eye"></i> Edit
+                                </a>
+                                <button type="button" class="btn btn-sm btn-danger" 
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#deleteModal{{ checklist.pk }}"
+                                        title="Hapus">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- DELETE MODALS -->
+    {% for checklist in checklists %}
+    <div class="modal fade" id="deleteModal{{ checklist.pk }}" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title">Konfirmasi Penghapusan</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p><strong>Yakin hapus checklist berikut?</strong></p>
+                    <div class="alert alert-info">
+                        <strong>{{ checklist.nama }}</strong> ({{ checklist.nomor }})
+                    </div>
+                    <p class="text-muted">
+                        <i class="fas fa-exclamation-circle"></i> 
+                        Checklist ini terkait dengan <strong>{{ checklist.template_set.count }}</strong> 
+                        preventive job template.
+                    </p>
+                    <p class="text-danger">
+                        <strong>Tindakan ini tidak dapat dibatalkan!</strong>
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        Batal
+                    </button>
+                    <form method="POST" action="{% url 'preventive_jobs:checklist_delete' checklist.pk %}" style="display: inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash"></i> Hapus
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+
+    {% else %}
+    <!-- EMPTY STATE -->
+    <div class="card">
+        <div class="card-body text-center py-5">
+            <i class="fas fa-inbox" style="font-size: 3rem; color: #ccc;"></i>
+            <h5 class="mt-3">Tidak ada checklist ditemukan</h5>
+            <p class="text-muted">Buat checklist baru untuk mulai</p>
+            <a href="{% url 'preventive_jobs:checklist_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Buat Checklist
+            </a>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Auto-close alert jika ada
+    const alerts = document.querySelectorAll('.alert');
+    alerts.forEach(alert => {
+        if (alert.classList.contains('alert-success') || alert.classList.contains('alert-warning')) {
+            setTimeout(() => {
+                alert.style.display = 'none';
+            }, 5000);
+        }
+    });
+</script>
+{% endblock %}

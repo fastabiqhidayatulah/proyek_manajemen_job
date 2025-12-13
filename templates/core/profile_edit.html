@@ -1,0 +1,205 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit Profil {{ user.username }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4 mb-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'core:dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'core:profile' %}">Profil Saya</a></li>
+            <li class="breadcrumb-item active">Edit Profil</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <div class="col-lg-8 col-md-10 mx-auto">
+            <div class="card shadow-sm">
+                <!-- Card Header -->
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-pencil-square"></i> 
+                        Edit Profil Pengguna
+                    </h5>
+                </div>
+
+                <!-- Card Body -->
+                <div class="card-body">
+                    <!-- Messages -->
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <!-- Form -->
+                    <form method="post" action="{% url 'core:profile_edit' %}" class="needs-validation" novalidate>
+                        {% csrf_token %}
+
+                        <!-- Username (Read-only) -->
+                        <div class="mb-3">
+                            <label for="username" class="form-label">
+                                <strong>Username</strong>
+                                <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="username" 
+                                   value="{{ user.username }}" 
+                                   disabled>
+                            <small class="text-muted">Username tidak bisa diubah</small>
+                        </div>
+
+                        <!-- Nama Depan -->
+                        <div class="mb-3">
+                            <label for="first_name" class="form-label">
+                                <strong>Nama Depan</strong>
+                            </label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="first_name" 
+                                   name="first_name"
+                                   value="{{ user.first_name }}"
+                                   placeholder="Masukkan nama depan">
+                        </div>
+
+                        <!-- Nama Belakang -->
+                        <div class="mb-3">
+                            <label for="last_name" class="form-label">
+                                <strong>Nama Belakang</strong>
+                            </label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="last_name" 
+                                   name="last_name"
+                                   value="{{ user.last_name }}"
+                                   placeholder="Masukkan nama belakang">
+                        </div>
+
+                        <!-- Email -->
+                        <div class="mb-3">
+                            <label for="email" class="form-label">
+                                <strong>Email</strong>
+                            </label>
+                            <input type="email" 
+                                   class="form-control" 
+                                   id="email" 
+                                   name="email"
+                                   value="{{ user.email }}"
+                                   placeholder="Masukkan email">
+                        </div>
+
+                        <!-- Nomor Telepon -->
+                        <div class="mb-3">
+                            <label for="nomor_telepon" class="form-label">
+                                <strong>Nomor Telepon</strong>
+                                <span class="text-info">(Untuk WA Fontte Integration)</span>
+                            </label>
+                            <input type="text" 
+                                   class="form-control font-monospace" 
+                                   id="nomor_telepon" 
+                                   name="nomor_telepon"
+                                   value="{{ user.nomor_telepon|default:'' }}"
+                                   placeholder="Contoh: 08123456789 atau 628123456789">
+                            <small class="text-muted">
+                                <i class="bi bi-info-circle"></i>
+                                Format: Bisa 0812... atau 62812... (otomatis dikonversi ke format internasional)
+                            </small>
+                        </div>
+
+                        <!-- Jabatan (Read-only) -->
+                        <div class="mb-3">
+                            <label for="jabatan" class="form-label">
+                                <strong>Jabatan</strong>
+                            </label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="jabatan" 
+                                   value="{% if user.jabatan %}{{ user.jabatan.nama_jabatan }}{% else %}Belum ditentukan{% endif %}" 
+                                   disabled>
+                            <small class="text-muted">Jabatan diatur oleh administrator</small>
+                        </div>
+
+                        <!-- Atasan (Read-only) -->
+                        <div class="mb-3">
+                            <label for="atasan" class="form-label">
+                                <strong>Atasan</strong>
+                            </label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="atasan" 
+                                   value="{% if user.atasan %}{{ user.atasan.get_full_name|default:user.atasan.username }}{% else %}Tidak ada (Head of Department){% endif %}" 
+                                   disabled>
+                            <small class="text-muted">Struktur organisasi diatur oleh administrator</small>
+                        </div>
+
+                        <!-- Info Box -->
+                        <div class="alert alert-info alert-sm mb-4">
+                            <i class="bi bi-info-circle"></i>
+                            <strong>Catatan:</strong> Untuk mengubah Jabatan dan Atasan, silakan hubungi Administrator sistem.
+                        </div>
+
+                        <!-- Form Actions -->
+                        <div class="d-flex gap-2">
+                            <a href="{% url 'core:profile' %}" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i> Batal
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save"></i> Simpan Perubahan
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Info Card -->
+            <div class="card mt-4 border-info">
+                <div class="card-body">
+                    <h6 class="card-title text-info">
+                        <i class="bi bi-shield-check"></i> 
+                        Keamanan Akun
+                    </h6>
+                    <p class="card-text text-muted mb-3">
+                        Untuk mengubah password, silakan gunakan fitur "Lupa Password" atau hubungi Administrator.
+                    </p>
+                    <p class="card-text text-muted mb-0">
+                        <small>
+                            <strong>Last Login:</strong> 
+                            {% if user.last_login %}
+                                {{ user.last_login|date:"d M Y H:i" }}
+                            {% else %}
+                                Belum pernah login
+                            {% endif %}
+                        </small>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .card {
+        border-radius: 8px;
+    }
+    
+    .card-header {
+        border-radius: 8px 8px 0 0;
+        padding: 1.25rem;
+    }
+    
+    .form-label {
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+    }
+    
+    .alert-sm {
+        padding: 0.75rem 1rem;
+        font-size: 0.95rem;
+    }
+</style>
+{% endblock %}

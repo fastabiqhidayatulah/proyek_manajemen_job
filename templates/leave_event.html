@@ -8,7 +8,7 @@
     
     <!-- SECTION 1: FORM INPUT -->
     <div class="row mb-4">
-        <div class="col-lg-6">
+        <div class="col-lg-4">
             <div class="card shadow-sm border-0">
                 <div class="card-header bg-primary text-white">
                     <h5 class="mb-0">
@@ -118,32 +118,32 @@
         </div>
 
         <!-- SECTION 2: KALENDER VIEW -->
-        <div class="col-lg-6">
-            <div class="card shadow-sm border-0">
-                <div class="card-header bg-info text-white">
+        <div class="col-lg-8">
+            <div class="card shadow-lg border-0" style="border-radius: 12px; overflow: hidden;">
+                <div class="card-header text-white" style="background: #4f46e5; padding: 1.5rem;">
                     <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">
+                        <h5 class="mb-0" style="color: #ffffff; font-weight: 700;">
                             <i class="bi bi-calendar2-week"></i> Kalender Cuti {{ month_name }} {{ current_year }}
                         </h5>
                         <div class="btn-group" role="group">
                             <!-- Previous Month -->
                             {% if current_month == 1 %}
-                                <a href="?month=12&year={{ current_year|add:'-1' }}" class="btn btn-sm btn-light">
+                                <a href="?month=12&year={{ current_year|add:'-1' }}" class="btn btn-sm btn-light" title="Bulan Sebelumnya">
                                     <i class="bi bi-chevron-left"></i>
                                 </a>
                             {% else %}
-                                <a href="?month={{ current_month|add:'-1' }}&year={{ current_year }}" class="btn btn-sm btn-light">
+                                <a href="?month={{ current_month|add:'-1' }}&year={{ current_year }}" class="btn btn-sm btn-light" title="Bulan Sebelumnya">
                                     <i class="bi bi-chevron-left"></i>
                                 </a>
                             {% endif %}
                             
                             <!-- Next Month -->
                             {% if current_month == 12 %}
-                                <a href="?month=1&year={{ current_year|add:'1' }}" class="btn btn-sm btn-light">
+                                <a href="?month=1&year={{ current_year|add:'1' }}" class="btn btn-sm btn-light" title="Bulan Berikutnya">
                                     <i class="bi bi-chevron-right"></i>
                                 </a>
                             {% else %}
-                                <a href="?month={{ current_month|add:'1' }}&year={{ current_year }}" class="btn btn-sm btn-light">
+                                <a href="?month={{ current_month|add:'1' }}&year={{ current_year }}" class="btn btn-sm btn-light" title="Bulan Berikutnya">
                                     <i class="bi bi-chevron-right"></i>
                                 </a>
                             {% endif %}
@@ -151,40 +151,44 @@
                     </div>
                 </div>
                 
-                <div class="card-body p-0">
-                    <table class="table table-sm table-bordered mb-0">
-                        <thead class="table-light">
-                            <tr>
-                                <th class="text-center">Min</th>
-                                <th class="text-center">Sen</th>
-                                <th class="text-center">Sel</th>
-                                <th class="text-center">Rab</th>
-                                <th class="text-center">Kam</th>
-                                <th class="text-center">Jum</th>
-                                <th class="text-center">Sab</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for week in calendar_rows %}
-                            <tr style="height: 80px;">
-                                {% for day_item in week %}
-                                <td class="{% if day_item.date %}border{% else %}bg-light{% endif %}" style="vertical-align: top; font-size: 0.85rem; padding: 4px;">
-                                    {% if day_item.date %}
-                                        <div class="fw-bold mb-1">{{ day_item.date }}</div>
-                                        {% if day_item.leave_events %}
-                                            {% for event in day_item.leave_events %}
-                                                <span class="badge bg-warning text-dark d-block mb-1" style="font-size: 0.7rem;">
-                                                    {{ event.nama_orang|truncatewords:2 }}
-                                                </span>
-                                            {% endfor %}
+                <div class="card-body p-3">
+                    <div class="calendar-container">
+                        <table class="table table-sm calendar-table mb-0">
+                            <thead>
+                                <tr class="calendar-header">
+                                    <th class="text-center calendar-day-header">Minggu</th>
+                                    <th class="text-center calendar-day-header">Senin</th>
+                                    <th class="text-center calendar-day-header">Selasa</th>
+                                    <th class="text-center calendar-day-header">Rabu</th>
+                                    <th class="text-center calendar-day-header">Kamis</th>
+                                    <th class="text-center calendar-day-header">Jumat</th>
+                                    <th class="text-center calendar-day-header">Sabtu</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for week in calendar_rows %}
+                                <tr class="calendar-week">
+                                    {% for day_item in week %}
+                                    <td class="calendar-cell {% if day_item.date %}active-day{% else %}empty-day{% endif %} {% if day_item.date_str == today_str %}today-cell{% endif %}">
+                                        {% if day_item.date %}
+                                            <div class="day-number">{{ day_item.date }}</div>
+                                            <div class="events-container">
+                                                {% if day_item.leave_events %}
+                                                    {% for event in day_item.leave_events %}
+                                                        <span class="event-badge" title="{{ event.nama_orang }}">
+                                                            {{ event.karyawan.nama_lengkap|default:event.nama_orang|truncatewords:1 }}
+                                                        </span>
+                                                    {% endfor %}
+                                                {% endif %}
+                                            </div>
                                         {% endif %}
-                                    {% endif %}
-                                </td>
+                                    </td>
+                                    {% endfor %}
+                                </tr>
                                 {% endfor %}
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
@@ -420,6 +424,209 @@
 
 <!-- Style tambahan untuk calendar -->
 <style>
+    /* ==================== CALENDAR STYLES ==================== */
+    .calendar-container {
+        padding: 0;
+        background: #f8f9fa;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+    
+    .calendar-table {
+        border-collapse: separate;
+        border-spacing: 0;
+        margin-bottom: 0;
+    }
+    
+    .calendar-table tbody tr {
+        border-bottom: 2px solid #e9ecef;
+    }
+    
+    .calendar-table tbody tr:last-child {
+        border-bottom: none;
+    }
+    
+    .calendar-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white !important;
+    }
+    
+    .calendar-header th {
+        padding: 16px 12px !important;
+        border: none !important;
+        color: #ffffff !important;
+        font-weight: 900 !important;
+        font-size: 0.95rem !important;
+        letter-spacing: 0.5px !important;
+        text-transform: none !important;
+        vertical-align: middle !important;
+        border-right: 1px solid rgba(255, 255, 255, 0.3) !important;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important;
+        background: transparent !important;
+    }
+    
+    .calendar-header th:last-child {
+        border-right: none !important;
+    }
+    
+    .calendar-day-header {
+        text-align: center !important;
+        vertical-align: middle !important;
+    }
+    
+    /* Title styling for calendar header */
+    .card-header.bg-gradient h5 {
+        color: #ffffff !important;
+        font-weight: 700 !important;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important;
+    }
+    
+    .card-header.bg-gradient h5 i {
+        color: #ffffff !important;
+    }
+    
+    .calendar-week {
+        background-color: white;
+    }
+    
+    .calendar-cell {
+        height: 120px;
+        padding: 8px;
+        border: 1px solid #e9ecef;
+        vertical-align: top;
+        text-align: left;
+        position: relative;
+        background-color: white;
+        transition: background-color 0.2s ease;
+    }
+    
+    .calendar-cell:hover {
+        background-color: #f8f9fa;
+    }
+    
+    .calendar-cell.active-day {
+        background-color: #ffffff;
+    }
+    
+    .calendar-cell.empty-day {
+        background-color: #f0f0f0;
+        cursor: not-allowed;
+    }
+    
+    .day-number {
+        font-weight: 700;
+        font-size: 1.15rem;
+        color: #2c3e50;
+        margin-bottom: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        height: 28px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 6px;
+        width: 32px;
+        padding: 0 8px;
+    }
+    
+    .events-container {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        overflow-y: auto;
+        max-height: 82px;
+    }
+    
+    .event-badge {
+        display: inline-block;
+        background: #4f46e5;
+        color: white;
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        box-shadow: 0 2px 4px rgba(79, 70, 229, 0.2);
+        transition: all 0.2s ease;
+    }
+    
+    .event-badge:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(79, 70, 229, 0.3);
+        background: #4338ca;
+    }
+    
+    .event-badge:nth-child(2) {
+        background: #6366f1;
+        box-shadow: 0 2px 4px rgba(99, 102, 241, 0.2);
+    }
+    
+    .event-badge:nth-child(2):hover {
+        background: #4f46e5;
+        box-shadow: 0 4px 8px rgba(99, 102, 241, 0.3);
+    }
+    
+    .event-badge:nth-child(3) {
+        background: #8b5cf6;
+        box-shadow: 0 2px 4px rgba(139, 92, 246, 0.2);
+    }
+    
+    .event-badge:nth-child(3):hover {
+        background: #7c3aed;
+        box-shadow: 0 4px 8px rgba(139, 92, 246, 0.3);
+    }
+    
+    .event-badge:nth-child(4) {
+        background: #06b6d4;
+        box-shadow: 0 2px 4px rgba(6, 182, 212, 0.2);
+    }
+    
+    .event-badge:nth-child(4):hover {
+        background: #0891b2;
+        box-shadow: 0 4px 8px rgba(6, 182, 212, 0.3);
+    }
+    
+    /* Weekend highlight */
+    .calendar-cell.active-day:nth-child(1),
+    .calendar-cell.active-day:nth-child(7) {
+        background-color: #fef3f0;
+    }
+    
+    /* Highlight hari ini */
+    .calendar-cell.today-cell {
+        background: linear-gradient(135deg, #fef3c7 0%, #fef08a 100%);
+        border: 2px solid #fbbf24 !important;
+        box-shadow: inset 0 0 10px rgba(251, 191, 36, 0.15);
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .calendar-cell {
+            height: 90px;
+            padding: 6px;
+            font-size: 0.85rem;
+        }
+        
+        .day-number {
+            font-size: 0.95rem;
+            width: 28px;
+            padding: 0 6px;
+        }
+        
+        .event-badge {
+            font-size: 0.65rem;
+            padding: 3px 6px;
+        }
+        
+        .calendar-header th {
+            font-size: 0.8rem;
+            padding: 12px 8px;
+        }
+    }
+    
+    /* ==================== GENERAL STYLES ==================== */
     .table-bordered td {
         border: 1px solid #dee2e6;
     }
@@ -430,11 +637,11 @@
     }
     
     .card {
-        border-radius: 8px;
+        border-radius: 12px;
     }
     
     .card-header {
-        border-radius: 8px 8px 0 0;
+        border-radius: 12px 12px 0 0;
     }
 </style>
 {% endblock %}

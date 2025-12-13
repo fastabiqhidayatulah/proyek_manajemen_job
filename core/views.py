@@ -4,6 +4,7 @@ from django.contrib import messages
 from django.db import transaction 
 from .models import Job, Project, Personil, AsetMesin, JobDate, CustomUser, LeaveEvent, Karyawan
 from django.http import JsonResponse, HttpResponseRedirect, HttpResponse
+from django.views.decorators.http import require_http_methods
 import requests
 import json
 # Tambahkan 'Count' dan 'Case' untuk kalkulasi
@@ -59,6 +60,10 @@ def dashboard_view(request):
         current_year = 0
         current_month = 0
     
+    # SAVE CURRENT FILTER TO SESSION (untuk persistence saat redirect)
+    request.session['dashboard_filter_params'] = request.GET.urlencode()
+    request.session.modified = True
+    
     # Flag untuk menentukan apakah filter aktif atau "Semua"
     # Jika KEDUANYA 0, berarti "Semua". Jika salah satu ada value, filter aktif.
     filter_all_dates = (current_month == 0 and current_year == 0)
@@ -73,11 +78,15 @@ def dashboard_view(request):
         {"id": 11, "name": "November"}, {"id": 12, "name": "Desember"}
     ]
     
-    # === 2. LOGIKA FILTER PIC (KONSEP BARU ANDA) ===
+    # === 3. LOGIKA FILTER PIC (KONSEP BARU ANDA) ===
     subordinate_ids = user.get_all_subordinates()
     subordinates_list = CustomUser.objects.filter(id__in=subordinate_ids).order_by('username')
     
     selected_pic_id = request.GET.get('pic', '')
+    
+    # === 3b. LOGIKA FILTER TANGGAL SPESIFIK (BARU) ===
+    selected_date_from = request.GET.get('date_from', '')
+    selected_date_to = request.GET.get('date_to', '')
     
     if selected_pic_id == 'my_jobs':
         team_query = Q(pic=user) | Q(assigned_to=user)
@@ -110,8 +119,10 @@ def dashboard_view(request):
         all_jobs_team_base = all_jobs_team_base.filter(aset__parent__parent_id=selected_line_id)
     
     # Sekarang filter job yang punya tanggal di bulan/tahun terpilih
-    # Jika filter_all_dates = True, ambil semua job tanpa filter bulan/tahun
-    if filter_all_dates:
+    # PRIORITY: Jika ada date_range, IGNORE bulan/tahun filter (lebih spesifik)
+    has_date_range = selected_date_from or selected_date_to
+    
+    if filter_all_dates and not has_date_range:
         all_jobs_team = all_jobs_team_base.select_related(
             'pic', 
             'assigned_to',
@@ -125,10 +136,29 @@ def dashboard_view(request):
     else:
         # Build filter dynamically based on what user selected
         date_filter = Q()
-        if current_month != 0:
-            date_filter &= Q(tanggal_pelaksanaan__tanggal__month=current_month)
-        if current_year != 0:
-            date_filter &= Q(tanggal_pelaksanaan__tanggal__year=current_year)
+        
+        # Jika ada date_range, IGNORE bulan/tahun (date_range lebih prioritas)
+        if not has_date_range:
+            # Filter by bulan/tahun HANYA jika TIDAK ada date_range
+            if current_month != 0:
+                date_filter &= Q(tanggal_pelaksanaan__tanggal__month=current_month)
+            if current_year != 0:
+                date_filter &= Q(tanggal_pelaksanaan__tanggal__year=current_year)
+        
+        # Filter by tanggal range (date_from to date_to)
+        if selected_date_from:
+            try:
+                date_from_obj = datetime.datetime.strptime(selected_date_from, '%Y-%m-%d').date()
+                date_filter &= Q(tanggal_pelaksanaan__tanggal__gte=date_from_obj)
+            except (ValueError, TypeError):
+                pass
+        
+        if selected_date_to:
+            try:
+                date_to_obj = datetime.datetime.strptime(selected_date_to, '%Y-%m-%d').date()
+                date_filter &= Q(tanggal_pelaksanaan__tanggal__lte=date_to_obj)
+            except (ValueError, TypeError):
+                pass
         
         all_jobs_team = all_jobs_team_base.filter(date_filter).select_related(
             'pic', 
@@ -310,6 +340,10 @@ def dashboard_view(request):
         'selected_mesin_id': selected_mesin_id,
         'selected_sub_mesin_id': selected_sub_mesin_id,
         
+        # Date Range Filter Context (BARU)
+        'selected_date_from': selected_date_from,
+        'selected_date_to': selected_date_to,
+        
         # Sorting Context (BARU)
         'sort_by': sort_by,
         'sort_order': sort_order,
@@ -487,6 +521,11 @@ def job_form_view(request, job_id=None, project_id=None):
     instance = None
     project = None
     
+    # SIMPAN FILTER PARAMS DARI GET (untuk restore di redirect nanti)
+    if request.GET:
+        request.session['dashboard_filter_params'] = request.GET.urlencode()
+        request.session.modified = True
+    
     if job_id:
         job = get_object_or_404(Job, id=job_id)
         # === LOGIKA: Cek permission untuk edit ===
@@ -516,9 +555,15 @@ def job_form_view(request, job_id=None, project_id=None):
         form = JobForm(request.POST, instance=instance, user=user, project=project)
         attachment_formset = AttachmentFormSet(request.POST, request.FILES, instance=instance, prefix='attachments')
         
+        # Get selected aset (dapat dari line, mesin, atau sub_mesin - tergantung apa yang dipilih)
+        line_id = request.POST.get('line')
+        mesin_id = request.POST.get('mesin')
         sub_mesin_id = request.POST.get('sub_mesin')
         
-        if form.is_valid() and attachment_formset.is_valid() and sub_mesin_id:
+        # Determine which aset_id to use (priority: sub_mesin > mesin > line)
+        selected_aset_id = sub_mesin_id or mesin_id or line_id
+        
+        if form.is_valid() and attachment_formset.is_valid() and selected_aset_id:
             try:
                 with transaction.atomic():
                     # === PENTING: Save original assigned_to value sebelum form process ===
@@ -530,7 +575,7 @@ def job_form_view(request, job_id=None, project_id=None):
                     # Hanya set PIC saat create (bukan edit)
                     if not instance:
                         job.pic = user 
-                    job.aset_id = sub_mesin_id 
+                    job.aset_id = selected_aset_id
                     
                     # === LOGIKA: Kontrol assigned_to ===
                     # Hanya PIC (pembuat) yang bisa ubah assigned_to
@@ -577,15 +622,22 @@ def job_form_view(request, job_id=None, project_id=None):
                     
                     if instance:
                         # Edit mode
-                        if tanggal_str:
-                            # Jika ada tanggal baru, REPLACE semua dengan yang baru
-                            job.tanggal_pelaksanaan.all().delete()  # Hapus tanggal lama
+                        # PENTING: Hanya update tanggal jika field berubah dari nilai original
+                        # Get tanggal original dari database sebelum form di-process
+                        original_dates_str = ",".join([
+                            str(d.tanggal) for d in instance.tanggal_pelaksanaan.all()
+                        ])
+                        
+                        # Hanya update jika tanggal berubah (bukan kosong dan bukan sama dengan original)
+                        if tanggal_str and tanggal_str != original_dates_str:
+                            # Tanggal ada dan BERBEDA dari original → hapus lama, buat baru
+                            job.tanggal_pelaksanaan.all().delete()
                             tanggal_list = tanggal_str.split(',') 
                             for tgl_str in tanggal_list:
                                 if tgl_str: 
                                     tgl_obj = datetime.datetime.strptime(tgl_str.strip(), '%Y-%m-%d').date()
                                     JobDate.objects.create(job=job, tanggal=tgl_obj, status='Open')
-                        # Else: jika tanggal kosong saat edit, KEEP existing tanggal (jangan hapus)
+                        # Else: Tanggal kosong atau sama → JANGAN ubah (preserve existing status & catatan)
                     else:
                         # Create mode
                         if tanggal_str:
@@ -601,13 +653,21 @@ def job_form_view(request, job_id=None, project_id=None):
                 
                 if project:
                     return redirect('core:project_detail', project_id=project.id)
-                return redirect('core:dashboard') 
+                
+                # PERBAIKAN: Redirect ke dashboard DENGAN filter parameters
+                # Ambil filter params dari GET atau session
+                filter_params = request.GET.urlencode() or request.session.get('dashboard_filter_params', '')
+                
+                if filter_params:
+                    return redirect(f"{reverse('core:dashboard')}?{filter_params}")
+                else:
+                    return redirect('core:dashboard') 
                 
             except Exception as e:
                 messages.error(request, f"Terjadi kesalahan saat menyimpan: {e}")
         else:
-            if not sub_mesin_id and request.POST.get('line'):
-                form.add_error(None, "Data Aset (Line, Mesin, Sub Mesin) wajib diisi lengkap.")
+            if not selected_aset_id and request.POST.get('line'):
+                form.add_error(None, "Harap pilih minimal Line. Mesin dan Sub Mesin bersifat opsional.")
             elif not form.is_valid():
                  messages.error(request, "Gagal menyimpan. Harap periksa error di form.")
             else:
@@ -748,8 +808,13 @@ def export_daily_jobs_pdf(request):
         current_year = 0
         current_month = 0
     
+    # === 1b. LOGIKA FILTER TANGGAL SPESIFIK (DATE RANGE) ===
+    selected_date_from = request.GET.get('date_from', '')
+    selected_date_to = request.GET.get('date_to', '')
+    has_date_range = selected_date_from or selected_date_to
+    
     # Flag untuk menentukan apakah filter aktif atau "Semua"
-    filter_all_dates = (current_month == 0 and current_year == 0)
+    filter_all_dates = (current_month == 0 and current_year == 0) and not has_date_range
     
     # === 2. LOGIKA FILTER PIC ===
     subordinate_ids = user.get_all_subordinates()
@@ -798,10 +863,29 @@ def export_daily_jobs_pdf(request):
     else:
         # Build filter dynamically based on what user selected
         date_filter = Q()
-        if current_month != 0:
-            date_filter &= Q(tanggal_pelaksanaan__tanggal__month=current_month)
-        if current_year != 0:
-            date_filter &= Q(tanggal_pelaksanaan__tanggal__year=current_year)
+        
+        # PRIORITY: Jika ada date_range, IGNORE bulan/tahun filter (lebih spesifik)
+        if not has_date_range:
+            # Filter by bulan/tahun HANYA jika TIDAK ada date_range
+            if current_month != 0:
+                date_filter &= Q(tanggal_pelaksanaan__tanggal__month=current_month)
+            if current_year != 0:
+                date_filter &= Q(tanggal_pelaksanaan__tanggal__year=current_year)
+        
+        # Filter by tanggal range (date_from to date_to)
+        if selected_date_from:
+            try:
+                date_from_obj = datetime.datetime.strptime(selected_date_from, '%Y-%m-%d').date()
+                date_filter &= Q(tanggal_pelaksanaan__tanggal__gte=date_from_obj)
+            except (ValueError, TypeError):
+                pass
+        
+        if selected_date_to:
+            try:
+                date_to_obj = datetime.datetime.strptime(selected_date_to, '%Y-%m-%d').date()
+                date_filter &= Q(tanggal_pelaksanaan__tanggal__lte=date_to_obj)
+            except (ValueError, TypeError):
+                pass
         
         daily_job_data = all_jobs_team_base.filter(date_filter).select_related(
             'pic', 
@@ -888,8 +972,13 @@ def export_daily_jobs_excel(request):
         current_year = 0
         current_month = 0
     
+    # === 1b. LOGIKA FILTER TANGGAL SPESIFIK (DATE RANGE) ===
+    selected_date_from = request.GET.get('date_from', '')
+    selected_date_to = request.GET.get('date_to', '')
+    has_date_range = selected_date_from or selected_date_to
+    
     # Flag untuk menentukan apakah filter aktif atau "Semua"
-    filter_all_dates = (current_month == 0 and current_year == 0)
+    filter_all_dates = (current_month == 0 and current_year == 0) and not has_date_range
     
     # === 2. AMBIL DATA JOBS SESUAI FILTER ===
     # Filter berdasarkan bulan dan tahun (sama seperti dashboard)
@@ -907,10 +996,29 @@ def export_daily_jobs_excel(request):
     else:
         # Build filter dynamically based on what user selected
         date_filter = Q()
-        if current_month != 0:
-            date_filter &= Q(tanggal_pelaksanaan__tanggal__month=current_month)
-        if current_year != 0:
-            date_filter &= Q(tanggal_pelaksanaan__tanggal__year=current_year)
+        
+        # PRIORITY: Jika ada date_range, IGNORE bulan/tahun filter (lebih spesifik)
+        if not has_date_range:
+            # Filter by bulan/tahun HANYA jika TIDAK ada date_range
+            if current_month != 0:
+                date_filter &= Q(tanggal_pelaksanaan__tanggal__month=current_month)
+            if current_year != 0:
+                date_filter &= Q(tanggal_pelaksanaan__tanggal__year=current_year)
+        
+        # Filter by tanggal range (date_from to date_to)
+        if selected_date_from:
+            try:
+                date_from_obj = datetime.datetime.strptime(selected_date_from, '%Y-%m-%d').date()
+                date_filter &= Q(tanggal_pelaksanaan__tanggal__gte=date_from_obj)
+            except (ValueError, TypeError):
+                pass
+        
+        if selected_date_to:
+            try:
+                date_to_obj = datetime.datetime.strptime(selected_date_to, '%Y-%m-%d').date()
+                date_filter &= Q(tanggal_pelaksanaan__tanggal__lte=date_to_obj)
+            except (ValueError, TypeError):
+                pass
         
         job_data = Job.objects.filter(
             tipe_job='Daily',
@@ -1051,8 +1159,13 @@ def export_project_jobs_excel(request):
         current_year = 0
         current_month = 0
     
+    # === 1b. LOGIKA FILTER TANGGAL SPESIFIK (DATE RANGE) ===
+    selected_date_from = request.GET.get('date_from', '')
+    selected_date_to = request.GET.get('date_to', '')
+    has_date_range = selected_date_from or selected_date_to
+    
     # Flag untuk menentukan apakah filter aktif atau "Semua"
-    filter_all_dates = (current_month == 0 and current_year == 0)
+    filter_all_dates = (current_month == 0 and current_year == 0) and not has_date_range
     
     # === 2. LOGIKA FILTER PIC ===
     subordinate_ids = user.get_all_subordinates()
@@ -1099,10 +1212,29 @@ def export_project_jobs_excel(request):
     else:
         # Build filter dynamically based on what user selected
         date_filter = Q()
-        if current_month != 0:
-            date_filter &= Q(tanggal_pelaksanaan__tanggal__month=current_month)
-        if current_year != 0:
-            date_filter &= Q(tanggal_pelaksanaan__tanggal__year=current_year)
+        
+        # PRIORITY: Jika ada date_range, IGNORE bulan/tahun filter (lebih spesifik)
+        if not has_date_range:
+            # Filter by bulan/tahun HANYA jika TIDAK ada date_range
+            if current_month != 0:
+                date_filter &= Q(tanggal_pelaksanaan__tanggal__month=current_month)
+            if current_year != 0:
+                date_filter &= Q(tanggal_pelaksanaan__tanggal__year=current_year)
+        
+        # Filter by tanggal range (date_from to date_to)
+        if selected_date_from:
+            try:
+                date_from_obj = datetime.datetime.strptime(selected_date_from, '%Y-%m-%d').date()
+                date_filter &= Q(tanggal_pelaksanaan__tanggal__gte=date_from_obj)
+            except (ValueError, TypeError):
+                pass
+        
+        if selected_date_to:
+            try:
+                date_to_obj = datetime.datetime.strptime(selected_date_to, '%Y-%m-%d').date()
+                date_filter &= Q(tanggal_pelaksanaan__tanggal__lte=date_to_obj)
+            except (ValueError, TypeError):
+                pass
         
         project_jobs = all_jobs_team_base.filter(date_filter).select_related(
             'pic', 
@@ -1288,8 +1420,13 @@ def export_project_jobs_pdf(request):
         current_year = 0
         current_month = 0
     
+    # === 1b. LOGIKA FILTER TANGGAL SPESIFIK (DATE RANGE) ===
+    selected_date_from = request.GET.get('date_from', '')
+    selected_date_to = request.GET.get('date_to', '')
+    has_date_range = selected_date_from or selected_date_to
+    
     # Flag untuk menentukan apakah filter aktif atau "Semua"
-    filter_all_dates = (current_month == 0 and current_year == 0)
+    filter_all_dates = (current_month == 0 and current_year == 0) and not has_date_range
     
     # === 2. LOGIKA FILTER PIC ===
     subordinate_ids = user.get_all_subordinates()
@@ -1340,10 +1477,29 @@ def export_project_jobs_pdf(request):
     else:
         # Build filter dynamically based on what user selected
         date_filter = Q()
-        if current_month != 0:
-            date_filter &= Q(tanggal_pelaksanaan__tanggal__month=current_month)
-        if current_year != 0:
-            date_filter &= Q(tanggal_pelaksanaan__tanggal__year=current_year)
+        
+        # PRIORITY: Jika ada date_range, IGNORE bulan/tahun filter (lebih spesifik)
+        if not has_date_range:
+            # Filter by bulan/tahun HANYA jika TIDAK ada date_range
+            if current_month != 0:
+                date_filter &= Q(tanggal_pelaksanaan__tanggal__month=current_month)
+            if current_year != 0:
+                date_filter &= Q(tanggal_pelaksanaan__tanggal__year=current_year)
+        
+        # Filter by tanggal range (date_from to date_to)
+        if selected_date_from:
+            try:
+                date_from_obj = datetime.datetime.strptime(selected_date_from, '%Y-%m-%d').date()
+                date_filter &= Q(tanggal_pelaksanaan__tanggal__gte=date_from_obj)
+            except (ValueError, TypeError):
+                pass
+        
+        if selected_date_to:
+            try:
+                date_to_obj = datetime.datetime.strptime(selected_date_to, '%Y-%m-%d').date()
+                date_filter &= Q(tanggal_pelaksanaan__tanggal__lte=date_to_obj)
+            except (ValueError, TypeError):
+                pass
         
         project_jobs = all_jobs_team_base.filter(
             tipe_job='Project'
@@ -1460,7 +1616,7 @@ def export_jobs_to_gas(request):
         from .export_handlers import prepare_job_data_for_export, send_to_google_apps_script
         
         # Prepare data
-        payload = prepare_job_data_for_export(job_ids)
+        payload = prepare_job_data_for_export(job_ids, export_type)
         if not payload:
             return JsonResponse({"status": "error", "message": "Job tidak ditemukan"})
         
@@ -1819,13 +1975,18 @@ def leave_event_view(request):
         current_year += 1
     
     # Get hari pertama bulan dan jumlah hari
+    # monthrange returns (weekday, num_days) di mana weekday adalah 0=Monday, 1=Tuesday, ..., 6=Sunday
     first_day_weekday, num_days = cal_module.monthrange(current_year, current_month)
+    
+    # Konversi ke format kalender Indonesia (0=Sunday, 1=Monday, ..., 6=Saturday)
+    # Python monthrange: 0=Monday, jadi kita perlu tambah 1 dan modulo 7
+    first_day_weekday_indo = (first_day_weekday + 1) % 7
     
     # Build list of dates dengan leave info
     calendar_data = []
     
-    # Padding hari kosong awal bulan
-    for _ in range(first_day_weekday):
+    # Padding hari kosong awal bulan (mulai dari Minggu)
+    for _ in range(first_day_weekday_indo):
         calendar_data.append({'date': None, 'leave_events': []})
     
     # Fill tanggal dengan data
@@ -1853,6 +2014,9 @@ def leave_event_view(request):
     # Get karyawan list untuk datalist
     karyawan_list = Karyawan.objects.filter(status='Aktif').order_by('nama_lengkap')
     
+    # Get today's date string untuk highlight
+    today_str = f"{now.year}-{now.month:02d}-{now.day:02d}"
+    
     context = {
         'form': form,
         'karyawan_list': karyawan_list,
@@ -1864,6 +2028,7 @@ def leave_event_view(request):
         'current_month': current_month,
         'current_year': current_year,
         'month_name': month_name,
+        'today_str': today_str,
     }
     
     return render(request, 'leave_event.html', context)
@@ -1925,6 +2090,50 @@ def leave_event_delete(request, leave_id):
 
 
 # ==============================================================================
+# API VIEWS - CASCADING FILTERS UNTUK FILTER PERSISTENCE
+# ==============================================================================
+@login_required(login_url='core:login')
+def api_mesin_by_line(request, line_id):
+    """
+    API endpoint untuk get Mesin berdasarkan Line ID
+    Used by filter-persistence.js untuk cascading filters
+    """
+    try:
+        line = get_object_or_404(AsetMesin, id=line_id, level=0)
+        mesin_list = AsetMesin.objects.filter(parent=line, level=1).order_by('nama')
+        
+        data = {
+            'mesin': [
+                {'id': m.id, 'nama': m.nama} 
+                for m in mesin_list
+            ]
+        }
+        return JsonResponse(data, safe=True)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
+@login_required(login_url='core:login')
+def api_sub_mesin_by_mesin(request, mesin_id):
+    """
+    API endpoint untuk get Sub Mesin berdasarkan Mesin ID
+    Used by filter-persistence.js untuk cascading filters
+    """
+    try:
+        mesin = get_object_or_404(AsetMesin, id=mesin_id, level=1)
+        sub_mesin_list = AsetMesin.objects.filter(parent=mesin, level=2).order_by('nama')
+        
+        data = {
+            'sub_mesin': [
+                {'id': s.id, 'nama': s.nama}
+                for s in sub_mesin_list
+            ]
+        }
+        return JsonResponse(data, safe=True)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
+
+# ==============================================================================
 # TEMPORARY: VIEW UNTUK RUN MIGRATION (HELPER SAJA)
 # ==============================================================================
 def run_migration_helper(request):
@@ -1951,4 +2160,396 @@ def run_migration_helper(request):
         return HttpResponse(result)
     except Exception as e:
         return HttpResponse(f"<h2>❌ Error: {str(e)}</h2><pre>{str(e)}</pre>", status=500)
+
+
+# ==============================================================================
+# VIEW UNTUK TOGGLE MAINTENANCE MODE (ADMIN/STAFF ONLY)
+# ==============================================================================
+from .models import MaintenanceMode
+from django.contrib.auth.decorators import user_passes_test
+
+def is_staff_user(user):
+    """Check apakah user adalah staff/admin"""
+    return user.is_staff or user.is_superuser
+
+@login_required(login_url='core:login')
+@user_passes_test(is_staff_user, login_url='core:login')
+def toggle_maintenance_mode(request):
+    """
+    AJAX endpoint untuk toggle maintenance mode on/off
+    Hanya admin & staff yang bisa akses
+    """
+    if request.method == 'POST':
+        try:
+            # Get atau create maintenance mode record
+            maintenance, created = MaintenanceMode.objects.get_or_create(id=1)
+            
+            # Toggle status
+            maintenance.is_active = not maintenance.is_active
+            maintenance.save()
+            
+            # Return response dengan status baru
+            return JsonResponse({
+                'success': True,
+                'is_active': maintenance.is_active,
+                'message': 'Maintenance Mode ' + ('DIAKTIFKAN' if maintenance.is_active else 'DIMATIKAN'),
+            })
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'error': str(e)
+            }, status=400)
+    
+    return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+@login_required(login_url='core:login')
+@user_passes_test(is_staff_user, login_url='core:login')
+def get_maintenance_status(request):
+    """
+    AJAX endpoint untuk get status maintenance mode
+    """
+    try:
+        is_active = MaintenanceMode.is_maintenance_active()
+        return JsonResponse({
+            'success': True,
+            'is_active': is_active
+        })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=400)
+
+
+# ==============================================================================
+# VIEWS UNTUK JOB DETAIL & OVERDUE TRACKING
+# ==============================================================================
+
+@login_required(login_url='core:login')
+def daily_job_detail_view(request, job_id):
+    """
+    Detail view untuk Daily Job dengan overdue tracking
+    URL: /core/daily-job/<job_id>/
+    """
+    job = get_object_or_404(Job, id=job_id, tipe_job='Daily')
+    
+    # Check permission - user harus PIC, assigned_to, atau subordinates
+    user = request.user
+    subordinate_ids = user.get_all_subordinates()
+    allowed_user_ids = [user.id] + subordinate_ids
+    
+    # Allow jika user adalah PIC atau assigned_to
+    if job.pic_id not in allowed_user_ids and (job.assigned_to_id and job.assigned_to_id not in allowed_user_ids):
+        messages.error(request, "Anda tidak memiliki akses ke job ini")
+        return redirect('core:dashboard')
+    
+    # Get semua job dates dengan sorting
+    job_dates = job.tanggal_pelaksanaan.all().order_by('tanggal')
+    
+    # Separate overdue dates dari regular dates
+    overdue_dates = []
+    regular_dates = []
+    
+    for jd in job_dates:
+        if jd.is_overdue():
+            overdue_dates.append({
+                'date': jd,
+                'days_overdue': jd.days_overdue()
+            })
+        else:
+            regular_dates.append(jd)
+    
+    # Get summary stats
+    stats = job.get_summary_stats()
+    
+    context = {
+        'job': job,
+        'overdue_dates': overdue_dates,
+        'regular_dates': regular_dates,
+        'stats': stats,
+    }
+    
+    return render(request, 'core/daily_job_detail.html', context)
+
+
+@login_required(login_url='core:login')
+def project_job_detail_view(request, job_id):
+    """
+    Detail view untuk Project Job dengan overdue tracking
+    URL: /core/project-job/<job_id>/
+    """
+    job = get_object_or_404(Job, id=job_id, tipe_job='Project')
+    
+    # Check permission
+    user = request.user
+    subordinate_ids = user.get_all_subordinates()
+    allowed_user_ids = [user.id] + subordinate_ids
+    
+    if job.pic_id not in allowed_user_ids and (job.assigned_to_id and job.assigned_to_id not in allowed_user_ids):
+        messages.error(request, "Anda tidak memiliki akses ke job ini")
+        return redirect('core:dashboard')
+    
+    # Get semua job dates dengan sorting
+    job_dates = job.tanggal_pelaksanaan.all().order_by('tanggal')
+    
+    # Separate overdue dates
+    overdue_dates = []
+    regular_dates = []
+    
+    for jd in job_dates:
+        if jd.is_overdue():
+            overdue_dates.append({
+                'date': jd,
+                'days_overdue': jd.days_overdue()
+            })
+        else:
+            regular_dates.append(jd)
+    
+    # Get summary stats
+    stats = job.get_summary_stats()
+    
+    context = {
+        'job': job,
+        'overdue_dates': overdue_dates,
+        'regular_dates': regular_dates,
+        'stats': stats,
+        'project': job.project,
+    }
+    
+    return render(request, 'core/project_job_detail.html', context)
+
+
+@login_required(login_url='core:login')
+@require_http_methods(["POST"])
+def job_quick_update_api(request, job_id):
+    """
+    AJAX API endpoint untuk quick update JobDate status
+    Request: POST dengan JSON body
+    {
+        'date_id': <JobDate.id>,
+        'new_status': 'Done|Pending|N/A',
+        'catatan': 'optional catatan'
+    }
+    """
+    try:
+        job = get_object_or_404(Job, id=job_id)
+        
+        # Check permission
+        user = request.user
+        subordinate_ids = user.get_all_subordinates()
+        allowed_user_ids = [user.id] + subordinate_ids
+        
+        if job.pic_id not in allowed_user_ids and (job.assigned_to_id and job.assigned_to_id not in allowed_user_ids):
+            return JsonResponse({
+                'success': False,
+                'error': 'Anda tidak memiliki akses ke job ini'
+            }, status=403)
+        
+        # Parse request body
+        data = json.loads(request.body)
+        date_id = data.get('date_id')
+        new_status = data.get('new_status')
+        catatan = data.get('catatan', '')
+        
+        # Validate
+        if not date_id or not new_status:
+            return JsonResponse({
+                'success': False,
+                'error': 'date_id dan new_status diperlukan'
+            }, status=400)
+        
+        # Get JobDate
+        job_date = get_object_or_404(JobDate, id=date_id, job=job)
+        
+        # Update status dan catatan
+        old_status = job_date.status
+        job_date.status = new_status
+        if catatan:
+            job_date.catatan = catatan
+        job_date.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Status updated dari {old_status} ke {new_status}',
+            'date_id': date_id,
+            'new_status': new_status,
+            'tanggal': str(job_date.tanggal),
+        })
+    
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=400)
+
+
+@login_required(login_url='core:login')
+def overdue_jobs_list_view(request):
+    """
+    Halaman listing untuk semua overdue jobs (Daily, Project, Preventive)
+    URL: /core/overdue-jobs/
+    Dengan filters: tipe job, departemen, assigned_to, date range
+    """
+    user = request.user
+    subordinate_ids = user.get_all_subordinates()
+    all_user_ids = [user.id] + subordinate_ids
+    
+    overdue_items = []
+    
+    # 1. GET OVERDUE DAILY JOBS (Optimized with select_related)
+    daily_jobs_with_overdue = Job.objects.filter(
+        Q(pic_id__in=all_user_ids) | Q(assigned_to_id__in=all_user_ids),
+        tipe_job='Daily'
+    ).select_related('pic', 'assigned_to', 'project').prefetch_related('tanggal_pelaksanaan')
+    
+    for job in daily_jobs_with_overdue:
+        overdue_dates = job.get_overdue_dates()
+        if overdue_dates.exists():
+            for od in overdue_dates:
+                overdue_items.append({
+                    'type': 'Daily Job',
+                    'type_short': 'daily',
+                    'id': job.id,
+                    'name': job.nama_pekerjaan,
+                    'days_overdue': od.days_overdue(),
+                    'url': f'/daily-job/{job.id}/',
+                    'assigned_to': job.assigned_to.get_full_name() if job.assigned_to else job.pic.get_full_name(),
+                    'status': od.status,
+                    'tanggal': od.tanggal,
+                    'pic': job.pic.get_full_name(),
+                    'prioritas': job.prioritas,
+                    'fokus': job.fokus,
+                })
+    
+    # 2. GET OVERDUE PROJECT JOBS (Optimized with select_related)
+    project_jobs_with_overdue = Job.objects.filter(
+        Q(pic_id__in=all_user_ids) | Q(assigned_to_id__in=all_user_ids),
+        tipe_job='Project'
+    ).select_related('pic', 'assigned_to', 'project').prefetch_related('tanggal_pelaksanaan')
+    
+    for job in project_jobs_with_overdue:
+        overdue_dates = job.get_overdue_dates()
+        if overdue_dates.exists():
+            for od in overdue_dates:
+                overdue_items.append({
+                    'type': 'Project Job',
+                    'type_short': 'project',
+                    'id': job.id,
+                    'name': job.nama_pekerjaan,
+                    'days_overdue': od.days_overdue(),
+                    'url': f'/project-job/{job.id}/',
+                    'assigned_to': job.assigned_to.get_full_name() if job.assigned_to else job.pic.get_full_name(),
+                    'status': od.status,
+                    'tanggal': od.tanggal,
+                    'pic': job.pic.get_full_name(),
+                    'prioritas': job.prioritas,
+                    'fokus': job.fokus,
+                    'project': job.project.nama_project if job.project else 'N/A',
+                })
+    
+    # 3. GET OVERDUE PREVENTIVE JOB EXECUTIONS (Optimized with select_related)
+    from preventive_jobs.models import PreventiveJobExecution
+    
+    today = datetime.datetime.now().date()
+    overdue_preventive = PreventiveJobExecution.objects.filter(
+        Q(template__pic_id__in=all_user_ids) | Q(assigned_to_id__in=all_user_ids),
+        status='Scheduled',
+        scheduled_date__lt=today
+    ).select_related('template__pic', 'assigned_to', 'aset')
+    
+    for execution in overdue_preventive:
+        overdue_items.append({
+            'type': 'Preventive Job',
+            'type_short': 'preventive',
+            'id': execution.id,
+            'name': execution.template.nama_pekerjaan,
+            'days_overdue': execution.days_overdue(),
+            'url': f'/preventive/execution/{execution.id}/detail/',
+            'assigned_to': execution.assigned_to.get_full_name() if execution.assigned_to else execution.template.pic.get_full_name(),
+            'status': execution.status,
+            'tanggal': execution.scheduled_date,
+            'pic': execution.template.pic.get_full_name(),
+            'prioritas': execution.template.prioritas,
+            'fokus': execution.template.fokus,
+            'aset': execution.aset.nama if execution.aset else 'N/A',
+        })
+    
+    # Apply filters if provided
+    filter_type = request.GET.get('type', '')
+    filter_prioritas = request.GET.get('prioritas', '')
+    filter_assigned_to = request.GET.get('assigned_to', '')
+    sort_by = request.GET.get('sort', 'days_overdue_desc')
+    
+    if filter_type:
+        overdue_items = [item for item in overdue_items if item['type_short'] == filter_type]
+    
+    if filter_prioritas:
+        overdue_items = [item for item in overdue_items if item.get('prioritas') == filter_prioritas]
+    
+    if filter_assigned_to:
+        overdue_items = [item for item in overdue_items if item['assigned_to'] == filter_assigned_to]
+    
+    # Sorting
+    if sort_by == 'days_overdue_asc':
+        overdue_items = sorted(overdue_items, key=lambda x: x['days_overdue'])
+    else:  # default: days_overdue_desc
+        overdue_items = sorted(overdue_items, key=lambda x: x['days_overdue'], reverse=True)
+    
+    # Pagination
+    paginator = Paginator(overdue_items, 25)  # 25 items per page
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'page_obj': page_obj,
+        'total_count': len(overdue_items),
+        'filter_type': filter_type,
+        'filter_prioritas': filter_prioritas,
+        'filter_assigned_to': filter_assigned_to,
+        'sort_by': sort_by,
+    }
+    
+    return render(request, 'core/overdue_jobs_list.html', context)
+
+
+# ==============================================================================
+# PROFILE VIEWS - USER PROFILE PAGE & EDIT
+# ==============================================================================
+@login_required(login_url='core:login')
+def profile_view(request):
+    """Display user profile"""
+    user = request.user
+    context = {
+        'profile_user': user,
+        'jabatan': user.jabatan,
+        'atasan': user.atasan,
+    }
+    return render(request, 'core/profile.html', context)
+
+
+@login_required(login_url='core:login')
+def profile_edit_view(request):
+    """Edit user profile"""
+    user = request.user
+    
+    if request.method == 'POST':
+        # Update user fields
+        user.first_name = request.POST.get('first_name', user.first_name)
+        user.last_name = request.POST.get('last_name', user.last_name)
+        user.email = request.POST.get('email', user.email)
+        user.nomor_telepon = request.POST.get('nomor_telepon', user.nomor_telepon)
+        
+        try:
+            user.save()
+            messages.success(request, 'Profile berhasil diperbarui!')
+            return redirect('core:profile')
+        except Exception as e:
+            messages.error(request, f'Error saat menyimpan profile: {str(e)}')
+    
+    context = {
+        'profile_user': user,
+        'jabatan': user.jabatan,
+        'atasan': user.atasan,
+    }
+    return render(request, 'core/profile_edit.html', context)
 

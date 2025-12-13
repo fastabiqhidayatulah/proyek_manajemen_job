@@ -1,0 +1,145 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Konfirmasi Penghapusan - Preventive Job V2{% endblock %}
+
+{% block content %}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-exclamation-triangle"></i> Konfirmasi Penghapusan
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- CHECKLIST INFO -->
+                    <div class="alert alert-warning" role="alert">
+                        <strong>Apakah Anda yakin ingin menghapus checklist ini?</strong>
+                    </div>
+
+                    <!-- CHECKLIST DETAILS -->
+                    <div class="card mb-4 bg-light">
+                        <div class="card-body">
+                            <h6 class="card-title mb-3">Detail Checklist</h6>
+                            
+                            <div class="row mb-2">
+                                <div class="col-sm-4">
+                                    <strong>Nomor:</strong>
+                                </div>
+                                <div class="col-sm-8">
+                                    <code>{{ checklist.nomor }}</code>
+                                </div>
+                            </div>
+
+                            <div class="row mb-2">
+                                <div class="col-sm-4">
+                                    <strong>Nama:</strong>
+                                </div>
+                                <div class="col-sm-8">
+                                    {{ checklist.nama }}
+                                </div>
+                            </div>
+
+                            <div class="row mb-2">
+                                <div class="col-sm-4">
+                                    <strong>Kategori:</strong>
+                                </div>
+                                <div class="col-sm-8">
+                                    {% if checklist.kategori == 'Mekanik' %}
+                                        <span class="badge bg-primary"><i class="fas fa-tools"></i> Mekanik</span>
+                                    {% elif checklist.kategori == 'Elektrik' %}
+                                        <span class="badge bg-warning"><i class="fas fa-bolt"></i> Elektrik</span>
+                                    {% elif checklist.kategori == 'Utility' %}
+                                        <span class="badge bg-success"><i class="fas fa-wrench"></i> Utility</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="row mb-2">
+                                <div class="col-sm-4">
+                                    <strong>Items:</strong>
+                                </div>
+                                <div class="col-sm-8">
+                                    <span class="badge bg-info">{{ checklist.items.count }} items</span>
+                                </div>
+                            </div>
+
+                            <div class="row mb-2">
+                                <div class="col-sm-4">
+                                    <strong>Dibuat:</strong>
+                                </div>
+                                <div class="col-sm-8">
+                                    <small class="text-muted">{{ checklist.created_at|date:"d/m/Y H:i" }}</small>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-sm-4">
+                                    <strong>Dibuat Oleh:</strong>
+                                </div>
+                                <div class="col-sm-8">
+                                    {{ checklist.created_by.get_full_name|default:checklist.created_by.username }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- WARNING MESSAGES -->
+                    {% if checklist.template_set.count > 0 %}
+                    <div class="alert alert-danger" role="alert">
+                        <h6 class="alert-heading">
+                            <i class="fas fa-exclamation-circle"></i> Peringatan
+                        </h6>
+                        <p class="mb-2">
+                            Checklist ini <strong>terkait dengan {{ checklist.template_set.count }} preventive job template</strong>:
+                        </p>
+                        <ul class="mb-0">
+                            {% for template in checklist.template_set.all|slice:":5" %}
+                            <li>{{ template.nama_pekerjaan }}</li>
+                            {% endfor %}
+                            {% if checklist.template_set.count > 5 %}
+                            <li>... dan {{ checklist.template_set.count|add:"-5" }} template lainnya</li>
+                            {% endif %}
+                        </ul>
+                        <hr>
+                        <p class="mb-0">
+                            <strong>Menghapus checklist ini akan menghapus referensi dari semua template tersebut!</strong>
+                        </p>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info" role="alert">
+                        <i class="fas fa-info-circle"></i>
+                        Checklist ini tidak terkait dengan preventive job template lainnya.
+                    </div>
+                    {% endif %}
+
+                    <!-- DANGER WARNING -->
+                    <div class="alert alert-danger" role="alert">
+                        <strong>
+                            <i class="fas fa-times-circle"></i>
+                            Tindakan ini TIDAK DAPAT DIBATALKAN!
+                        </strong>
+                    </div>
+
+                    <!-- ACTION BUTTONS -->
+                    <div class="d-grid gap-2">
+                        <form method="POST" class="d-grid">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger btn-lg" onclick="return confirm('Yakin hapus checklist ini?')">
+                                <i class="fas fa-trash"></i> Ya, Hapus Checklist
+                            </button>
+                        </form>
+                        <a href="{% url 'preventive_jobs:checklist_list' %}" class="btn btn-secondary btn-lg">
+                            <i class="fas fa-arrow-left"></i> Batal & Kembali
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,746 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Manajemen Checklist - Preventive Job V2{% endblock %}
+
+{% block content %}
+
+<div class="container-fluid mt-4">
+    <!-- PAGE HEADER -->
+    <div class="row mb-4 pb-3" style="border-bottom: 3px solid #007bff;">
+        <div class="col-md-10">
+            <h2 style="color: #1a73e8; font-weight: 700; margin-bottom: 8px;">
+                <i class="fas fa-clipboard-list" style="margin-right: 12px; color: #0066cc;"></i> Manajemen Checklist
+            </h2>
+            <p class="text-muted" style="font-size: 0.95rem;">Kelola master checklist dan item-itemnya untuk digunakan di preventive job</p>
+        </div>
+        <div class="col-md-2 text-end">
+            <a href="{% url 'preventive_jobs:index' %}" class="btn btn-secondary" style="padding: 10px 16px;">
+                <i class="fas fa-arrow-left"></i> Kembali
+            </a>
+        </div>
+    </div>
+
+    <!-- ACTION BUTTONS -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <a href="#" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createTemplateModal" style="padding: 10px 20px; font-weight: 600;">
+                <i class="fas fa-plus" style="margin-right: 8px;"></i> Buat Template Baru
+            </a>
+            <div class="d-inline-block ms-3">
+                <input type="text" id="searchTemplates" class="form-control" placeholder="🔍 Cari template..." style="width: 300px; padding: 10px 15px; font-size: 0.95rem;">
+            </div>
+        </div>
+    </div>
+
+    <!-- TEMPLATES TABLE -->
+    <div class="table-responsive">
+        <table class="table table-hover" id="templatesTable" style="font-size: 0.95rem;">
+            <thead class="table-dark text-white">
+                <tr>
+                    <th width="10%"><i class="fas fa-hashtag"></i> Nomor</th>
+                    <th width="25%"><i class="fas fa-clipboard"></i> Nama Checklist</th>
+                    <th width="12%"><i class="fas fa-folder"></i> Kategori</th>
+                    <th width="30%"><i class="fas fa-comment"></i> Deskripsi</th>
+                    <th width="8%"><i class="fas fa-list"></i> Items</th>
+                    <th width="8%"><i class="fas fa-check-circle"></i> Status</th>
+                    <th width="7%">Aksi</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for template in templates %}
+                <tr data-template-id="{{ template.id }}" style="vertical-align: middle;">
+                    <td>
+                        <code style="background-color: #e7f3ff; color: #0066cc; padding: 5px 8px; border-radius: 4px; font-weight: bold;">{{ template.nomor }}</code>
+                    </td>
+                    <td>
+                        <strong style="color: #1a73e8;">{{ template.nama }}</strong>
+                    </td>
+                    <td>
+                        {% if template.kategori == "Elektrik" %}
+                            <span class="badge bg-warning text-dark" style="font-size: 0.9rem; padding: 8px 12px;">
+                                <i class="fas fa-bolt"></i> {{ template.kategori }}
+                            </span>
+                        {% elif template.kategori == "Mekanik" %}
+                            <span class="badge bg-info text-dark" style="font-size: 0.9rem; padding: 8px 12px;">
+                                <i class="fas fa-cog"></i> {{ template.kategori }}
+                            </span>
+                        {% elif template.kategori == "Utility" %}
+                            <span class="badge bg-success text-white" style="font-size: 0.9rem; padding: 8px 12px;">
+                                <i class="fas fa-water"></i> {{ template.kategori }}
+                            </span>
+                        {% else %}
+                            <span class="badge bg-secondary" style="font-size: 0.9rem; padding: 8px 12px;">{{ template.kategori }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if template.deskripsi %}
+                            <small style="color: #666;">{{ template.deskripsi|truncatewords:15 }}</small>
+                        {% else %}
+                            <small class="text-muted" style="font-style: italic;">-</small>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="badge bg-primary text-white" style="font-size: 0.95rem; padding: 8px 12px;">
+                            <i class="fas fa-list"></i> {{ template.items.count }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if template.is_active %}
+                            <span class="badge bg-success text-white" style="font-size: 0.95rem; padding: 8px 12px;">
+                                <i class="fas fa-check-circle"></i> Aktif
+                            </span>
+                        {% else %}
+                            <span class="badge bg-danger text-white" style="font-size: 0.95rem; padding: 8px 12px;">
+                                <i class="fas fa-ban"></i> Nonaktif
+                            </span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="btn-group" role="group" style="gap: 5px;">
+                            <button type="button" class="btn btn-primary btn-sm" title="Edit Template" onclick="editTemplate({{ template.id }})" data-bs-toggle="tooltip" style="padding: 8px 12px; font-weight: 600; font-size: 0.9rem;">
+                                <i class="fas fa-edit" style="margin-right: 5px;"></i> Edit
+                            </button>
+                            <button type="button" class="btn btn-info btn-sm text-white" title="Kelola Items" onclick="loadItems({{ template.id }})" data-bs-toggle="modal" data-bs-target="#itemsModal" data-bs-toggle="tooltip" style="padding: 8px 12px; font-weight: 600; font-size: 0.9rem;">
+                                <i class="fas fa-cogs" style="margin-right: 5px;"></i> Kelola
+                            </button>
+                            <button type="button" class="btn btn-danger btn-sm" title="Hapus Template" onclick="deleteTemplate({{ template.id }})" data-bs-toggle="tooltip" style="padding: 8px 12px; font-weight: 600; font-size: 0.9rem;">
+                                <i class="fas fa-trash-alt" style="margin-right: 5px;"></i> Hapus
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center text-muted py-5" style="font-size: 1.05rem;">
+                        <i class="fas fa-inbox" style="font-size: 2rem; margin-bottom: 10px; display: block; color: #ccc;"></i>
+                        Belum ada template checklist. 
+                        <a href="#" data-bs-toggle="modal" data-bs-target="#createTemplateModal" style="font-weight: bold; color: #0066cc;">Buat yang baru</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- MODAL: CREATE TEMPLATE -->
+<div class="modal fade" id="createTemplateModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="fas fa-plus"></i> Buat Template Baru</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="createTemplateForm">
+                    {% csrf_token %}
+                    <div class="form-group mb-3">
+                        <label for="nama" class="form-label">Nama Checklist *</label>
+                        <input type="text" class="form-control" id="nama" name="nama" placeholder="Contoh: Checklist Motor Listrik 3 Fasa" required>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="kategori" class="form-label">Kategori *</label>
+                        <select class="form-select" id="kategori" name="kategori" required>
+                            <option value="">-- Pilih Kategori --</option>
+                            <option value="Mekanik">Mekanik</option>
+                            <option value="Elektrik">Elektrik</option>
+                            <option value="Utility">Utility</option>
+                        </select>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="deskripsi" class="form-label">Deskripsi</label>
+                        <textarea class="form-control" id="deskripsi" name="deskripsi" rows="3" placeholder="Deskripsi singkat tentang checklist ini"></textarea>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="is_active" class="form-label">
+                            <input type="checkbox" id="is_active" name="is_active" value="on" checked>
+                            Aktif
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                <button type="button" class="btn btn-primary" onclick="saveTemplate()">
+                    <i class="fas fa-save"></i> Simpan
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: EDIT TEMPLATE -->
+<div class="modal fade" id="editTemplateModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title"><i class="fas fa-edit"></i> Edit Template</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editTemplateForm">
+                    {% csrf_token %}
+                    <input type="hidden" id="editTemplateId" name="template_id">
+                    <div class="form-group mb-3">
+                        <label for="editNama" class="form-label">Nama Checklist *</label>
+                        <input type="text" class="form-control" id="editNama" name="nama" required>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="editKategori" class="form-label">Kategori *</label>
+                        <select class="form-select" id="editKategori" name="kategori" required>
+                            <option value="Mekanik">Mekanik</option>
+                            <option value="Elektrik">Elektrik</option>
+                            <option value="Utility">Utility</option>
+                        </select>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="editDeskripsi" class="form-label">Deskripsi</label>
+                        <textarea class="form-control" id="editDeskripsi" name="deskripsi" rows="3"></textarea>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="editIsActive" class="form-label">
+                            <input type="checkbox" id="editIsActive" name="is_active" value="on">
+                            Aktif
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                <button type="button" class="btn btn-primary" onclick="updateTemplate()">
+                    <i class="fas fa-save"></i> Simpan Perubahan
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: MANAGE ITEMS -->
+<div class="modal fade" id="itemsModal" tabindex="-1" style="max-width: 1200px;">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title"><i class="fas fa-tasks"></i> Manajemen Items - <span id="itemsTemplateTitle"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="itemsContent">
+                    <!-- Items will be loaded here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                <button type="button" class="btn btn-info" onclick="downloadTemplate()">
+                    <i class="fas fa-download"></i> Download Template Excel
+                </button>
+                <button type="button" class="btn btn-warning" onclick="document.getElementById('excelFile').click()">
+                    <i class="fas fa-upload"></i> Import Excel
+                </button>
+                <input type="file" id="excelFile" accept=".xlsx,.xls" style="display:none;" onchange="handleExcelUpload(event)">
+                <button type="button" class="btn btn-primary" onclick="addItemRow()">
+                    <i class="fas fa-plus"></i> Tambah Item
+                </button>
+                <button type="button" class="btn btn-success" onclick="saveAllItems()">
+                    <i class="fas fa-save"></i> Simpan Semua Items
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentTemplateId = null;
+
+    /**
+     * Load template data untuk edit
+     */
+    function loadTemplate(templateId) {
+        fetch(`/preventive/checklist/${templateId}/api/`, {
+            headers: {'X-Requested-With': 'XMLHttpRequest'}
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const template = data.template;
+                document.getElementById('editTemplateId').value = template.id;
+                document.getElementById('editNama').value = template.nama;
+                document.getElementById('editKategori').value = template.kategori;
+                document.getElementById('editDeskripsi').value = template.deskripsi || '';
+                document.getElementById('editIsActive').checked = template.is_active;
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+
+    /**
+     * Save template (CREATE)
+     */
+    function saveTemplate() {
+        const form = document.getElementById('createTemplateForm');
+        const formData = new FormData(form);
+
+        fetch('/preventive/checklist/api/create/', {
+            method: 'POST',
+            headers: {'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value},
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Template berhasil dibuat!');
+                location.reload();
+            } else {
+                alert('Error: ' + (data.message || 'Gagal membuat template'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error: ' + error.message);
+        });
+    }
+
+    /**
+     * Update template (EDIT)
+     */
+    function updateTemplate() {
+        const form = document.getElementById('editTemplateForm');
+        const formData = new FormData(form);
+
+        fetch('/preventive/checklist/api/update/', {
+            method: 'POST',
+            headers: {'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value},
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Template berhasil diupdate!');
+                location.reload();
+            } else {
+                alert('Error: ' + (data.message || 'Gagal update template'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error: ' + error.message);
+        });
+    }
+
+    /**
+     * Load items untuk template tertentu
+     */
+    function loadItems(templateId) {
+        currentTemplateId = templateId;
+        
+        fetch(`/preventive/checklist/${templateId}/items-api/`, {
+            headers: {'X-Requested-With': 'XMLHttpRequest'}
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('itemsTemplateTitle').textContent = data.template_name;
+                renderItemsTable(data.items);
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+
+    /**
+     * Render items table
+     */
+    function renderItemsTable(items) {
+        let html = `
+            <div class="table-responsive">
+                <table class="table table-bordered table-sm" id="itemsTable" style="font-size: 0.9rem;">
+                    <thead class="table-light">
+                        <tr>
+                            <th width="3%">No</th>
+                            <th width="12%">Tipe</th>
+                            <th width="18%">Item Pemeriksaan</th>
+                            <th width="15%">Standar/Normal</th>
+                            <th width="7%">Unit</th>
+                            <th width="9%">Min</th>
+                            <th width="9%">Max</th>
+                            <th width="14%">Pilihan/Tindakan</th>
+                            <th width="3%">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+
+        items.forEach((item, idx) => {
+            // Default to 'numeric' jika item_type tidak ada (backward compatibility)
+            const itemType = item.item_type || 'numeric';
+            const isNumeric = itemType === 'numeric';
+            const isFreeText = itemType === 'free_text';
+            html += `
+                <tr data-item-id="${item.id}" data-item-type="${itemType}">
+                    <td class="text-center"><input type="text" class="form-control form-control-sm" value="${idx + 1}" readonly style="font-size: 0.85rem;"></td>
+                    <td>
+                        <select class="form-select form-select-sm item-type" style="font-size: 0.85rem;">
+                            <option value="numeric" ${isNumeric ? 'selected' : ''}>Numeric</option>
+                            <option value="text" ${itemType === 'text' ? 'selected' : ''}>Text (Dropdown)</option>
+                            <option value="free_text" ${isFreeText ? 'selected' : ''}>Free Text</option>
+                        </select>
+                    </td>
+                    <td><input type="text" class="form-control form-control-sm item-pemeriksaan" value="${item.item_pemeriksaan}" style="font-size: 0.85rem;"></td>
+                    <td><input type="text" class="form-control form-control-sm standar-normal" value="${item.standar_normal}" style="font-size: 0.85rem;"></td>
+                    <td><input type="text" class="form-control form-control-sm unit" value="${item.unit || ''}" style="font-size: 0.85rem;" ${!isNumeric ? 'disabled' : ''}></td>
+                    <td><input type="number" class="form-control form-control-sm nilai-min" value="${item.nilai_min || ''}" step="0.01" style="font-size: 0.85rem; font-weight: bold;" ${!isNumeric ? 'disabled' : ''}></td>
+                    <td><input type="number" class="form-control form-control-sm nilai-max" value="${item.nilai_max || ''}" step="0.01" style="font-size: 0.85rem; font-weight: bold;" ${!isNumeric ? 'disabled' : ''}></td>
+                    <td><input type="text" class="form-control form-control-sm text-options" value="${item.text_options || item.tindakan_remark || ''}" placeholder="${isNumeric ? 'Tindakan jika...' : isFreeText ? 'Catatan (optional)' : 'Contoh: Normal;Kasar;Bising'}" style="font-size: 0.85rem;" ${isNumeric ? '' : 'disabled'}></td>
+                    <td><button type="button" class="btn btn-sm btn-danger" onclick="deleteItem(this)"><i class="fas fa-trash"></i></button></td>
+                </tr>
+            `;
+        });
+
+        html += `
+                    </tbody>
+                </table>
+            </div>
+            <div class="alert alert-info small mt-3" style="font-size: 0.85rem;">
+                <strong>INFO - Tipe Item:</strong><br>
+                <strong>Numeric</strong> = Pengukuran angka (Tegangan, Arus, Getaran, dll) - isi Unit, Min, Max<br>
+                <strong>Text (Dropdown)</strong> = Pilihan predefined (Normal, Kasar, Bising, dll) - isi Pilihan dengan semicolon<br>
+                <strong>Free Text</strong> = Input text bebas tanpa validasi (Catatan, Observasi, dll) - user tulis apapun<br>
+                Contoh: "Normal;Kasar;Bising" atau "OK;Ada Bocor;Aus"
+            </div>
+        `;
+
+        document.getElementById('itemsContent').innerHTML = html;
+        
+        // Attach event listeners untuk type change
+        attachTypeChangeListeners();
+    }
+    
+    /**
+     * Attach listeners untuk type change
+     */
+    function attachTypeChangeListeners() {
+        document.querySelectorAll('.item-type').forEach(select => {
+            select.addEventListener('change', function() {
+                const row = this.closest('tr');
+                const itemType = this.value;
+                const isNumeric = itemType === 'numeric';
+                const isFreeText = itemType === 'free_text';
+                const unit = row.querySelector('.unit');
+                const min = row.querySelector('.nilai-min');
+                const max = row.querySelector('.nilai-max');
+                const textOptions = row.querySelector('.text-options');
+                
+                if (isNumeric) {
+                    // Numeric type: enable unit/min/max, disable text options
+                    unit.disabled = false;
+                    min.disabled = false;
+                    max.disabled = false;
+                    textOptions.disabled = false;
+                    textOptions.placeholder = 'Tindakan jika...';
+                } else if (isFreeText) {
+                    // Free Text type: disable all numeric fields, text options optional
+                    unit.disabled = true;
+                    min.disabled = true;
+                    max.disabled = true;
+                    textOptions.disabled = true;
+                    textOptions.placeholder = 'Catatan (optional) - tidak perlu diisi';
+                } else {
+                    // Text (dropdown) type: disable numeric fields, enable text options
+                    unit.disabled = true;
+                    min.disabled = true;
+                    max.disabled = true;
+                    textOptions.disabled = false;
+                    textOptions.placeholder = 'Contoh: Normal;Kasar;Bising';
+                }
+            });
+        });
+    }
+
+    /**
+     * Add new item row
+     */
+    function addItemRow() {
+        const table = document.getElementById('itemsTable').querySelector('tbody');
+        const rowCount = table.querySelectorAll('tr').length + 1;
+        
+        const newRow = document.createElement('tr');
+        newRow.dataset.itemId = 'new';
+        newRow.innerHTML = `
+            <td class="text-center"><input type="text" class="form-control form-control-sm" value="${rowCount}" readonly style="font-size: 0.85rem;"></td>
+            <td>
+                <select class="form-select form-select-sm item-type" style="font-size: 0.85rem;">
+                    <option value="numeric" selected>Numeric</option>
+                    <option value="text">Text (Dropdown)</option>
+                    <option value="free_text">Free Text</option>
+                </select>
+            </td>
+            <td><input type="text" class="form-control form-control-sm item-pemeriksaan" placeholder="e.g. Tegangan, Getaran, Catatan" style="font-size: 0.85rem;"></td>
+            <td><input type="text" class="form-control form-control-sm standar-normal" placeholder="e.g. 380±10%, Normal" style="font-size: 0.85rem;"></td>
+            <td><input type="text" class="form-control form-control-sm unit" placeholder="e.g. V, Hz, mm" style="font-size: 0.85rem;"></td>
+            <td><input type="number" class="form-control form-control-sm nilai-min" placeholder="Min" step="0.01" style="font-size: 0.85rem; font-weight: bold;"></td>
+            <td><input type="number" class="form-control form-control-sm nilai-max" placeholder="Max" step="0.01" style="font-size: 0.85rem; font-weight: bold;"></td>
+            <td><input type="text" class="form-control form-control-sm text-options" placeholder="Tindakan atau Pilihan (Normal;Kasar;Bising)" style="font-size: 0.85rem;"></td>
+            <td><button type="button" class="btn btn-sm btn-danger" onclick="deleteItem(this)"><i class="fas fa-trash"></i></button></td>
+        `;
+        
+        table.appendChild(newRow);
+        
+        // Attach type change listener
+        newRow.querySelector('.item-type').addEventListener('change', function() {
+            const row = this.closest('tr');
+            const itemType = this.value;
+            const isNumeric = itemType === 'numeric';
+            const isFreeText = itemType === 'free_text';
+            const unit = row.querySelector('.unit');
+            const min = row.querySelector('.nilai-min');
+            const max = row.querySelector('.nilai-max');
+            const textOptions = row.querySelector('.text-options');
+            
+            if (isNumeric) {
+                // Numeric type: enable unit/min/max, disable text options
+                unit.disabled = false;
+                min.disabled = false;
+                max.disabled = false;
+                textOptions.disabled = false;
+                textOptions.placeholder = 'Tindakan jika...';
+                textOptions.value = '';
+            } else if (isFreeText) {
+                // Free Text type: disable all numeric fields, text options optional
+                unit.disabled = true;
+                min.disabled = true;
+                max.disabled = true;
+                textOptions.disabled = true;
+                textOptions.placeholder = 'Catatan (optional) - tidak perlu diisi';
+                textOptions.value = '';
+            } else {
+                // Text (dropdown) type: disable numeric fields, enable text options
+                unit.disabled = true;
+                min.disabled = true;
+                max.disabled = true;
+                textOptions.disabled = false;
+                textOptions.placeholder = 'Contoh: Normal;Kasar;Bising';
+                textOptions.value = '';
+            }
+        });
+    }
+
+    /**
+     * Delete item row
+     */
+    function deleteItem(btn) {
+        const row = btn.closest('tr');
+        const itemId = row.dataset.itemId;
+
+        if (itemId !== 'new') {
+            if (!confirm('Yakin ingin menghapus item ini?')) return;
+        }
+
+        row.remove();
+    }
+
+    /**
+     * Save all items
+     */
+    function saveAllItems() {
+        const items = [];
+        const rows = document.getElementById('itemsTable').querySelectorAll('tbody tr');
+
+        if (rows.length === 0) {
+            alert('WARNING: Tidak ada item untuk disimpan!');
+            return;
+        }
+
+        rows.forEach((row, idx) => {
+            const itemId = row.dataset.itemId;
+            const itemType = row.querySelector('.item-type').value;
+            const isNumeric = itemType === 'numeric';
+            const isFreeText = itemType === 'free_text';
+            const itemName = row.querySelector('.item-pemeriksaan').value.trim();
+            
+            if (!itemName) {
+                alert(`Row ${idx + 1}: Item Pemeriksaan tidak boleh kosong!`);
+                return;
+            }
+            
+            const textOptionsField = row.querySelector('.text-options').value;
+            
+            const itemData = {
+                id: itemId !== 'new' ? itemId : null,
+                no_urut: idx + 1,
+                item_type: itemType,
+                item_pemeriksaan: itemName,
+                standar_normal: row.querySelector('.standar-normal').value,
+                unit: isNumeric ? row.querySelector('.unit').value : '',
+                nilai_min: isNumeric ? (row.querySelector('.nilai-min').value || null) : null,
+                nilai_max: isNumeric ? (row.querySelector('.nilai-max').value || null) : null,
+                text_options: (itemType === 'text') ? textOptionsField : '',
+                tindakan_remark: (isNumeric) ? textOptionsField : '',
+            };
+
+            items.push(itemData);
+        });
+
+        console.log('✓ SAVING ITEMS:', JSON.stringify(items, null, 2));
+        console.log(`Total items to save: ${items.length}`);
+
+        // Show loading indicator
+        const saveBtn = event ? event.target : document.querySelector('button:contains("Simpan")');
+        const originalText = saveBtn ? saveBtn.innerText : 'Simpan Semua Items';
+        if (saveBtn) {
+            saveBtn.disabled = true;
+            saveBtn.innerText = 'Menyimpan...';
+        }
+
+        fetch('/preventive/checklist/items-api/save/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({
+                template_id: currentTemplateId,
+                items: items
+            })
+        })
+        .then(response => {
+            console.log('Response status:', response.status);
+            return response.json();
+        })
+        .then(data => {
+            console.log('✓ Server response:', data);
+            
+            if (saveBtn) {
+                saveBtn.disabled = false;
+                saveBtn.innerText = originalText;
+            }
+            
+            if (data.success) {
+                alert(`SUCCESS: ${data.message}`);
+                console.log('Reloading page...');
+                setTimeout(() => location.reload(), 500);
+            } else {
+                alert(`ERROR: ${data.message || 'Gagal simpan items'}`);
+                console.error('Server error:', data);
+            }
+        })
+        .catch(error => {
+            console.error('FETCH ERROR:', error);
+            
+            if (saveBtn) {
+                saveBtn.disabled = false;
+                saveBtn.innerText = originalText;
+            }
+            
+            alert(`ERROR: ${error.message}\n\nBuka F12 - Console untuk details.`);
+        });
+    }
+
+    /**
+     * Delete template
+     */
+    function deleteTemplate(templateId) {
+        if (!confirm('Yakin ingin menghapus template ini? Item-itemnya juga akan dihapus.')) return;
+
+        fetch(`/preventive/checklist/${templateId}/api/delete/`, {
+            method: 'POST',
+            headers: {'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value}
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Template berhasil dihapus!');
+                location.reload();
+            } else {
+                alert('Error: ' + (data.message || 'Gagal hapus template'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error: ' + error.message);
+        });
+    }
+
+    /**
+     * Download template Excel
+     */
+    function downloadTemplate() {
+        if (!currentTemplateId) {
+            alert('Template belum dipilih');
+            return;
+        }
+
+        // Download file dengan format: /preventive/checklist/{id}/download-template/
+        const link = document.createElement('a');
+        link.href = `/preventive/checklist/${currentTemplateId}/download-template/`;
+        link.download = true;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    /**
+     * Handle Excel file upload
+     */
+    function handleExcelUpload(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('template_id', currentTemplateId);
+
+        fetch('/preventive/checklist/items-api/import/', {
+            method: 'POST',
+            headers: {'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value},
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Data dari Excel berhasil diimport!');
+                loadItems(currentTemplateId);
+            } else {
+                alert('Error: ' + (data.message || 'Gagal import Excel'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error: ' + error.message);
+        });
+
+        // Reset input
+        event.target.value = '';
+    }
+
+    /**
+     * Search/Filter templates
+     */
+    document.getElementById('searchTemplates').addEventListener('keyup', function() {
+        const searchTerm = this.value.toLowerCase();
+        const rows = document.querySelectorAll('#templatesTable tbody tr');
+        
+        rows.forEach(row => {
+            const nomor = row.querySelector('td:nth-child(1)')?.textContent.toLowerCase() || '';
+            const nama = row.querySelector('td:nth-child(2)')?.textContent.toLowerCase() || '';
+            const kategori = row.querySelector('td:nth-child(3)')?.textContent.toLowerCase() || '';
+            const deskripsi = row.querySelector('td:nth-child(4)')?.textContent.toLowerCase() || '';
+            
+            if (nomor.includes(searchTerm) || nama.includes(searchTerm) || kategori.includes(searchTerm) || deskripsi.includes(searchTerm)) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    });
+
+    /**
+     * Edit template
+     */
+    function editTemplate(templateId) {
+        loadTemplate(templateId);
+        const modal = new bootstrap.Modal(document.getElementById('editTemplateModal'));
+        modal.show();
+    }
+</script>
+
+{% endblock %}

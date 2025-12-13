@@ -1,0 +1,1070 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Execution Tracking - Preventive Job V2{% endblock %}
+
+{% block content %}
+
+<style>
+    .sort-icon {
+        margin-left: 5px;
+        opacity: 0.6;
+        font-size: 0.9em;
+    }
+    th[onclick] {
+        transition: background-color 0.2s;
+    }
+    th[onclick]:hover {
+        background-color: #495057 !important;
+    }
+</style>
+
+<div class="container-fluid mt-4">
+    <!-- PAGE HEADER -->
+    <div class="row mb-4">
+        <div class="col-md-10">
+            <h2>📅 Execution Tracking</h2>
+        </div>
+        <div class="col-md-2 text-right">
+            <a href="{% url 'preventive_jobs:index' %}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Kembali ke Preventive
+            </a>
+        </div>
+    </div>
+
+    <!-- TAB SYSTEM -->
+    <div class="card mb-3">
+        <div class="card-header bg-light">
+            <ul class="nav nav-tabs card-header-tabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link {% if tab == 'today' %}active{% endif %}" 
+                       href="?tab=today" role="tab">
+                        📅 TODAY
+                        <span class="badge bg-info ms-2">{{ today_count }}</span>
+                    </a>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link {% if tab == 'thisweek' %}active{% endif %}" 
+                       href="?tab=thisweek" role="tab">
+                        📆 THIS WEEK
+                        <span class="badge bg-info ms-2">{{ thisweek_count }}</span>
+                    </a>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link {% if tab == 'advanced' %}active{% endif %}" 
+                       href="?tab=advanced" role="tab">
+                        ⚙️ ADVANCED FILTER
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- FILTER & SEARCH (hanya tampil di tab ADVANCED) -->
+    {% if tab == 'advanced' %}
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <input type="hidden" name="tab" value="advanced">
+                <div class="col-md-2">
+                    <label for="status" class="form-label">Status</label>
+                    <select name="status" id="status" class="form-select">
+                        <option value="">Semua</option>
+                        <option value="Scheduled" {% if selected_status == 'Scheduled' %}selected{% endif %}>Scheduled</option>
+                        <option value="Done" {% if selected_status == 'Done' %}selected{% endif %}>Done</option>
+                        <option value="Skipped" {% if selected_status == 'Skipped' %}selected{% endif %}>Skipped</option>
+                        <option value="N/A" {% if selected_status == 'N/A' %}selected{% endif %}>N/A</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="month" class="form-label">Bulan</label>
+                    <select name="month" id="month" class="form-select">
+                        <option value="">Semua</option>
+                        {% for month_num, month_name in month_choices %}
+                        <option value="{{ month_num }}" {% if month_num == selected_month %}selected{% endif %}>
+                            {{ month_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="year" class="form-label">Tahun</label>
+                    <select name="year" id="year" class="form-select">
+                        {% for year in year_list %}
+                        <option value="{{ year }}" {% if year == selected_year %}selected{% endif %}>{{ year }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="search" class="form-label">Cari Job atau Mesin</label>
+                    <input type="text" name="q" id="search" class="form-control" placeholder="Masukkan nama job atau mesin..." value="{{ search_query }}">
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-filter"></i> Filter
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- EXECUTIONS TABLE -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover table-striped">
+                    <thead class="table-dark text-white">
+                        <tr>
+                            <th style="color: white;">No</th>
+                            <th style="color: white; cursor: pointer; user-select: none;" onclick="sortBy('template__nama_pekerjaan')" title="Klik untuk sort">
+                                Nama Job <span class="sort-icon">⇅</span>
+                            </th>
+                            <th style="color: white;">Line</th>
+                            <th style="color: white;">Mesin</th>
+                            <th style="color: white;">Sub Mesin</th>
+                            <th style="color: white; cursor: pointer; user-select: none;" onclick="sortBy('scheduled_date')" title="Klik untuk sort">
+                                Jadwal <span class="sort-icon">⇅</span>
+                            </th>
+                            <th style="color: white; cursor: pointer; user-select: none;" onclick="sortBy('status')" title="Klik untuk sort">
+                                Status <span class="sort-icon">⇅</span>
+                            </th>
+                            <th style="color: white;">Assign ke</th>
+                            <th style="color: white; cursor: pointer; user-select: none;" onclick="sortBy('actual_date')" title="Klik untuk sort">
+                                Actual Date <span class="sort-icon">⇅</span>
+                            </th>
+                            <th style="color: white;">Checklist</th>
+                            <th style="color: white;">Lampiran</th>
+                            <th style="color: white;">Compliance</th>
+                            <th style="color: white;">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for exec in executions %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>
+                                <strong>{{ exec.template.nama_pekerjaan }}</strong><br>
+                                <small class="text-muted">{{ exec.template.get_fokus_display }}</small>
+                            </td>
+                            <td>
+                                {% with root=exec.aset.get_root %}
+                                    {{ root.nama }}
+                                {% endwith %}
+                            </td>
+                            <td>
+                                {% with parent=exec.aset.parent %}
+                                    {% if parent and parent.parent %}
+                                        {{ parent.nama }}
+                                    {% elif parent %}
+                                        {{ parent.nama }}
+                                    {% endif %}
+                                {% endwith %}
+                            </td>
+                            <td>{{ exec.aset.nama }}</td>
+                            <td>{{ exec.scheduled_date|date:"d M Y" }}</td>
+                            <td>
+                                {% if exec.status == 'Done' %}
+                                    <span class="badge bg-success text-white">✅ Done</span>
+                                {% elif exec.status == 'Scheduled' %}
+                                    {% if exec.is_overdue %}
+                                        <span class="badge bg-danger text-white">⚠️ OVERDUE</span>
+                                    {% else %}
+                                        <span class="badge bg-warning text-dark">⏳ Open</span>
+                                    {% endif %}
+                                {% elif exec.status == 'Skipped' %}
+                                    <span class="badge bg-info text-white">⊘ Skipped</span>
+                                {% else %}
+                                    <span class="badge bg-secondary text-white">❌ N/A</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if exec.assigned_to %}
+                                    <span class="badge bg-info text-white" style="cursor: pointer;" onclick="openAssignModal({{ exec.id }}, '{{ exec.template.nama_pekerjaan|escapejs }}', '{{ exec.assigned_to.username|escapejs }}')">
+                                        {{ exec.assigned_to.username }}
+                                    </span>
+                                {% elif exec.assigned_to_personil.all %}
+                                    <div style="display: flex; flex-wrap: wrap; gap: 5px;">
+                                        {% for personil in exec.assigned_to_personil.all %}
+                                            <span class="badge bg-info text-white" style="cursor: pointer;" onclick="openAssignModal({{ exec.id }}, '{{ exec.template.nama_pekerjaan|escapejs }}', '{{ personil.nama_lengkap|escapejs }}')">
+                                                {{ personil.nama_lengkap }}
+                                            </span>
+                                        {% endfor %}
+                                    </div>
+                                {% else %}
+                                    <span class="badge bg-secondary text-white" style="cursor: pointer;" onclick="openAssignModal({{ exec.id }}, '{{ exec.template.nama_pekerjaan|escapejs }}', null)">
+                                        <i class="fas fa-user-plus"></i> Assign
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td>{{ exec.actual_date|date:"d M Y"|default:"—" }}</td>
+                            <td>
+                                {% if exec.template.checklist_template %}
+                                    {% if exec.checklist_result %}
+                                        {% if exec.checklist_result.status_overall == 'Pending' %}
+                                            <span class="badge bg-secondary text-white">
+                                                <i class="fas fa-list"></i> Belum Diisi
+                                            </span>
+                                        {% else %}
+                                            <button type="button" class="badge {% if exec.checklist_result.status_overall == 'OK' %}bg-success{% elif exec.checklist_result.status_overall == 'NG' %}bg-danger{% else %}bg-warning{% endif %} text-white border-0" style="cursor: pointer;" title="Klik untuk lihat checklist" onclick="loadChecklistResultModal({{ exec.id }})">
+                                                <i class="fas fa-check-circle"></i> {{ exec.checklist_result.status_overall }}
+                                            </button>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="badge bg-secondary text-white">
+                                            <i class="fas fa-list"></i> Belum Diisi
+                                        </span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if exec.attachments.exists %}
+                                    <button type="button" class="badge bg-info text-white border-0" style="cursor: pointer;" title="Klik untuk lihat lampiran" onclick="showAttachmentsModal({{ exec.id }})">
+                                        <i class="fas fa-image"></i> {{ exec.attachments.count }} File
+                                    </button>
+                                {% else %}
+                                    <span class="text-muted text-center d-block">—</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if exec.compliance_type == 'A' %}
+                                    <span class="badge bg-success text-white">A - Tepat Waktu</span>
+                                {% elif exec.compliance_type == 'B' %}
+                                    <span class="badge bg-warning text-dark">B - Terlambat</span>
+                                {% elif exec.compliance_type == 'C' %}
+                                    <span class="badge bg-info text-white">C - Dengan Bukti</span>
+                                {% else %}
+                                    <span class="badge bg-secondary text-white">—</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'preventive_jobs:execution_detail' exec.id %}" class="btn btn-sm btn-info" title="Lihat Detail">
+                                    <i class="fas fa-eye"></i> Detail
+                                </a>
+                                {% if exec.template.checklist_template %}
+                                <button type="button" class="btn btn-sm btn-success" title="Bagikan Checklist via WhatsApp" onclick="showShareModal({{ exec.id }}); return false;">
+                                    <i class="fab fa-whatsapp"></i> Share WA
+                                </button>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="12" class="text-center text-muted py-3">Tidak ada data execution</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- PAGINATION -->
+            {% if executions.has_other_pages %}
+            <nav aria-label="Page navigation">
+                <ul class="pagination">
+                    {% if executions.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page=1">Pertama</a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ executions.previous_page_number }}">Sebelumnya</a>
+                        </li>
+                    {% endif %}
+
+                    {% for num in executions.paginator.page_range %}
+                        {% if executions.number == num %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ num }}</span>
+                        </li>
+                        {% else %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if executions.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ executions.next_page_number }}">Berikutnya</a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ executions.paginator.num_pages }}">Terakhir</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+
+<!-- ASSIGN EXECUTION MODAL -->
+<div class="modal fade" id="assignModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-user-check"></i> 
+                    Assign Execution ke Personil
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="assignForm">
+                    <input type="hidden" id="executionId" name="execution_id">
+                    <input type="hidden" id="executionName" name="execution_name">
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Job:</label>
+                        <p id="jobNameDisplay" class="text-muted mb-0"></p>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label text-muted small">Tim PIC:</label>
+                        <p id="picNameDisplay" class="fw-bold mb-3"></p>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="assignedPersonil" class="form-label">Pilih Personil dari Tim:</label>
+                        <select id="assignedPersonil" name="assigned_to_personil" class="form-select" multiple required>
+                            <option value="">-- Loading... --</option>
+                        </select>
+                        <small class="form-text text-muted">Pilih satu atau lebih personil. Daftar personil dari tim PIC akan dimuat otomatis</small>
+                    </div>
+                    
+                    <div class="alert alert-info" role="alert">
+                        <i class="fas fa-info-circle"></i>
+                        <small>Setelah assign, teknisi akan menerima notifikasi (jika system notification enabled)</small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i> Batal
+                </button>
+                <button type="button" class="btn btn-primary" onclick="submitAssign()">
+                    <i class="fas fa-check"></i> Assign
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CHECKLIST RESULT MODAL -->
+<div class="modal fade" id="checklistResultModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-list-check"></i> 
+                    Hasil Checklist: <span id="modalChecklistName">—</span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="checklistResultContent">
+                    <!-- Content will be loaded by JavaScript -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i> Tutup
+                </button>
+                <a href="#" id="editChecklistLink" class="btn btn-primary">
+                    <i class="fas fa-edit"></i> Edit Checklist
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: ATTACHMENTS GALLERY -->
+<div class="modal fade" id="attachmentsModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-image"></i> 
+                    Lampiran
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="attachmentsContainer">
+                    <!-- Content will be loaded by JavaScript -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i> Tutup
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    /**
+     * Sort table by column
+     */
+    function sortBy(field) {
+        const currentSort = new URLSearchParams(window.location.search).get('sort');
+        let newSort = field;
+        
+        // Toggle direction if same field clicked
+        if (currentSort === field) {
+            newSort = `-${field}`;
+        } else if (currentSort === `-${field}`) {
+            newSort = field;
+        }
+        
+        // Update all sort icons
+        document.querySelectorAll('.sort-icon').forEach(icon => {
+            icon.textContent = '⇅';
+        });
+        
+        // Highlight current sort icon
+        const sortDir = newSort.startsWith('-') ? '↓' : '↑';
+        event.target.closest('th').querySelector('.sort-icon').textContent = sortDir;
+        
+        // Build new URL with sort parameter
+        const url = new URL(window.location);
+        url.searchParams.set('sort', newSort);
+        window.location.href = url.toString();
+    }
+
+    /**
+     * Initialize sort icons on page load
+     */
+    document.addEventListener('DOMContentLoaded', function() {
+        const currentSort = new URLSearchParams(window.location.search).get('sort');
+        if (currentSort) {
+            const fieldName = currentSort.replace('-', '');
+            const sortDir = currentSort.startsWith('-') ? '↓' : '↑';
+            
+            // Find the column header with matching field
+            document.querySelectorAll('th[onclick]').forEach(th => {
+                const onclickAttr = th.getAttribute('onclick');
+                if (onclickAttr.includes(fieldName)) {
+                    th.querySelector('.sort-icon').textContent = sortDir;
+                }
+            });
+        }
+    });
+
+    /**
+     * Load checklist result dan tampilkan di modal
+     */
+    function loadChecklistResultModal(executionId) {
+        fetch(`/preventive/execution/${executionId}/checklist-items/`, {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                renderChecklistResultModal(data, executionId);
+                const modal = new bootstrap.Modal(document.getElementById('checklistResultModal'));
+                modal.show();
+            } else {
+                alert('Gagal memuat checklist: ' + (data.message || 'Unknown error'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error memuat checklist: ' + error.message);
+        });
+    }
+
+    /**
+     * Render checklist result ke dalam modal
+     */
+    function renderChecklistResultModal(data, executionId) {
+        const checklistName = data.checklist_template_name || 'Checklist';
+        const existingResult = data.existing_result;
+        const items = data.items;
+        
+        // Set modal title
+        document.getElementById('modalChecklistName').textContent = checklistName;
+        
+        // Set edit link
+        document.getElementById('editChecklistLink').href = `/preventive/execution/${executionId}/detail/`;
+        
+        // Render content
+        let contentHTML = '';
+        
+        if (!existingResult) {
+            contentHTML = '<div class="alert alert-warning"><i class="fas fa-info-circle"></i> Checklist belum diisi</div>';
+        } else {
+            // Status badge
+            const statusClass = existingResult.status_overall === 'OK' ? 'bg-success' : 
+                              existingResult.status_overall === 'NG' ? 'bg-danger' : 'bg-warning';
+            
+            contentHTML += `
+                <div class="alert alert-info">
+                    <strong>Status Hasil:</strong>
+                    <span class="badge ${statusClass}" style="margin-left: 10px;">
+                        ${existingResult.status_overall}
+                    </span>
+                </div>
+                <p>
+                    <strong>Diisi oleh:</strong> ${existingResult.diisi_oleh_username || existingResult.diisi_oleh}<br>
+                    <strong>Tanggal:</strong> ${existingResult.tanggal_pengisian || '—'}
+                </p>
+            `;
+            
+            if (existingResult.catatan_umum) {
+                contentHTML += `
+                    <p>
+                        <strong>Catatan:</strong><br>
+                        ${existingResult.catatan_umum}
+                    </p>
+                `;
+            }
+            
+            // Checklist items table
+            contentHTML += `
+                <div class="table-responsive mt-4">
+                    <table class="table table-bordered table-sm">
+                        <thead class="table-light">
+                            <tr>
+                                <th width="5%">No</th>
+                                <th width="30%">Item Pemeriksaan</th>
+                                <th width="15%">Standar</th>
+                                <th width="12%">Hasil</th>
+                                <th width="10%">Unit</th>
+                                <th width="10%">Status</th>
+                                <th width="18%">Remark</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+            
+            items.forEach((item, index) => {
+                const itemResult = existingResult.hasil_pengukuran && existingResult.hasil_pengukuran[item.id.toString()];
+                const status = itemResult ? itemResult.status : '—';
+                const statusBadge = status === 'OK' ? '<span class="badge bg-success">OK</span>' :
+                                  status === 'NG' ? '<span class="badge bg-danger">NG</span>' :
+                                  '—';
+                
+                contentHTML += `
+                    <tr>
+                        <td class="text-center"><strong>${index + 1}</strong></td>
+                        <td>
+                            <strong>${item.item_pemeriksaan}</strong>
+                            ${item.tindakan_remark ? `<br><small class="text-muted">Tindakan: ${item.tindakan_remark}</small>` : ''}
+                        </td>
+                        <td><small>${item.standar_normal || '—'}</small></td>
+                        <td>${itemResult ? itemResult.nilai : '—'}</td>
+                        <td>${item.satuan || '—'}</td>
+                        <td>${statusBadge}</td>
+                        <td><small>${itemResult && itemResult.remark ? itemResult.remark : '—'}</small></td>
+                    </tr>
+                `;
+            });
+            
+            contentHTML += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+        
+        document.getElementById('checklistResultContent').innerHTML = contentHTML;
+    }
+
+    /**
+     * Open assign modal dan load personil list dari PIC
+     */
+    function openAssignModal(executionId, jobName, currentAssigned) {
+        console.log('openAssignModal called with:', {executionId, jobName, currentAssigned});
+        
+        try {
+            document.getElementById('executionId').value = executionId;
+            document.getElementById('executionName').value = jobName;
+            document.getElementById('jobNameDisplay').textContent = jobName;
+            
+            // Reset form
+            document.getElementById('assignedPersonil').value = '';
+            document.getElementById('assignedPersonil').innerHTML = '<option value="">-- Loading... --</option>';
+            document.getElementById('picNameDisplay').textContent = 'Loading...';
+            
+            const modal = new bootstrap.Modal(document.getElementById('assignModal'));
+            modal.show();
+            console.log('Modal shown');
+            
+            // Load personil list via AJAX
+            loadPersonilList(executionId);
+        } catch(err) {
+            console.error('Error in openAssignModal:', err);
+            alert('Error: ' + err.message);
+        }
+    }
+
+    /**
+     * Load personil list berdasarkan PIC dari execution
+     */
+    function loadPersonilList(executionId) {
+        fetch(`/preventive/execution/${executionId}/personil-list/`, {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                // Set PIC name
+                document.getElementById('picNameDisplay').textContent = data.pic_name;
+                
+                // Build personil dropdown
+                let optionsHTML = '<option value="">-- Pilih Personil --</option>';
+                
+                if (data.personil_list.length === 0) {
+                    optionsHTML = '<option value="" disabled>Tidak ada personil dalam tim PIC</option>';
+                } else {
+                    data.personil_list.forEach(personil => {
+                        // Support both nama_lengkap (Personil model) and full_name (CustomUser)
+                        const displayName = personil.nama_lengkap || personil.full_name || personil.username;
+                        optionsHTML += `<option value="${personil.id}">${displayName}</option>`;
+                    });
+                }
+                
+                document.getElementById('assignedPersonil').innerHTML = optionsHTML;
+            } else {
+                showNotification('Error', data.message || 'Gagal load personil list', 'danger');
+                document.getElementById('assignedPersonil').innerHTML = '<option value="" disabled>Error loading personil</option>';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('Error', 'Error: ' + error.message, 'danger');
+            document.getElementById('assignedPersonil').innerHTML = '<option value="" disabled>Error loading personil</option>';
+        });
+    }
+
+    /**
+     * Submit assign form via AJAX
+     */
+    function submitAssign() {
+        const executionId = document.getElementById('executionId').value;
+        const selectElement = document.getElementById('assignedPersonil');
+        const selectedOptions = Array.from(selectElement.selectedOptions);
+        const assignedToIds = selectedOptions.map(opt => parseInt(opt.value));
+        const assignedToNames = selectedOptions.map(opt => opt.text).join(', ');
+        
+        if (assignedToIds.length === 0) {
+            alert('Pilih minimal satu personil');
+            return;
+        }
+        
+        // Show loading state
+        const btn = event.target;
+        const originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Menyimpan...';
+        
+        // Send AJAX request
+        fetch(`/preventive/execution/${executionId}/assign/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRFToken()
+            },
+            body: JSON.stringify({
+                assigned_to_personil: assignedToIds
+            })
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                // Close modal
+                bootstrap.Modal.getInstance(document.getElementById('assignModal')).hide();
+                
+                // Show success message
+                showNotification('Success', `${assignedToNames} telah di-assign`, 'success');
+                
+                // Reload table setelah 1 detik
+                setTimeout(() => {
+                    location.reload();
+                }, 1000);
+            } else {
+                showNotification('Error', data.message || 'Gagal assign', 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('Error', 'Error: ' + error.message, 'danger');
+        })
+        .finally(() => {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        });
+    }
+
+    /**
+     * Get CSRF token from cookie
+     */
+    function getCSRFToken() {
+        return document.querySelector('[name=csrfmiddlewaretoken]')?.value || 
+               document.cookie.split('; ').find(row => row.startsWith('csrftoken='))?.split('=')[1] || '';
+    }
+
+    /**
+     * Show notification message
+     */
+    function showNotification(title, message, type = 'info') {
+        const alertHTML = `
+            <div class="alert alert-${type} alert-dismissible fade show" role="alert" style="position: fixed; top: 20px; right: 20px; z-index: 9999; min-width: 300px;">
+                <strong>${title}:</strong> ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', alertHTML);
+        
+        // Auto-dismiss after 5 seconds
+        setTimeout(() => {
+            document.querySelectorAll('.alert-dismissible').forEach(alert => {
+                new bootstrap.Alert(alert).close();
+            });
+        }, 5000);
+    }
+
+    /**
+     * Show attachments modal
+     */
+    function showAttachmentsModal(executionId) {
+        fetch(`/preventive/execution/${executionId}/attachments/`, {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => {
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                renderAttachmentsModal(data.attachments);
+                const modal = new bootstrap.Modal(document.getElementById('attachmentsModal'));
+                modal.show();
+            } else {
+                alert('Gagal memuat lampiran: ' + (data.message || 'Unknown error'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error memuat lampiran: ' + error.message);
+        });
+    }
+
+    /**
+     * Render attachments ke dalam modal
+     */
+    function renderAttachmentsModal(attachments) {
+        const container = document.getElementById('attachmentsContainer');
+        
+        if (!attachments || attachments.length === 0) {
+            container.innerHTML = '<div class="alert alert-info">Tidak ada lampiran</div>';
+            return;
+        }
+        
+        let html = '<div class="row">';
+        attachments.forEach(att => {
+            const ext = att.file.split('.').pop().toLowerCase();
+            const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext);
+            
+            html += `
+                <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card h-100">
+                        ${isImage ? `
+                            <img src="${att.file}" class="card-img-top" style="height: 200px; object-fit: cover; cursor: pointer;" onclick="openImageModal('${att.file}')">
+                        ` : `
+                            <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
+                                <i class="fas fa-file fa-3x text-muted"></i>
+                            </div>
+                        `}
+                        <div class="card-body">
+                            <p class="card-text small"><strong>${att.file_name}</strong></p>
+                            <small class="text-muted">${att.uploaded_at}</small>
+                        </div>
+                        <div class="card-footer bg-transparent">
+                            <a href="${att.file}" class="btn btn-sm btn-primary" download>
+                                <i class="fas fa-download"></i> Download
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        html += '</div>';
+        
+        container.innerHTML = html;
+    }
+
+    /**
+     * Open image in larger modal
+     */
+    function openImageModal(imageSrc) {
+        const modal = document.getElementById('imageModal');
+        if (!modal) {
+            const newModal = document.createElement('div');
+            newModal.id = 'imageModal';
+            newModal.className = 'modal fade';
+            newModal.innerHTML = `
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Pratinjau Gambar</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body text-center">
+                            <img src="${imageSrc}" class="img-fluid" style="max-height: 70vh;">
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(newModal);
+            new bootstrap.Modal(newModal).show();
+        } else {
+            const img = modal.querySelector('img');
+            img.src = imageSrc;
+            new bootstrap.Modal(modal).show();
+        }
+    }
+
+    /**
+     * Open share checklist modal
+     */
+    function showShareModal(executionId) {
+        // Fetch kontacts dan buat modal
+        fetch(`/preventive/execution/${executionId}/share-modal/`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    displayShareChecklistModal(executionId, data);
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Gagal membuka share modal');
+            });
+    }
+
+    function displayShareChecklistModal(executionId, data) {
+        // Ensure contacts array exists
+        const contacts = data.recipients || data.contacts || [];
+        
+        if (contacts.length === 0) {
+            alert('Tidak ada kontak WhatsApp yang tersedia. Tambahkan kontak terlebih dahulu di admin.');
+            return;
+        }
+        
+        const html = `
+            <div class="modal fade" id="shareModal" tabindex="-1" role="dialog">
+                <div class="modal-dialog modal-lg" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header bg-success text-white">
+                            <h5 class="modal-title"><i class="fab fa-whatsapp"></i> Kirim Checklist via WhatsApp</h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p class="small text-muted mb-3">
+                                <strong>${data.job_name}</strong><br>
+                                ${data.aset_name} - ${data.scheduled_date}
+                            </p>
+                            
+                            <!-- Search Box -->
+                            <div class="mb-3">
+                                <input type="text" class="form-control form-control-sm" id="searchContacts" 
+                                       placeholder="🔍 Cari nama atau nomor WA..." autocomplete="off">
+                                <small class="text-muted">Ketik untuk mencari kontak</small>
+                            </div>
+                            
+                            <!-- Contacts List -->
+                            <div class="mb-3">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                    <label class="form-label mb-0"><strong>Penerima (${contacts.length} kontak):</strong></label>
+                                    <small>
+                                        <a href="#" id="selectAllBtn" class="text-primary me-2">Pilih Semua</a>
+                                        <a href="#" id="clearAllBtn" class="text-danger">Batal Semua</a>
+                                    </small>
+                                </div>
+                                <div id="contactsList" style="max-height: 350px; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px; padding: 10px;">
+                                    ${contacts.map((c, idx) => `
+                                        <div class="form-check contact-item" data-name="${c.nama.toLowerCase()}" data-phone="${c.nomor_wa.toLowerCase()}">
+                                            <input class="form-check-input contact-checkbox" type="checkbox" value="${c.id}" id="contact_${c.id}">
+                                            <label class="form-check-label" for="contact_${c.id}" style="cursor: pointer; width: 100%;">
+                                                <strong>${c.nama}</strong> 
+                                                <span class="badge bg-light text-dark text-sm">${c.tipe || ''}</span><br>
+                                                <small class="text-muted">${c.nomor_wa}</small>
+                                            </label>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                                <small class="text-muted d-block mt-2">
+                                    Dipilih: <strong id="selectedCount">0</strong> / ${contacts.length}
+                                </small>
+                            </div>
+                            
+                            <!-- Message -->
+                            <div class="mb-3">
+                                <label class="form-label">Pesan Tambahan (opsional):</label>
+                                <textarea class="form-control form-control-sm" id="customMessage" rows="3" 
+                                          placeholder="Pesan tambahan akan ditambahkan setelah link..."></textarea>
+                            </div>
+                            
+                            <div class="alert alert-info alert-sm mb-0">
+                                <small><i class="fas fa-info-circle"></i> Penerima akan menerima link checklist via WhatsApp dan bisa mengisinya tanpa perlu login</small>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
+                            <button type="button" class="btn btn-success btn-sm" id="sendBtn">
+                                <i class="fab fa-whatsapp"></i> Kirim via WhatsApp
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Remove old modal if exists
+        const oldModal = document.getElementById('shareModal');
+        if (oldModal) oldModal.remove();
+        
+        // Add new modal to DOM
+        document.body.insertAdjacentHTML('beforeend', html);
+        
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('shareModal'));
+        modal.show();
+        
+        // Setup event listeners
+        setupShareModalEvents(executionId, contacts);
+    }
+
+    function setupShareModalEvents(executionId, contacts) {
+        // Search functionality
+        const searchInput = document.getElementById('searchContacts');
+        searchInput?.addEventListener('keyup', function() {
+            const query = this.value.toLowerCase();
+            document.querySelectorAll('.contact-item').forEach(item => {
+                const matches = item.dataset.name.includes(query) || item.dataset.phone.includes(query);
+                item.style.display = matches ? 'block' : 'none';
+            });
+        });
+
+        // Select All
+        document.getElementById('selectAllBtn')?.addEventListener('click', function(e) {
+            e.preventDefault();
+            document.querySelectorAll('.contact-checkbox:visible').forEach(cb => cb.checked = true);
+            updateSelectedCount();
+        });
+
+        // Clear All
+        document.getElementById('clearAllBtn')?.addEventListener('click', function(e) {
+            e.preventDefault();
+            document.querySelectorAll('.contact-checkbox').forEach(cb => cb.checked = false);
+            updateSelectedCount();
+        });
+
+        // Update count on checkbox change
+        document.querySelectorAll('.contact-checkbox').forEach(cb => {
+            cb.addEventListener('change', updateSelectedCount);
+        });
+
+        // Send button
+        document.getElementById('sendBtn')?.addEventListener('click', function() {
+            const selected = Array.from(document.querySelectorAll('.contact-checkbox:checked'))
+                .map(cb => cb.value);
+            
+            if (selected.length === 0) {
+                alert('Silakan pilih minimal 1 kontak');
+                return;
+            }
+
+            const customMessage = document.getElementById('customMessage')?.value || '';
+            
+            // Send request
+            fetch(`/preventive/execution/${executionId}/generate-share-link/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    contact_ids: selected,
+                    custom_message: customMessage
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Show warning jika edit mode (bukan pengisian pertama)
+                    let successMsg = '✅ ' + (data.message || 'Link checklist berhasil dikirim via WhatsApp!');
+                    
+                    if (data.warning) {
+                        successMsg = data.warning + '\n\n' + successMsg;
+                    }
+                    
+                    alert(successMsg);
+                    bootstrap.Modal.getInstance(document.getElementById('shareModal')).hide();
+                    location.reload();
+                } else {
+                    alert('❌ Error: ' + (data.message || 'Gagal mengirim link'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Gagal mengirim request ke server');
+            });
+        });
+    }
+
+    function updateSelectedCount() {
+        const selected = document.querySelectorAll('.contact-checkbox:checked').length;
+        const total = document.querySelectorAll('.contact-checkbox').length;
+        const countEl = document.getElementById('selectedCount');
+        if (countEl) countEl.textContent = selected;
+    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+</script>
+
+{% endblock %}

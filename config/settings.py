@@ -43,6 +43,7 @@ INSTALLED_APPS = [
 
     # Aplikasi kita
     'core.apps.CoreConfig', # Nama lengkap aplikasi kita
+    'preventive_jobs.apps.PreventiveJobsConfig', # V2 - Preventive Job Management
 ]
 
 MIDDLEWARE = [
@@ -53,6 +54,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'core.middleware.MaintenanceModeMiddleware',  # Maintenance Mode Middleware
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -69,6 +71,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'core.context_processors.overdue_jobs_context',  # Custom context processor for overdue jobs
             ],
         },
     },
@@ -148,6 +151,47 @@ LOGIN_REDIRECT_URL = 'core:dashboard'
 
 # Ke mana user dilempar JIKA MENCOBA MENGAKSES HALAMAN YG BUTUH LOGIN
 LOGIN_URL = 'core:login'
+
+
+# ==============================================================================
+# PENGATURAN WHATSAPP INTEGRATION (FONTTE atau Custom WABot)
+# ==============================================================================
+FONTTE_API_TOKEN = 'E6CwLwwzuP8Db6Dud5mn'
+FONTTE_API_BASE_URL = 'https://api.fontte.com/v1'
+
+# Custom WABot API Configuration (Preferred jika tersedia)
+# Uncomment untuk menggunakan WABot API lokal
+WABOT_API_URL = 'http://192.168.10.20:8000'
+WABOT_API_KEY = 'e8a3b7d1f9c0e5a6d3b1f8c2e7a4d6b9f2c0e8a5d3b1f7c4e9a6d3b2f8c0e7a5'
+
+# Share Link Configuration
+PREVENTIVE_SHARE_TOKEN_MAX_AGE = 7 * 24 * 3600  # 7 hari
+PREVENTIVE_SHARE_SIGN_SALT = 'preventive-checklist-share'
+
+# Untuk Ngrok/Public URL (set saat production)
+# Format: https://your-ngrok-url.ngrok.io
+# Bisa di-set via environment variable DJANGO_PUBLIC_URL
+DJANGO_PUBLIC_URL = os.environ.get('DJANGO_PUBLIC_URL', 'http://192.168.10.239:4321')
+
+# Untuk Development: Set False untuk disable actual API sending (just generate links)
+# Set True untuk production setelah configure API credentials
+FONTTE_API_ENABLED = os.environ.get('FONTTE_API_ENABLED', 'true').lower() == 'true'
+
+
+# ==============================================================================
+# PENGATURAN CSRF - TRUSTED ORIGINS (untuk Ngrok & CORS)
+# ==============================================================================
+CSRF_TRUSTED_ORIGINS = [
+    'https://one-chimp-hardly.ngrok-free.app',
+    'https://*.ngrok-free.app',
+    'http://192.168.10.239:4321',
+    'http://localhost:4321',
+    'http://127.0.0.1:4321',
+]
+
+# Enable CSRF cookie untuk cross-domain requests
+CSRF_COOKIE_SECURE = False  # Set to True di production dengan HTTPS
+CSRF_COOKIE_HTTPONLY = False  # Perlu False agar JS bisa akses CSRF token
 
 
 # ==============================================================================

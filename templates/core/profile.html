@@ -1,0 +1,244 @@
+{% extends 'base.html' %}
+
+{% block title %}Profil {{ user.username }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4 mb-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'core:dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item active">Profil Saya</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <div class="col-lg-8 col-md-10 mx-auto">
+            <div class="card shadow-sm">
+                <!-- Card Header -->
+                <div class="card-header bg-primary text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="bi bi-person-circle"></i> 
+                            Profil Pengguna
+                        </h5>
+                        <a href="{% url 'core:profile_edit' %}" class="btn btn-light btn-sm">
+                            <i class="bi bi-pencil"></i> Edit
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Card Body -->
+                <div class="card-body">
+                    <!-- Username -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <strong>Username:</strong>
+                        </div>
+                        <div class="col-md-9">
+                            <p class="text-muted mb-0">
+                                {{ user.username }}
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Nama Lengkap -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <strong>Nama Lengkap:</strong>
+                        </div>
+                        <div class="col-md-9">
+                            <p class="text-muted mb-0">
+                                {% if user.first_name or user.last_name %}
+                                    {{ user.first_name }} {{ user.last_name }}
+                                {% else %}
+                                    <span class="text-secondary">Belum diisi</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Email -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <strong>Email:</strong>
+                        </div>
+                        <div class="col-md-9">
+                            <p class="text-muted mb-0">
+                                {% if user.email %}
+                                    {{ user.email }}
+                                {% else %}
+                                    <span class="text-secondary">Belum diisi</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Nomor Telepon -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <strong>Nomor Telepon:</strong>
+                        </div>
+                        <div class="col-md-9">
+                            <p class="text-muted mb-0">
+                                {% if user.nomor_telepon %}
+                                    <span class="font-monospace fw-bold">{{ user.nomor_telepon }}</span>
+                                    <br>
+                                    <small class="text-muted">
+                                        <i class="bi bi-check-circle text-success"></i> 
+                                        Format Internasional (siap untuk WA Fontte API)
+                                    </small>
+                                {% else %}
+                                    <span class="text-secondary">Belum diisi</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Jabatan -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <strong>Jabatan:</strong>
+                        </div>
+                        <div class="col-md-9">
+                            <p class="text-muted mb-0">
+                                {% if user.jabatan %}
+                                    <span class="badge bg-info text-dark">{{ user.jabatan.nama_jabatan }}</span>
+                                {% else %}
+                                    <span class="text-secondary">Belum ditentukan</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Atasan (Supervisor) -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <strong>Atasan:</strong>
+                        </div>
+                        <div class="col-md-9">
+                            <p class="text-muted mb-0">
+                                {% if user.atasan %}
+                                    <span class="badge bg-secondary">
+                                        <i class="bi bi-person"></i> {{ user.atasan.get_full_name|default:user.atasan.username }}
+                                    </span>
+                                {% else %}
+                                    <span class="text-secondary">Tidak ada atasan (Head of Department)</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Tanggal Bergabung -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <strong>Bergabung:</strong>
+                        </div>
+                        <div class="col-md-9">
+                            <p class="text-muted mb-0">
+                                {{ user.date_joined|date:"d M Y H:i" }}
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Last Login -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <strong>Login Terakhir:</strong>
+                        </div>
+                        <div class="col-md-9">
+                            <p class="text-muted mb-0">
+                                {% if user.last_login %}
+                                    {{ user.last_login|date:"d M Y H:i" }}
+                                {% else %}
+                                    <span class="text-secondary">Belum pernah login</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Status Akun -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <strong>Status Akun:</strong>
+                        </div>
+                        <div class="col-md-9">
+                            <p class="mb-0">
+                                {% if user.is_active %}
+                                    <span class="badge bg-success">
+                                        <i class="bi bi-check-circle"></i> Aktif
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-danger">
+                                        <i class="bi bi-x-circle"></i> Nonaktif
+                                    </span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Hak Akses -->
+                    <div class="row">
+                        <div class="col-md-3">
+                            <strong>Hak Akses:</strong>
+                        </div>
+                        <div class="col-md-9">
+                            <p class="mb-0">
+                                {% if user.is_superuser %}
+                                    <span class="badge bg-danger me-2">
+                                        <i class="bi bi-shield-lock"></i> Superuser
+                                    </span>
+                                {% endif %}
+                                {% if user.is_staff %}
+                                    <span class="badge bg-warning text-dark">
+                                        <i class="bi bi-person-check"></i> Staff
+                                    </span>
+                                {% endif %}
+                                {% if not user.is_superuser and not user.is_staff %}
+                                    <span class="badge bg-secondary">
+                                        <i class="bi bi-person"></i> User Biasa
+                                    </span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card Footer -->
+                <div class="card-footer bg-light d-flex justify-content-between">
+                    <a href="{% url 'core:dashboard' %}" class="btn btn-secondary btn-sm">
+                        <i class="bi bi-arrow-left"></i> Kembali
+                    </a>
+                    <a href="{% url 'core:profile_edit' %}" class="btn btn-primary btn-sm">
+                        <i class="bi bi-pencil"></i> Edit Profil
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .card {
+        border-radius: 8px;
+    }
+    
+    .card-header {
+        border-radius: 8px 8px 0 0;
+        padding: 1.25rem;
+    }
+    
+    .card-body {
+        padding: 2rem;
+    }
+    
+    .row {
+        border-bottom: 1px solid #f0f0f0;
+        padding-bottom: 1rem;
+    }
+    
+    .row:last-of-type {
+        border-bottom: none;
+    }
+</style>
+{% endblock %}

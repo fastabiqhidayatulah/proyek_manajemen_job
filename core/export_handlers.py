@@ -8,7 +8,7 @@ from .models import Job, CustomUser
 from django.db.models import Q
 
 # Google Apps Script URLs (JANGAN DIUBAH)
-GAS_PREVENTIF_URL = "https://script.google.com/macros/s/AKfycbzcY5TMV0ImVm0IezEQIbcK_ZQw92ZQJTjvTi_w1Ic0aMAXPFBkB0dcDedBQB42eyiM/exec"
+GAS_PREVENTIF_URL = "https://script.google.com/macros/s/AKfycbyqbeARRivauzTinWAnKwOUglV7r1ANsLXJRTRtMpd3TSDlaIXpiRzwuul2j6reecw7/exec"
 GAS_EVALUASI_URL = "https://script.google.com/macros/s/AKfycbxg2zPRso6f1bZQTuOxg2D2ey64a1iY6wWTKv-QmeZQBQIKDHjH8k2UT6wvSlgpZrOf2g/exec"
 
 

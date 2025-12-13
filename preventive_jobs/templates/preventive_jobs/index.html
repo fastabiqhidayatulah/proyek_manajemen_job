@@ -1,0 +1,267 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Preventive Jobs - Hub{% endblock %}
+
+{% block content %}
+
+<!-- CSS Kustom -->
+<style>
+    .hub-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2rem 0;
+        margin-bottom: 2rem;
+        border-radius: 10px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .hub-header h1 {
+        margin: 0;
+        font-weight: 700;
+        font-size: 2.5rem;
+    }
+
+    .hub-header p {
+        margin: 0.5rem 0 0 0;
+        font-size: 1.1rem;
+        opacity: 0.95;
+    }
+
+    .menu-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .menu-card {
+        background: white;
+        border-radius: 10px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        transition: all 0.3s ease;
+        text-align: center;
+        text-decoration: none;
+        color: inherit;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 180px;
+    }
+
+    .menu-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+        text-decoration: none;
+        color: inherit;
+    }
+
+    .menu-card.primary {
+        border-left: 4px solid #667eea;
+    }
+
+    .menu-card.success {
+        border-left: 4px solid #48bb78;
+    }
+
+    .menu-card.danger {
+        border-left: 4px solid #f56565;
+    }
+
+    .menu-card.warning {
+        border-left: 4px solid #ed8936;
+    }
+
+    .menu-card.info {
+        border-left: 4px solid #4299e1;
+    }
+
+    .menu-card icon {
+        font-size: 2.5rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .menu-card h5 {
+        margin-bottom: 0.3rem;
+        font-weight: 600;
+    }
+
+    .menu-card p {
+        font-size: 0.85rem;
+        color: #666;
+        margin: 0;
+    }
+
+    .back-button {
+        margin-bottom: 1rem;
+    }
+
+    .stats-section {
+        background: white;
+        padding: 2rem;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        margin-top: 2rem;
+    }
+
+    .stats-section h3 {
+        margin-bottom: 1.5rem;
+        font-weight: 700;
+        color: #333;
+    }
+
+    .stat-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid #eee;
+    }
+
+    .stat-item:last-child {
+        border-bottom: none;
+    }
+
+    .stat-label {
+        color: #666;
+        font-weight: 500;
+    }
+
+    .stat-value {
+        color: #667eea;
+        font-weight: 700;
+        font-size: 1.1rem;
+    }
+</style>
+
+<!-- HEADER -->
+<div class="hub-header">
+    <div class="container-fluid">
+        <div class="d-flex justify-content-between align-items-start">
+            <div>
+                <h1><i class="bi bi-lightning-charge-fill"></i> Preventive Maintenance V2</h1>
+                <p>Manage & monitor preventive job templates and executions</p>
+            </div>
+            <a href="{% url 'core:dashboard' %}" class="btn btn-light btn-lg shadow-sm">
+                <i class="bi bi-house-fill"></i> Kembali ke Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- MENU UTAMA -->
+<div class="container-fluid">
+    <h3 class="mb-3" style="color: #333; font-weight: 700;">
+        <i class="bi bi-list-ul"></i> Menu Preventive Jobs
+    </h3>
+
+    <div class="menu-grid">
+        <!-- 1. DASHBOARD -->
+        <a href="{% url 'preventive_jobs:dashboard' %}" class="menu-card primary text-decoration-none">
+            <i class="bi bi-speedometer2" style="font-size: 2.5rem; color: #667eea;"></i>
+            <h5>Dashboard</h5>
+            <p>KPI, compliance trend, dan overview</p>
+        </a>
+
+        <!-- 2. TEMPLATE MANAGEMENT -->
+        <a href="{% url 'preventive_jobs:template_list' %}" class="menu-card success text-decoration-none">
+            <i class="bi bi-file-text" style="font-size: 2.5rem; color: #48bb78;"></i>
+            <h5>Templates</h5>
+            <p>Daftar & manage template preventive</p>
+        </a>
+
+        <!-- 3. CREATE TEMPLATE -->
+        <a href="{% url 'preventive_jobs:template_create' %}" class="menu-card info text-decoration-none">
+            <i class="bi bi-plus-circle-fill" style="font-size: 2.5rem; color: #4299e1;"></i>
+            <h5>Buat Template</h5>
+            <p>Create template preventive baru</p>
+        </a>
+
+        <!-- 4. EXECUTION TRACKING -->
+        <a href="{% url 'preventive_jobs:execution_list' %}" class="menu-card warning text-decoration-none">
+            <i class="bi bi-list-check" style="font-size: 2.5rem; color: #ed8936;"></i>
+            <h5>Executions</h5>
+            <p>Track & update execution records</p>
+        </a>
+
+        <!-- 4B. CHECKLIST MANAGEMENT (NEW) -->
+        <a href="{% url 'preventive_jobs:checklist_management' %}" class="menu-card success text-decoration-none">
+            <i class="fas fa-clipboard-list" style="font-size: 2.5rem; color: #48bb78;"></i>
+            <h5>Checklist</h5>
+            <p>Manage checklist templates & items</p>
+        </a>
+
+        <!-- 5. MESIN MONITORING -->
+        <a href="{% url 'preventive_jobs:mesin_monitoring' %}" class="menu-card danger text-decoration-none">
+            <i class="bi bi-bricks" style="font-size: 2.5rem; color: #f56565;"></i>
+            <h5>Monitoring</h5>
+            <p>Heatmap compliance per mesin</p>
+        </a>
+
+        <!-- 6. COMPLIANCE REPORT -->
+        <a href="{% url 'preventive_jobs:compliance_report' %}" class="menu-card primary text-decoration-none">
+            <i class="bi bi-bar-chart-fill" style="font-size: 2.5rem; color: #667eea;"></i>
+            <h5>Report</h5>
+            <p>Analytics & trend report (12 bulan)</p>
+        </a>
+    </div>
+
+    <!-- STATS SECTION (Optional - untuk quick info) -->
+    <div class="stats-section">
+        <h3><i class="bi bi-graph-up"></i> Quick Stats (Bulan Ini)</h3>
+        
+        <div class="stat-item">
+            <span class="stat-label">📋 Total Preventive Jobs</span>
+            <span class="stat-value">{{ total_jobs }}</span>
+        </div>
+        
+        <div class="stat-item">
+            <span class="stat-label">✅ Jobs Completed</span>
+            <span class="stat-value" style="color: #48bb78;">{{ completed_jobs }}</span>
+        </div>
+        
+        <div class="stat-item">
+            <span class="stat-label">📊 Compliance Rate</span>
+            <span class="stat-value">{{ compliance_rate|floatformat:1 }}%</span>
+        </div>
+        
+        <div class="stat-item">
+            <span class="stat-label">⚠️ Overdue Jobs</span>
+            <span class="stat-value" style="color: #f56565;">{{ overdue_jobs }}</span>
+        </div>
+
+        <div class="stat-item" style="border-top: 2px solid #e2e8f0; padding-top: 1rem; margin-top: 1rem;">
+            <span class="stat-label">📁 Total Templates Available</span>
+            <span class="stat-value" style="color: #667eea;">{{ total_templates }}</span>
+        </div>
+        
+        {% if total_jobs == 0 %}
+            <div class="alert alert-info mt-3 mb-0" role="alert">
+                <i class="bi bi-info-circle"></i>
+                Belum ada execution bulan ini. 
+                <a href="{% url 'preventive_jobs:template_list' %}">Lihat daftar template</a> atau
+                <a href="{% url 'preventive_jobs:template_create' %}">buat template baru</a>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- INFO SECTION -->
+    <div class="alert alert-info mt-4" role="alert">
+        <h5 class="alert-heading"><i class="bi bi-info-circle"></i> Informasi</h5>
+        <p>
+            <strong>Preventive Maintenance V2</strong> adalah sistem manajemen pekerjaan preventif yang terpisah dari Job Management V1.
+            Sistem ini dirancang untuk tracking dan monitoring maintenance berkala dengan template-based execution records.
+        </p>
+        <hr>
+        <ul class="mb-0" style="font-size: 0.95rem;">
+            <li><strong>Templates:</strong> Buat jadwal preventive yang berulang (harian, mingguan, bulanan, dll)</li>
+            <li><strong>Auto-Generation:</strong> Execution records otomatis di-generate dari template sesuai periode</li>
+            <li><strong>Tracking:</strong> Update status execution, attachment, dan notes untuk setiap job</li>
+            <li><strong>Monitoring:</strong> Real-time heatmap untuk melihat compliance rate per mesin</li>
+            <li><strong>Analytics:</strong> Detailed report dengan compliance trend selama 12 bulan</li>
+        </ul>
+    </div>
+</div>
+
+{% endblock %}
