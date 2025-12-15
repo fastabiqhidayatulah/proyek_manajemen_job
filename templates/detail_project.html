@@ -63,14 +63,51 @@
         <h5 class="text-muted mb-1">
             <a href="{% url 'core:dashboard' %}" class="text-decoration-none">Dashboard</a> / Project
         </h5>
-        <h4 class="mb-0">{{ project.nama_project }}</h4>
+        <div class="d-flex align-items-center gap-2 mb-2">
+            <h4 class="mb-0">{{ project.nama_project }}</h4>
+            {% if project.is_shared %}
+                <span class="badge bg-info" title="Project ini di-share ke semua user">
+                    <i class="bi bi-unlock-fill"></i> Shared
+                </span>
+            {% else %}
+                <span class="badge bg-secondary" title="Project ini hanya bisa diakses owner">
+                    <i class="bi bi-lock-fill"></i> Private
+                </span>
+            {% endif %}
+        </div>
         <small class="text-muted">Manager: {{ project.manager_project.username|default:"-" }}</small>
     </div>
-    <div>
-        <!-- TOMBOL "TAMBAH JOB KE PROJECT INI" (PERMINTAAN ANDA) -->
+    <div class="d-flex gap-2 flex-wrap">
+        <!-- TOMBOL SHARE/UNSHARE (Hanya untuk owner) -->
+        {% if project.manager_project == user %}
+            <form method="post" action="{% url 'core:toggle_project_share' project.id %}" style="display: inline;">
+                {% csrf_token %}
+                {% if project.is_shared %}
+                    <button type="submit" class="btn btn-warning shadow-sm" title="Klik untuk membuatnya private (hanya owner)">
+                        <i class="bi bi-lock-fill"></i> Unshare
+                    </button>
+                {% else %}
+                    <button type="submit" class="btn btn-success shadow-sm" title="Klik untuk membagikan ke semua user">
+                        <i class="bi bi-unlock-fill"></i> Share
+                    </button>
+                {% endif %}
+            </form>
+        {% endif %}
+        
+        <!-- TOMBOL "TAMBAH JOB KE PROJECT INI" -->
         <a href="{% url 'core:job_add_to_project' project.id %}" class="btn btn-primary btn-lg shadow-sm">
             <i class="bi bi-plus-circle-fill"></i> Tambah Job ke Project Ini
         </a>
+        
+        <!-- TOMBOL EXPORT (PDF & EXCEL) -->
+        <div class="btn-group" role="group">
+            <a href="{% url 'core:export_project_detail_pdf' project.id %}" class="btn btn-info shadow-sm" title="Export project detail ke PDF">
+                <i class="bi bi-file-pdf-fill"></i> Export PDF
+            </a>
+            <a href="{% url 'core:export_project_detail_excel' project.id %}" class="btn btn-success shadow-sm" title="Export project detail ke Excel">
+                <i class="bi bi-file-excel-fill"></i> Export Excel
+            </a>
+        </div>
     </div>
 </div>
 

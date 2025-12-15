@@ -3,10 +3,60 @@
 {% block title %}Daftar Project{% endblock %}
 
 {% block content %}
+
+<!-- ===== SUMMARY STATS CARDS ===== -->
+<div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-2">
+        <div class="card shadow-sm border-primary">
+            <div class="card-body text-center">
+                <h3 class="card-title text-primary">{{ stats.total_projects }}</h3>
+                <p class="card-text text-muted mb-0">Total Projects</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-2">
+        <div class="card shadow-sm border-success">
+            <div class="card-body text-center">
+                <h3 class="card-title text-success">{{ stats.owned_count }}</h3>
+                <p class="card-text text-muted mb-0">Milik Saya</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-2">
+        <div class="card shadow-sm border-info">
+            <div class="card-body text-center">
+                <h3 class="card-title text-info">{{ stats.shared_count }}</h3>
+                <p class="card-text text-muted mb-0">Di-Share ke Saya</p>
+            </div>
+        </div>
+    </div>
+    {% if stats.supervised_count > 0 %}
+    <div class="col-lg-3 col-md-6 mb-2">
+        <div class="card shadow-sm border-warning">
+            <div class="card-body text-center">
+                <h3 class="card-title text-warning">{{ stats.supervised_count }}</h3>
+                <p class="card-text text-muted mb-0">Yang Saya Supervisi</p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    {% if stats.supervisor_count > 0 %}
+    <div class="col-lg-3 col-md-6 mb-2">
+        <div class="card shadow-sm border-secondary">
+            <div class="card-body text-center">
+                <h3 class="card-title text-secondary">{{ stats.supervisor_count }}</h3>
+                <p class="card-text text-muted mb-0">Dari Atasan Saya</p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
 <div class="row">
-    <!-- Kolom Kiri: Form Tambah/Edit -->
+    <!-- Kolom Kiri: Form Tambah/Edit + Sharing -->
     <div class="col-lg-4 mb-4">
-        <div class="card shadow-sm">
+        <!-- FORM TAMBAH/EDIT PROJECT -->
+        <div class="card shadow-sm mb-3">
             <div class="card-header fs-5">
                 <i class="bi bi-diagram-3-fill"></i>
                 <!-- Judul form dinamis: Tambah atau Edit -->
@@ -36,6 +86,20 @@
                         {% endif %}
                     </div>
                     
+                    <!-- Checkbox Share Project -->
+                    <div class="mb-3">
+                        <div class="form-check">
+                            {{ form.is_shared }}
+                            {{ form.is_shared.label_tag }}
+                            {% if form.is_shared.help_text %}
+                                <small class="d-block text-muted mt-1">{{ form.is_shared.help_text|safe }}</small>
+                            {% endif %}
+                        </div>
+                        {% if form.is_shared.errors %}
+                            <div class="text-danger small">{{ form.is_shared.errors.as_text }}</div>
+                        {% endif %}
+                    </div>
+                    
                     <div class="d-grid gap-2">
                         <button type="submit" class="btn btn-primary">
                             <i class="bi bi-save-fill"></i> Simpan
@@ -56,35 +120,163 @@
     <!-- Kolom Kanan: Daftar Project -->
     <div class="col-lg-8">
         <div class="card shadow-sm">
-            <div class="card-header fs-5">
-                <i class="bi bi-list-task"></i>
-                Daftar Project ({{ project_list.count }})
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div class="fs-5">
+                        <i class="bi bi-list-task"></i>
+                        Daftar Project ({{ project_data|length }})
+                    </div>
+                </div>
             </div>
-            <div class="card-body p-0">
-                {% if project_list %}
-                <ul class="list-group list-group-flush">
-                    {% for project in project_list %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <div>
-                            <span class="fs-5">{{ project.nama_project }}</span>
-                            <br>
-                            <small class="text-muted">{{ project.deskripsi|truncatechars:100 }}</small>
+            
+            <!-- Filter & Search Bar -->
+            <div class="card-body border-bottom pb-3">
+                <div class="row g-2">
+                    <!-- Search Input -->
+                    <div class="col-md-6">
+                        <form method="get" class="d-flex gap-2">
+                            <input type="text" name="search" class="form-control form-control-sm" 
+                                   placeholder="Cari nama project..." value="{{ search_query }}">
+                            <button type="submit" class="btn btn-sm btn-primary">
+                                <i class="bi bi-search"></i>
+                            </button>
+                            {% if search_query %}
+                            <a href="{% url 'core:manajemen_project' %}" class="btn btn-sm btn-secondary">
+                                <i class="bi bi-x-circle"></i>
+                            </a>
+                            {% endif %}
+                        </form>
+                    </div>
+                    
+                    <!-- Filter Buttons -->
+                    <div class="col-md-4">
+                        <div class="btn-group w-100" role="group">
+                            <a href="?{% if search_query %}search={{ search_query }}&{% endif %}filter=all&sort={{ current_sort }}" 
+                               class="btn btn-sm {% if current_filter == 'all' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                                <i class="bi bi-collection"></i> Semua
+                            </a>
+                            <a href="?{% if search_query %}search={{ search_query }}&{% endif %}filter=owned&sort={{ current_sort }}" 
+                               class="btn btn-sm {% if current_filter == 'owned' %}btn-success{% else %}btn-outline-success{% endif %}">
+                                <i class="bi bi-star-fill"></i> Milik
+                            </a>
+                            <a href="?{% if search_query %}search={{ search_query }}&{% endif %}filter=shared&sort={{ current_sort }}" 
+                               class="btn btn-sm {% if current_filter == 'shared' %}btn-info{% else %}btn-outline-info{% endif %}">
+                                <i class="bi bi-share"></i> Share
+                            </a>
+                            {% if stats.supervised_count > 0 %}
+                            <a href="?{% if search_query %}search={{ search_query }}&{% endif %}filter=supervised&sort={{ current_sort }}" 
+                               class="btn btn-sm {% if current_filter == 'supervised' %}btn-warning{% else %}btn-outline-warning{% endif %}">
+                                <i class="bi bi-person-check"></i> Supervisi
+                            </a>
+                            {% endif %}
+                            {% if stats.supervisor_count > 0 %}
+                            <a href="?{% if search_query %}search={{ search_query }}&{% endif %}filter=supervisor&sort={{ current_sort }}" 
+                               class="btn btn-sm {% if current_filter == 'supervisor' %}btn-secondary{% else %}btn-outline-secondary{% endif %}">
+                                <i class="bi bi-arrow-up-circle"></i> Atasan
+                            </a>
+                            {% endif %}
                         </div>
-                        <div>
-                            <!-- Tombol Edit -->
-                            <a href="?edit={{ project.id }}" class="btn btn-sm btn-outline-warning">
-                                <i class="bi bi-pencil-fill"></i> Edit
-                            </a>
-                            <!-- Tombol Hapus -->
-                            <a href="{% url 'core:delete_project' project.id %}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Anda yakin ingin menghapus project {{ project.nama_project }}?')">
-                                <i class="bi bi-trash-fill"></i> Hapus
-                            </a>
+                    </div>
+                    
+                    <!-- Sort Dropdown -->
+                    <div class="col-md-2">
+                        <select class="form-select form-select-sm" onchange="window.location.href='?{% if search_query %}search={{ search_query }}&{% endif %}filter={{ current_filter }}&sort=' + this.value">
+                            <option value="created" {% if current_sort == 'created' %}selected{% endif %}>Terbaru</option>
+                            <option value="name" {% if current_sort == 'name' %}selected{% endif %}>Nama (A-Z)</option>
+                            <option value="jobs_count" {% if current_sort == 'jobs_count' %}selected{% endif %}>Jobs</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card-body p-0">
+                {% if project_data %}
+                <ul class="list-group list-group-flush">
+                    {% for item in project_data %}
+                    <li class="list-group-item">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div style="flex: 1;">
+                                <div class="d-flex align-items-center gap-2 mb-2">
+                                    <span class="fs-5">{{ item.project.nama_project }}</span>
+                                    {% if item.is_owned %}
+                                        <span class="badge bg-success" title="Anda yang membuat project ini">
+                                            <i class="bi bi-star-fill"></i> Owner
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-info" title="Project di-share ke Anda">
+                                            <i class="bi bi-share"></i> Shared
+                                        </span>
+                                    {% endif %}
+                                    
+                                    {% if item.project.is_shared %}
+                                        <span class="badge bg-info" title="Shared to all users">
+                                            <i class="bi bi-unlock-fill"></i> Shared
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-secondary" title="Private (owner only)">
+                                            <i class="bi bi-lock-fill"></i> Private
+                                        </span>
+                                    {% endif %}
+                                </div>
+                                
+                                <!-- Stats Row -->
+                                <div class="row g-2 mb-2" style="font-size: 0.85rem;">
+                                    <div class="col-auto">
+                                        <span class="badge bg-light text-dark">
+                                            <i class="bi bi-briefcase"></i> {{ item.total_jobs }} Jobs
+                                        </span>
+                                    </div>
+                                    <div class="col-auto">
+                                        <span class="badge bg-light text-dark">
+                                            <i class="bi bi-clock"></i> {{ item.latest_update|date:"d M y" }}
+                                        </span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Progress Bar -->
+                                {% if item.total_jobs > 0 %}
+                                <div class="mb-2">
+                                    <small class="text-muted d-block mb-1">
+                                        Progress: <strong>{{ item.progress_percent }}%</strong>
+                                    </small>
+                                    <div class="progress" style="height: 16px;">
+                                        <div class="progress-bar {% if item.progress_percent == 100 %}bg-success{% elif item.progress_percent >= 75 %}bg-info{% elif item.progress_percent >= 50 %}bg-warning{% else %}bg-danger{% endif %}" 
+                                             style="width: {{ item.progress_percent }}%">
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                                
+                                <small class="text-muted d-block">{{ item.project.deskripsi|truncatechars:100 }}</small>
+                                <small class="text-muted d-block mt-1">
+                                    <i class="bi bi-person-circle"></i> Manager: <strong>{{ item.project.manager_project.username }}</strong>
+                                </small>
+                            </div>
+                            <div class="btn-group ms-2" role="group" style="white-space: nowrap;">
+                                <!-- Tombol Lihat Detail (untuk semua) -->
+                                <a href="{% url 'core:project_detail' item.project.id %}" class="btn btn-sm btn-outline-primary" title="Lihat detail project">
+                                    <i class="bi bi-eye-fill"></i> Lihat
+                                </a>
+                                
+                                {% if item.is_owned %}
+                                    <!-- Tombol Edit (hanya untuk owner) -->
+                                    <a href="?edit={{ item.project.id }}" class="btn btn-sm btn-outline-warning" title="Edit project">
+                                        <i class="bi bi-pencil-fill"></i> Edit
+                                    </a>
+                                    <!-- Tombol Hapus (hanya untuk owner) -->
+                                    <a href="{% url 'core:delete_project' item.project.id %}" class="btn btn-sm btn-outline-danger" 
+                                       onclick="return confirm('Anda yakin ingin menghapus project {{ item.project.nama_project }}?')"
+                                       title="Hapus project">
+                                        <i class="bi bi-trash-fill"></i> Hapus
+                                    </a>
+                                {% endif %}
+                            </div>
                         </div>
                     </li>
                     {% endfor %}
                 </ul>
                 {% else %}
-                    <p class="text-center p-4">Belum ada project yang dibuat.</p>
+                    <p class="text-center p-4">Belum ada project yang dibuat atau di-share ke Anda.</p>
                 {% endif %}
             </div>
         </div>

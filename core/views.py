@@ -7,8 +7,9 @@ from django.http import JsonResponse, HttpResponseRedirect, HttpResponse
 from django.views.decorators.http import require_http_methods
 import requests
 import json
-# Tambahkan 'Count' dan 'Case' untuk kalkulasi
-from django.db.models import Q, Count, Case, When, IntegerField 
+from io import BytesIO
+# Tambahkan 'Count', 'Case', 'Max' untuk kalkulasi
+from django.db.models import Q, Count, Case, When, IntegerField, Max 
 from django.urls import reverse
 import datetime 
 import calendar
@@ -101,14 +102,38 @@ def dashboard_view(request):
     else:
         team_query = (Q(pic=user) | Q(assigned_to=user)) | (Q(pic_id__in=subordinate_ids) | Q(assigned_to_id__in=subordinate_ids))
 
+    # === 2b. LOGIKA FILTER PROJECT SHARING (UPDATED - BIDIRECTIONAL) ===
+    # Filter jobs hanya dari project yang bisa diakses user (bidirectional hierarchy):
+    # 1. Project yang dibuat user
+    # 2. Project yang di-share ke semua
+    # 3. Project dari subordinates (untuk supervisor review)
+    # 4. Project dari supervisors (untuk collaborative work)
+    subordinate_ids_for_dashboard = user.get_all_subordinates()
+    
+    # Get supervisor IDs (all people above in hierarchy)
+    supervisor_ids_for_dashboard = []
+    current_user = user
+    while current_user.atasan:
+        supervisor_ids_for_dashboard.append(current_user.atasan.id)
+        current_user = current_user.atasan
+    
+    accessible_projects = Project.objects.filter(
+        Q(manager_project=user) |  # Owner
+        Q(is_shared=True) |  # Shared to all
+        Q(manager_project_id__in=subordinate_ids_for_dashboard) |  # Subordinate projects (for review)
+        Q(manager_project_id__in=supervisor_ids_for_dashboard)  # Supervisor projects (for collaborative work)
+    ).values_list('id', flat=True)
+    
+    project_filter = Q(project__id__in=accessible_projects) | Q(project__isnull=True)
+
     # === 3. LOGIKA FILTER ASET (BARU) ===
     selected_line_id = request.GET.get('line', '')
     selected_mesin_id = request.GET.get('mesin', '')
     selected_sub_mesin_id = request.GET.get('sub_mesin', '')
     
     # === 4. LOGIKA DATA TABEL (QUERY OPTIMASI BARU) ===
-    # Filter Job berdasarkan TIM, TAPI JANGAN filter tanggal dulu
-    all_jobs_team_base = Job.objects.filter(team_query).distinct()
+    # Filter Job berdasarkan TIM + PROJECT ACCESSIBLE, TAPI JANGAN filter tanggal dulu
+    all_jobs_team_base = Job.objects.filter(team_query, project_filter).distinct()
     
     # Apply asset filters
     if selected_sub_mesin_id:
@@ -363,28 +388,66 @@ def project_detail_view(request, project_id):
     user = request.user
     project = get_object_or_404(Project, id=project_id)
     
-    # === PERMISSION CHECK: Filter jobs berdasarkan user ===
-    # User bisa lihat job jika:
-    # 1. User adalah PIC (pembuat)
-    # 2. User adalah assigned_to
-    # 3. User adalah supervisor dari PIC
-    # 4. User adalah supervisor dari assigned_to
+    # === NEW: CHECK ACCESS (Hanya creator atau yang di-share) ===
+    if not project.can_access(user):
+        messages.error(request, "Anda tidak memiliki akses ke project ini.")
+        return redirect('core:dashboard')
+    
+    # === PERMISSION CHECK: Filter jobs berdasarkan project type & user role ===
+    # BIDIRECTIONAL HIERARCHY: Both supervisors and subordinates can see all jobs
+    # RULES:
+    # 1. PROJECT OWNER: Lihat SEMUA jobs (full access)
+    # 2. PROJECT SHARED: Lihat SEMUA jobs (shared workspace)
+    # 3. SUPERVISOR OF OWNER (any level): Lihat SEMUA jobs (for review/oversight)
+    # 4. SUBORDINATE OF OWNER: Lihat SEMUA jobs (for collaborative work)
+    # 5. OTHERS: Filter by permission (PIC, assigned_to, subordinates)
     subordinate_ids = user.get_all_subordinates()
     
-    jobs_in_project = project.jobs.all().filter(
-        Q(pic=user) |  # Pembuat
-        Q(assigned_to=user) |  # Assigned to
-        Q(pic_id__in=subordinate_ids) |  # Supervisor dari PIC
-        Q(assigned_to_id__in=subordinate_ids)  # Supervisor dari assigned_to
-    ).select_related(
-        'pic', 
-        'assigned_to',
-        'aset__parent__parent' 
-    ).prefetch_related(
-        'personil_ditugaskan', 
-        'tanggal_pelaksanaan',
-        'attachments'
-    ).distinct()
+    # Check if user is supervisor/atasan of project owner (recursive - any level in hierarchy)
+    is_supervisor_of_owner = (
+        project.manager_project and 
+        project.manager_project.id in subordinate_ids
+    )
+    
+    # Check if user is subordinate/bawahan of project owner (bidirectional)
+    is_subordinate_of_owner = (
+        project.manager_project and 
+        user.id in project.manager_project.get_all_subordinates()
+    )
+    
+    # Jika user adalah creator OR project di-share OR user adalah atasan/bawahan dari creator
+    if project.manager_project == user or project.is_shared or is_supervisor_of_owner or is_subordinate_of_owner:
+        # OWNER / SHARED PROJECT / SUPERVISOR: Tampilkan SEMUA jobs
+        jobs_in_project = project.jobs.all().select_related(
+            'pic', 
+            'assigned_to',
+            'aset__parent__parent' 
+        ).prefetch_related(
+            'personil_ditugaskan', 
+            'tanggal_pelaksanaan',
+            'attachments'
+        ).distinct()
+    else:
+        # PRIVATE PROJECT (non-owner, non-supervisor): Filter berdasarkan permission user
+        # User bisa lihat job jika:
+        # 1. User adalah PIC (pembuat)
+        # 2. User adalah assigned_to
+        # 3. User adalah supervisor dari PIC
+        # 4. User adalah supervisor dari assigned_to
+        jobs_in_project = project.jobs.all().filter(
+            Q(pic=user) |  # Pembuat
+            Q(assigned_to=user) |  # Assigned to
+            Q(pic_id__in=subordinate_ids) |  # Supervisor dari PIC
+            Q(assigned_to_id__in=subordinate_ids)  # Supervisor dari assigned_to
+        ).select_related(
+            'pic', 
+            'assigned_to',
+            'aset__parent__parent' 
+        ).prefetch_related(
+            'personil_ditugaskan', 
+            'tanggal_pelaksanaan',
+            'attachments'
+        ).distinct()
 
     modal_form = JobDateStatusForm()
 
@@ -447,6 +510,11 @@ def manajemen_project(request):
     edit_id = request.GET.get('edit')
     if edit_id:
         project_to_edit = get_object_or_404(Project, id=edit_id)
+        # Pastikan hanya creator yang bisa edit
+        if project_to_edit.manager_project != user:
+            messages.error(request, "Anda tidak memiliki akses untuk edit project ini.")
+            return redirect('core:manajemen_project')
+    
     if request.method == 'POST':
         form = ProjectForm(request.POST, instance=project_to_edit) if project_to_edit else ProjectForm(request.POST)
         if form.is_valid():
@@ -460,8 +528,116 @@ def manajemen_project(request):
             messages.error(request, "Gagal menyimpan, cek error di form.")
     else:
         form = ProjectForm(instance=project_to_edit) if project_to_edit else ProjectForm()
-    project_list = Project.objects.all().order_by('-created_at')
-    context = {'form': form, 'project_list': project_list}
+    
+    # === UPDATED: Show project dengan bidirectional hierarchy access ===
+    # 1. Projects yang dibuat user sendiri
+    owned_projects = Project.objects.filter(manager_project=user).order_by('-created_at')
+    
+    # 2. Projects yang di-share ke semua user
+    shared_projects = Project.objects.filter(is_shared=True).exclude(manager_project=user).order_by('-created_at')
+    
+    # 3. Projects dari subordinates (untuk supervisor review/oversight)
+    subordinate_ids_for_list = user.get_all_subordinates()
+    subordinate_projects = Project.objects.filter(
+        manager_project_id__in=subordinate_ids_for_list
+    ).order_by('-created_at')
+    
+    # 4. BIDIRECTIONAL: Projects dari supervisors (atasan) - NEW
+    # Get all supervisors (people above user in hierarchy)
+    supervisor_ids_for_list = []
+    current_user = user
+    while current_user.atasan:
+        supervisor_ids_for_list.append(current_user.atasan.id)
+        current_user = current_user.atasan
+    
+    supervisor_projects = Project.objects.filter(
+        manager_project_id__in=supervisor_ids_for_list
+    ).order_by('-created_at')
+    
+    # === FILTER & SEARCH LOGIC ===
+    search_query = request.GET.get('search', '').strip()
+    filter_type = request.GET.get('filter', 'all')  # 'all', 'owned', 'shared', 'supervised'
+    sort_by = request.GET.get('sort', 'created')  # 'created', 'name', 'jobs_count'
+    
+    # Start with all accessible projects (owned + shared + subordinate projects + supervisor projects)
+    project_list = (owned_projects | shared_projects | subordinate_projects | supervisor_projects).distinct()
+    
+    # Apply filter
+    if filter_type == 'owned':
+        project_list = owned_projects
+    elif filter_type == 'shared':
+        project_list = shared_projects
+    elif filter_type == 'supervised':
+        project_list = subordinate_projects
+    elif filter_type == 'supervisor':
+        project_list = supervisor_projects
+    
+    # Apply search
+    if search_query:
+        project_list = project_list.filter(
+            Q(nama_project__icontains=search_query) | 
+            Q(deskripsi__icontains=search_query)
+        )
+    
+    # Apply sorting
+    if sort_by == 'name':
+        project_list = project_list.order_by('nama_project')
+    elif sort_by == 'jobs_count':
+        # Sort by number of jobs (requires annotate)
+        project_list = project_list.annotate(jobs_count=Count('jobs')).order_by('-jobs_count')
+    else:  # 'created'
+        project_list = project_list.order_by('-created_at')
+    
+    # === CALCULATE STATS FOR EACH PROJECT ===
+    project_data = []
+    for project in project_list:
+        # Count jobs
+        total_jobs = project.jobs.count()
+        
+        # Calculate completion percentage
+        if total_jobs > 0:
+            # Count jobs dengan status 'Done'
+            done_jobs = project.jobs.filter(
+                tanggal_pelaksanaan__status='Done'
+            ).distinct().count()
+            progress_percent = int((done_jobs / total_jobs) * 100) if total_jobs > 0 else 0
+        else:
+            progress_percent = 0
+        
+        # Get latest update date
+        latest_update = project.jobs.aggregate(
+            latest_date=Max('updated_at')
+        )['latest_date'] or project.created_at
+        
+        project_data.append({
+            'project': project,
+            'total_jobs': total_jobs,
+            'progress_percent': progress_percent,
+            'latest_update': latest_update,
+            'is_owned': project.manager_project == user,
+        })
+    
+    # === SUMMARY STATS ===
+    stats = {
+        'total_projects': (owned_projects.count() + shared_projects.count() + subordinate_projects.count() + supervisor_projects.count()),
+        'owned_count': owned_projects.count(),
+        'shared_count': shared_projects.count(),
+        'supervised_count': subordinate_projects.count(),
+        'supervisor_count': supervisor_projects.count(),
+    }
+    
+    context = {
+        'form': form, 
+        'project_data': project_data,  # Changed from project_list to project_data
+        'owned_projects': owned_projects,
+        'shared_projects': shared_projects,
+        'subordinate_projects': subordinate_projects,
+        'project_to_edit': project_to_edit,
+        'stats': stats,
+        'search_query': search_query,
+        'current_filter': filter_type,
+        'current_sort': sort_by,
+    }
     return render(request, 'manajemen_project.html', context)
 
 # ==============================================================================
@@ -470,6 +646,10 @@ def manajemen_project(request):
 @login_required(login_url='core:login')
 def delete_project(request, project_id):
     project = get_object_or_404(Project, id=project_id)
+    # Hanya creator yang bisa delete
+    if project.manager_project != request.user:
+        messages.error(request, "Anda tidak memiliki akses untuk menghapus project ini.")
+        return redirect('core:manajemen_project')
     try:
         nama = project.nama_project
         project.delete()
@@ -622,21 +802,35 @@ def job_form_view(request, job_id=None, project_id=None):
                     
                     if instance:
                         # Edit mode
-                        # PENTING: Hanya update tanggal jika field berubah dari nilai original
+                        # PENTING: Smart update tanggal yang PRESERVE status dan catatan
                         # Get tanggal original dari database sebelum form di-process
-                        original_dates_str = ",".join([
-                            str(d.tanggal) for d in instance.tanggal_pelaksanaan.all()
-                        ])
+                        original_dates_dict = {
+                            d.tanggal: {'status': d.status, 'catatan': d.catatan}
+                            for d in instance.tanggal_pelaksanaan.all()
+                        }
+                        original_dates_str = ",".join([str(d) for d in original_dates_dict.keys()])
                         
                         # Hanya update jika tanggal berubah (bukan kosong dan bukan sama dengan original)
                         if tanggal_str and tanggal_str != original_dates_str:
-                            # Tanggal ada dan BERBEDA dari original → hapus lama, buat baru
-                            job.tanggal_pelaksanaan.all().delete()
-                            tanggal_list = tanggal_str.split(',') 
-                            for tgl_str in tanggal_list:
-                                if tgl_str: 
-                                    tgl_obj = datetime.datetime.strptime(tgl_str.strip(), '%Y-%m-%d').date()
-                                    JobDate.objects.create(job=job, tanggal=tgl_obj, status='Open')
+                            # Parse tanggal baru dari form
+                            new_tanggal_list = [
+                                datetime.datetime.strptime(tgl.strip(), '%Y-%m-%d').date()
+                                for tgl in tanggal_str.split(',') if tgl.strip()
+                            ]
+                            new_tanggal_set = set(new_tanggal_list)
+                            old_tanggal_set = set(original_dates_dict.keys())
+                            
+                            # 1. Hapus tanggal yang sudah tidak ada di form baru
+                            tanggal_to_delete = old_tanggal_set - new_tanggal_set
+                            if tanggal_to_delete:
+                                job.tanggal_pelaksanaan.filter(tanggal__in=tanggal_to_delete).delete()
+                            
+                            # 2. Tambah tanggal baru (yang belum ada di database)
+                            tanggal_to_add = new_tanggal_set - old_tanggal_set
+                            for tgl_obj in tanggal_to_add:
+                                JobDate.objects.create(job=job, tanggal=tgl_obj, status='Open')
+                            
+                            # 3. Tanggal yang sama (intersection) TIDAK DIUBAH → preserve status & catatan
                         # Else: Tanggal kosong atau sama → JANGAN ubah (preserve existing status & catatan)
                     else:
                         # Create mode
@@ -2620,4 +2814,280 @@ def profile_edit_view(request):
         'atasan': user.atasan,
     }
     return render(request, 'core/profile_edit.html', context)
+
+
+# ==============================================================================
+# EXPORT PROJECT DETAIL - PDF
+# ==============================================================================
+@login_required(login_url='core:login')
+def export_project_detail_pdf(request, project_id):
+    """Export project detail ke PDF dengan semua jobs"""
+    user = request.user
+    project = get_object_or_404(Project, id=project_id)
+    
+    # Check access
+    if not project.can_access(user):
+        messages.error(request, "Anda tidak memiliki akses ke project ini.")
+        return redirect('core:dashboard')
+    
+    # Get jobs sesuai permission
+    subordinate_ids = user.get_all_subordinates()
+    is_supervisor_of_owner = (
+        project.manager_project and 
+        project.manager_project.id in subordinate_ids
+    )
+    
+    if project.manager_project == user or project.is_shared or is_supervisor_of_owner:
+        jobs_in_project = project.jobs.all()
+    else:
+        jobs_in_project = project.jobs.all().filter(
+            Q(pic=user) |
+            Q(assigned_to=user) |
+            Q(pic_id__in=subordinate_ids) |
+            Q(assigned_to_id__in=subordinate_ids)
+        )
+    
+    jobs_in_project = jobs_in_project.select_related(
+        'pic', 'assigned_to', 'aset__parent__parent'
+    ).prefetch_related(
+        'personil_ditugaskan', 'tanggal_pelaksanaan', 'attachments'
+    ).distinct()
+    
+    # Calculate stats
+    total_jobs = jobs_in_project.count()
+    pending_jobs = jobs_in_project.filter(status='Pending').count()
+    completed_jobs = jobs_in_project.filter(
+        tanggal_pelaksanaan__status='Done'
+    ).distinct().count()
+    
+    if total_jobs > 0:
+        progress = int((completed_jobs / total_jobs) * 100)
+    else:
+        progress = 0
+    
+    # Build absolute URLs for attachments in job data
+    job_data_with_urls = []
+    for job in jobs_in_project:
+        job_dict = {
+            'job': job,
+            'attachment_urls': []
+        }
+        for attachment in job.attachments.all():
+            if attachment.file and attachment.file.url:
+                abs_url = request.build_absolute_uri(attachment.file.url)
+                job_dict['attachment_urls'].append({
+                    'url': abs_url,
+                    'description': attachment.deskripsi or ''
+                })
+        job_data_with_urls.append(job_dict)
+    
+    # Prepare context
+    context = {
+        'project': project,
+        'job_data': job_data_with_urls,
+        'total_jobs': total_jobs,
+        'pending_jobs': pending_jobs,
+        'completed_jobs': completed_jobs,
+        'progress': progress,
+        'today': datetime.datetime.now(),
+        'print_date': datetime.datetime.now().strftime("%d %B %Y %H:%M:%S"),
+    }
+    
+    # Render template to HTML
+    html_string = render(request, 'report_project_detail.html', context).content.decode('utf-8')
+    
+    try:
+        html = HTML(string=html_string)
+        pdf = html.write_pdf()
+        
+        # Generate filename
+        filename = f"Project_{project.nama_project}_{datetime.date.today().strftime('%d%m%Y')}.pdf"
+        
+        response = HttpResponse(pdf, content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response
+    except Exception as e:
+        messages.error(request, f"Gagal generate PDF: {str(e)}")
+        return redirect('core:project_detail', project_id=project.id)
+
+
+# ==============================================================================
+# EXPORT PROJECT DETAIL - EXCEL
+# ==============================================================================
+@login_required(login_url='core:login')
+def export_project_detail_excel(request, project_id):
+    """Export project detail ke Excel dengan semua jobs"""
+    user = request.user
+    project = get_object_or_404(Project, id=project_id)
+    
+    # Check access
+    if not project.can_access(user):
+        messages.error(request, "Anda tidak memiliki akses ke project ini.")
+        return redirect('core:dashboard')
+    
+    # Get jobs sesuai permission
+    subordinate_ids = user.get_all_subordinates()
+    is_supervisor_of_owner = (
+        project.manager_project and 
+        project.manager_project.id in subordinate_ids
+    )
+    
+    if project.manager_project == user or project.is_shared or is_supervisor_of_owner:
+        jobs_in_project = project.jobs.all()
+    else:
+        jobs_in_project = project.jobs.all().filter(
+            Q(pic=user) |
+            Q(assigned_to=user) |
+            Q(pic_id__in=subordinate_ids) |
+            Q(assigned_to_id__in=subordinate_ids)
+        )
+    
+    jobs_in_project = jobs_in_project.select_related(
+        'pic', 'assigned_to', 'aset__parent__parent'
+    ).prefetch_related(
+        'personil_ditugaskan', 'tanggal_pelaksanaan', 'attachments'
+    ).distinct()
+    
+    # Create workbook
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Project Detail"
+    
+    # Header styling
+    header_fill = PatternFill(start_color="1F4E78", end_color="1F4E78", fill_type="solid")
+    header_font = Font(bold=True, color="FFFFFF", size=11)
+    header_alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+    
+    border = Border(
+        left=Side(style='thin'),
+        right=Side(style='thin'),
+        top=Side(style='thin'),
+        bottom=Side(style='thin')
+    )
+    
+    # Title row
+    ws.merge_cells('A1:K1')
+    title_cell = ws['A1']
+    title_cell.value = f"Laporan Detail Project: {project.nama_project}"
+    title_cell.font = Font(bold=True, size=14)
+    title_cell.alignment = Alignment(horizontal="center", vertical="center")
+    
+    # Info rows
+    ws.merge_cells('A2:K2')
+    ws['A2'].value = f"Manager: {project.manager_project.username} | Tanggal: {datetime.date.today().strftime('%d %B %Y')}"
+    ws['A2'].alignment = Alignment(horizontal="left", vertical="center")
+    
+    ws.merge_cells('A3:K3')
+    ws['A3'].value = f"Total Jobs: {jobs_in_project.count()}"
+    ws['A3'].alignment = Alignment(horizontal="left", vertical="center")
+    
+    # Column headers
+    headers = ['No', 'Nama Pekerjaan', 'PIC', 'Personil', 'Line', 'Mesin', 'Sub Mesin', 'Fokus', 'Prioritas', 'Jadwal', 'Status']
+    
+    for col_num, header in enumerate(headers, 1):
+        cell = ws.cell(row=5, column=col_num)
+        cell.value = header
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = header_alignment
+        cell.border = border
+    
+    # Set column widths
+    column_widths = [5, 25, 15, 15, 12, 12, 12, 12, 12, 15, 12]
+    for col_num, width in enumerate(column_widths, 1):
+        ws.column_dimensions[chr(64 + col_num)].width = width
+    
+    # Data rows
+    row_num = 6
+    for idx, job in enumerate(jobs_in_project, 1):
+        # Get aset info
+        if job.aset:
+            if job.aset.level == 0:
+                line_name = job.aset.nama
+                mesin_name = "-"
+                sub_mesin_name = "-"
+            elif job.aset.level == 1:
+                line_name = job.aset.parent.nama if job.aset.parent else "-"
+                mesin_name = job.aset.nama
+                sub_mesin_name = "-"
+            else:
+                line_name = job.aset.parent.parent.nama if job.aset.parent and job.aset.parent.parent else "-"
+                mesin_name = job.aset.parent.nama if job.aset.parent else "-"
+                sub_mesin_name = job.aset.nama
+        else:
+            line_name = mesin_name = sub_mesin_name = "-"
+        
+        # Get dates info
+        dates_str = ", ".join([f"{jd.tanggal.strftime('%d/%m/%Y')} ({jd.status})" for jd in job.tanggal_pelaksanaan.all()])
+        
+        # Get personil
+        personil_str = ", ".join([p.nama_lengkap for p in job.personil_ditugaskan.all()]) or "-"
+        
+        row_data = [
+            idx,
+            job.nama_pekerjaan,
+            job.pic.username,
+            personil_str,
+            line_name,
+            mesin_name,
+            sub_mesin_name,
+            job.get_fokus_display(),
+            job.get_prioritas_display(),
+            dates_str or "-",
+            "Sesuai jadwal"  # Placeholder, bisa tambah logic progress
+        ]
+        
+        for col_num, value in enumerate(row_data, 1):
+            cell = ws.cell(row=row_num, column=col_num)
+            cell.value = value
+            cell.border = border
+            cell.alignment = Alignment(wrap_text=True, vertical="top")
+        
+        ws.row_dimensions[row_num].height = 30
+        row_num += 1
+    
+    # Save to BytesIO
+    stream = BytesIO()
+    wb.save(stream)
+    stream.seek(0)
+    
+    # Return response
+    filename = f"Project_{project.nama_project}_{datetime.date.today().strftime('%d%m%Y')}.xlsx"
+    response = HttpResponse(
+        stream.getvalue(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
+
+
+# ==============================================================================
+# VIEW TOGGLE SHARE STATUS PROJECT
+# ==============================================================================
+@login_required(login_url='core:login')
+@require_http_methods(["POST"])
+def toggle_project_share(request, project_id):
+    """
+    AJAX endpoint untuk toggle sharing status project
+    Hanya owner/creator project yang bisa toggle
+    """
+    project = get_object_or_404(Project, id=project_id)
+    user = request.user
+    
+    # Hanya creator yang bisa toggle share status
+    if project.manager_project != user:
+        messages.error(request, "Anda tidak memiliki akses untuk mengubah status sharing project ini.")
+        return redirect('core:project_detail', project_id=project.id)
+    
+    try:
+        # Toggle status
+        project.is_shared = not project.is_shared
+        project.save()
+        
+        status_text = "dibagikan ke semua user" if project.is_shared else "diprivat (hanya owner)"
+        messages.success(request, f"Project '{project.nama_project}' {status_text}.")
+    except Exception as e:
+        messages.error(request, f"Gagal mengubah status sharing: {e}")
+    
+    return redirect('core:project_detail', project_id=project.id)
 

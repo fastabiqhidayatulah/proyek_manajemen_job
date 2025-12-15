@@ -94,7 +94,8 @@ class CustomUser(AbstractUser):
             if sub.id not in _visited:
                 subordinates.append(sub.id)
                 # Recursively get subordinates of this user
-                subordinates.extend(sub.get_all_subordinates(_visited=_visited.copy()))
+                # PENTING: Pass _visited directly (tidak copy) supaya bisa track semua visited nodes
+                subordinates.extend(sub.get_all_subordinates(_visited=_visited))
         
         return list(set(subordinates)) 
 
@@ -151,6 +152,12 @@ class Project(models.Model):
         blank=True, 
         related_name='projects_managed'
     )
+    # === FIELD BARU: SHARED PROJECT ===
+    is_shared = models.BooleanField(
+        default=False,
+        help_text="Jika ON, semua user bisa lihat & isi job di project ini"
+    )
+    # ===============================
     created_at = models.DateTimeField(auto_now_add=True)
     class Meta:
         verbose_name = "Project"
@@ -158,6 +165,70 @@ class Project(models.Model):
         ordering = ['-created_at']
     def __str__(self):
         return self.nama_project
+    
+    # === METHOD HELPER UNTUK SHARING ===
+    def can_access(self, user):
+        """
+        Check apakah user bisa akses project ini
+        BIDIRECTIONAL HIERARCHY:
+        - Creator (owner)
+        - Project yang di-share ke semua user
+        - Atasan dari creator (for review/oversight)
+        - Bawahan dari creator (for collaborative work)
+        """
+        if not user:
+            return False
+        
+        # 1. Creator/Owner
+        if self.manager_project == user:
+            return True
+        
+        # 2. Project yang di-share ke semua user
+        if self.is_shared:
+            return True
+        
+        # 3. BIDIRECTIONAL: Cek hubungan hierarki
+        if self.manager_project:
+            # Case A: User adalah atasan dari project manager
+            user_subordinates = user.get_all_subordinates()
+            if self.manager_project.id in user_subordinates:
+                return True
+            
+            # Case B: User adalah bawahan dari project manager
+            # (supervisor membuat project, subordinate bisa akses)
+            manager_subordinates = self.manager_project.get_all_subordinates()
+            if user.id in manager_subordinates:
+                return True
+        
+        return False
+    
+    def can_manage(self, user):
+        """
+        Check apakah user bisa manage (full edit) project ini
+        BIDIRECTIONAL: Creator + Atasan + Bawahan dalam hierarchy
+        """
+        if not user:
+            return False
+        
+        # 1. Creator/Owner - always can manage
+        if self.manager_project == user:
+            return True
+        
+        # 2. BIDIRECTIONAL: Supervisor dapat manage project subordinate dan sebaliknya
+        if self.manager_project:
+            # Case A: User adalah atasan dari project manager (supervisor)
+            user_subordinates = user.get_all_subordinates()
+            if self.manager_project.id in user_subordinates:
+                return True
+            
+            # Case B: User adalah bawahan dari project manager
+            # (subordinate dapat manage project dari supervisor mereka)
+            manager_subordinates = self.manager_project.get_all_subordinates()
+            if user.id in manager_subordinates:
+                return True
+        
+        return False
+    # ==================================
 
 # ==============================================================================
 # 5. MODEL PEKERJAAN (JOB) DAN LAMPIRANNYA

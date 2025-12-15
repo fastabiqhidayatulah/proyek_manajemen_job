@@ -45,6 +45,24 @@ urlpatterns = [
          name='project_detail'),
     
     # ==========================================================
+    # URL BARU UNTUK TOGGLE SHARE STATUS PROJECT
+    # ==========================================================
+    path('project/<int:project_id>/toggle-share/', 
+         views.toggle_project_share, 
+         name='toggle_project_share'),
+    
+    # ==========================================================
+    # URL BARU UNTUK EXPORT PROJECT DETAIL (PDF & EXCEL)
+    # ==========================================================
+    path('project/<int:project_id>/export-pdf/', 
+         views.export_project_detail_pdf, 
+         name='export_project_detail_pdf'),
+    
+    path('project/<int:project_id>/export-excel/', 
+         views.export_project_detail_excel, 
+         name='export_project_detail_excel'),
+    
+    # ==========================================================
     # URL BARU UNTUK "TAMBAH JOB DARI PROJECT" (TAMBAHKAN)
     # ==========================================================
     path('project/<int:project_id>/add-job/', 

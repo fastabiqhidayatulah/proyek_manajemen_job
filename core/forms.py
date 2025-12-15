@@ -1,5 +1,6 @@
 from django import forms
 from django.forms import inlineformset_factory 
+from django.db.models import Q
 from .models import Personil, Job, JobDate, Attachment, AsetMesin, Project, CustomUser, LeaveEvent, Karyawan 
 
 # ==============================================================================
@@ -22,10 +23,13 @@ class PersonilForm(forms.ModelForm):
 # ==============================================================================
 # FORM PROJECT (Tidak berubah)
 # ==============================================================================
+# ==============================================================================
+# FORM PROJECT + SHARING (UPDATED)
+# ==============================================================================
 class ProjectForm(forms.ModelForm):
     class Meta:
         model = Project
-        fields = ['nama_project', 'deskripsi']
+        fields = ['nama_project', 'deskripsi', 'is_shared']
         widgets = {
             'nama_project': forms.TextInput(attrs={
                 'class': 'form-control', 
@@ -35,11 +39,19 @@ class ProjectForm(forms.ModelForm):
                 'class': 'form-control', 
                 'rows': 4
             }),
+            'is_shared': forms.CheckboxInput(attrs={
+                'class': 'form-check-input'
+            }),
         }
         labels = {
             'nama_project': 'Nama Project',
             'deskripsi': 'Deskripsi Singkat (Opsional)',
+            'is_shared': 'Bagikan ke semua user (izinkan mereka lihat & tambah job)',
         }
+        help_texts = {
+            'is_shared': 'Jika dicentang, semua user dapat melihat dan menambah job di project ini',
+        }
+
 
 # ==============================================================================
 # FORM MODAL STATUS TANGGAL (Tidak berubah)
@@ -189,6 +201,18 @@ class JobForm(forms.ModelForm):
         
         # Sembunyikan 'project' awalnya
         self.fields['project'].required = False
+        
+        # === LOGIKA FILTER PROJECT: Hanya tampilkan project yang bisa diakses user ===
+        # User bisa akses project jika:
+        # 1. User adalah owner/creator (manager_project)
+        # 2. Project di-share (is_shared=True)
+        if user:
+            accessible_projects = Project.objects.filter(
+                Q(manager_project=user) | Q(is_shared=True)
+            ).order_by('nama_project')
+            self.fields['project'].queryset = accessible_projects
+        else:
+            self.fields['project'].queryset = Project.objects.none()
         
         # === LOGIKA BARU: Jika menambah job dari halaman project ===
         if project:

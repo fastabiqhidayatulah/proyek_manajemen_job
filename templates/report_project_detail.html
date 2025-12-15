@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LAPORAN PROJECT DETAIL</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 9px;
+            line-height: 1.3;
+            color: #333;
+            margin: 5px;
+            padding: 5px;
+        }
+
+        @page {
+            size: A4;
+            margin: 5mm 5mm 5mm 5mm;
+        }
+
+        .page-break {
+            page-break-after: always;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 12px;
+            border-bottom: 3px solid #2C8C4B;
+            padding-bottom: 8px;
+        }
+
+        .header h1 {
+            color: #2C8C4B;
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 9px;
+            margin: 2px 0;
+        }
+
+        /* Summary Box */
+        .summary-box {
+            background-color: #e8f7f0;
+            border: 2px solid #2C8C4B;
+            border-radius: 3px;
+            padding: 8px;
+            margin-bottom: 12px;
+        }
+
+        .summary-box p {
+            margin: 2px 0;
+            font-size: 9px;
+            color: #333;
+        }
+
+        .summary-stats {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 6px;
+        }
+
+        .stat-item {
+            flex: 1;
+            min-width: 100px;
+            background-color: white;
+            padding: 5px;
+            border-radius: 2px;
+            text-align: center;
+            border-top: 3px solid #2C8C4B;
+        }
+
+        .stat-number {
+            font-size: 14px;
+            font-weight: bold;
+            color: #2C8C4B;
+        }
+
+        .stat-label {
+            font-size: 8px;
+            color: #666;
+            margin-top: 1px;
+        }
+
+        /* Section Title */
+        .section-title {
+            background-color: #2C8C4B;
+            color: white;
+            padding: 6px;
+            border-radius: 2px;
+            margin-bottom: 8px;
+            font-size: 10px;
+            font-weight: bold;
+        }
+
+        /* Table */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 12px;
+            font-size: 8px;
+        }
+
+        thead {
+            background-color: #2C8C4B;
+            color: white;
+        }
+
+        th {
+            padding: 3px 2px;
+            text-align: left;
+            font-weight: bold;
+            font-size: 8px;
+            border: 0.5px solid #2C8C4B;
+        }
+
+        td {
+            padding: 2px 2px;
+            border: 0.5px solid #ddd;
+            font-size: 8px;
+            vertical-align: top;
+            word-wrap: break-word;
+        }
+
+        tbody tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        tbody tr:nth-child(odd) {
+            background-color: white;
+        }
+
+        /* Badge Styles */
+        .badge {
+            display: inline-block;
+            padding: 1px 4px;
+            border-radius: 2px;
+            color: white;
+            font-weight: bold;
+            font-size: 7px;
+            text-align: center;
+            min-width: 30px;
+        }
+
+        .badge-p1 {
+            background-color: #dc3545;
+        }
+
+        .badge-p2 {
+            background-color: #fd7e14;
+        }
+
+        .badge-p3 {
+            background-color: #ffc107;
+            color: #333;
+        }
+
+        .badge-p4 {
+            background-color: #198754;
+        }
+
+        .badge-pending {
+            background-color: #ffc107;
+            color: #333;
+        }
+
+        .badge-on-progress {
+            background-color: #0d6efd;
+        }
+
+        .badge-completed {
+            background-color: #198754;
+        }
+
+        .badge-cancelled {
+            background-color: #6c757d;
+        }
+
+        /* No Data */
+        .no-data {
+            text-align: center;
+            padding: 20px;
+            color: #999;
+            font-size: 9px;
+        }
+
+        /* Footer */
+        .footer {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 8px;
+            color: #999;
+            border-top: 1px solid #ddd;
+            padding-top: 8px;
+        }
+
+        .footer p {
+            margin: 2px 0;
+        }
+
+        /* Column widths for job table */
+        .col-no { width: 18px; }
+        .col-nama { width: 70px; }
+        .col-pic { width: 45px; }
+        .col-aset { width: 90px; }
+        .col-fokus { width: 45px; }
+        .col-prioritas { width: 35px; }
+        .col-jadwal { width: 50px; }
+        .col-progress { width: 40px; }
+        .col-lampiran { width: 45px; }
+
+        /* Badge Status for dates */
+        .badge-status {
+            padding: 1px 3px;
+            border-radius: 2px;
+            font-size: 7px;
+            font-weight: bold;
+            display: inline-block;
+            margin-bottom: 1px;
+        }
+
+        .badge-done {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .badge-open {
+            background-color: #ffc107;
+            color: black;
+        }
+
+        .badge-pending {
+            background-color: #fd7e14;
+            color: white;
+        }
+
+        .badge-na {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            background-color: #e9ecef;
+            border-radius: 2px;
+            height: 12px;
+            overflow: hidden;
+            min-width: 35px;
+            margin: 1px 0;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background-color: #28a745;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 7px;
+        }
+
+        /* Attachment Images in Table */
+        .attachment-images {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2px;
+        }
+
+        .attachment-thumb {
+            width: 28px;
+            height: 28px;
+            border: 1px solid #ccc;
+            border-radius: 2px;
+            overflow: hidden;
+            background-color: #f5f5f5;
+        }
+
+        .attachment-thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+    </style>
+</head>
+<body>
+    <!-- HEADER -->
+    <div class="header">
+        <h1>{{ project.nama_project }}</h1>
+        <p><strong>Manager:</strong> {{ project.manager_project.get_full_name|default:project.manager_project.username }}</p>
+        <p><strong>Status:</strong> {% if project.is_shared %}<span style="color: #2C8C4B;">SHARED</span>{% else %}<span style="color: #999;">PRIVATE</span>{% endif %}</p>
+    </div>
+
+    <!-- SUMMARY BOX -->
+    <div class="summary-box">
+        <p>Ringkasan Project</p>
+        <div class="summary-stats">
+            <div class="stat-item">
+                <div class="stat-number">{{ total_jobs }}</div>
+                <div class="stat-label">Total Jobs</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">{{ pending_jobs }}</div>
+                <div class="stat-label">Pending</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">{{ completed_jobs }}</div>
+                <div class="stat-label">Completed</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JOBS TABLE -->
+    <div class="section-title">📋 Daftar Pekerjaan</div>
+
+    {% if job_data %}
+        <table>
+            <thead>
+                <tr>
+                    <th class="col-no">No</th>
+                    <th class="col-nama">Nama Pekerjaan</th>
+                    <th class="col-pic">PIC</th>
+                    <th class="col-aset">Line → Mesin → Sub</th>
+                    <th class="col-fokus">Fokus</th>
+                    <th class="col-prioritas">Prioritas</th>
+                    <th class="col-jadwal">Jadwal</th>
+                    <th class="col-progress">Progress</th>
+                    <th class="col-lampiran">Lampiran</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in job_data %}
+                <tr class="job-row">
+                    <td class="col-no">{{ forloop.counter }}</td>
+                    <td class="col-nama">{{ item.job.nama_pekerjaan }}</td>
+                    <td class="col-pic">{{ item.job.pic.username }}</td>
+                    <td class="col-aset">
+                        {{ item.job.aset.parent.parent.nama|default:"-" }}<br>
+                        {{ item.job.aset.parent.nama|default:"-" }}<br>
+                        {{ item.job.aset.nama|default:"-" }}
+                    </td>
+                    <td class="col-fokus">{{ item.job.get_fokus_display }}</td>
+                    <td class="col-prioritas">
+                        <span class="badge badge-{{ item.job.prioritas|lower }}">{{ item.job.get_prioritas_display }}</span>
+                    </td>
+                    <td class="col-jadwal">
+                        {% with dates=item.job.tanggal_pelaksanaan.all %}
+                        {% if dates %}
+                            {% for jd in dates|slice:":2" %}
+                                <span class="badge badge-status badge-{{ jd.status|lower }}">{{ jd.tanggal|date:"d/m" }}</span>
+                            {% endfor %}
+                            {% if dates|length > 2 %}
+                                <span style="color: #999; font-size: 7px;">+{{ dates|length|add:"-2" }}</span>
+                            {% endif %}
+                        {% else %}
+                            <span style="color: #999;">-</span>
+                        {% endif %}
+                        {% endwith %}
+                    </td>
+                    <td class="col-progress">
+                        <div class="progress-container">
+                            <div class="progress-bar" style="width: {{ item.job.get_progress_percent }}%;">
+                                {{ item.job.get_progress_percent }}%
+                            </div>
+                        </div>
+                    </td>
+                    <td class="col-lampiran">
+                        {% if item.attachment_urls %}
+                            <div class="attachment-images">
+                                {% for attachment in item.attachment_urls %}
+                                    <div class="attachment-thumb" title="{{ attachment.description }}">
+                                        <img src="{{ attachment.url }}" alt="{{ attachment.description }}" onerror="this.style.display='none'">
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <span style="color: #999; font-size: 7px;">-</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="9" class="no-data">Tidak ada job dalam project ini.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <div class="no-data">Tidak ada pekerjaan dalam project ini.</div>
+    {% endif %}
+
+    <!-- FOOTER -->
+    <div class="footer">
+        <p>Laporan ini secara otomatis digenerate dari Sistem Manajemen Pekerjaan</p>
+        <p>Generated: {{ today|date:"d/m/Y H:i" }}</p>
+    </div>
+</body>
+</html>
