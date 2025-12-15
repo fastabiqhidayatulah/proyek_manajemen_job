@@ -746,12 +746,18 @@ def job_form_view(request, job_id=None, project_id=None):
         if form.is_valid() and attachment_formset.is_valid() and selected_aset_id:
             try:
                 with transaction.atomic():
+                    # === PENTING: Validate project access (BIDIRECTIONAL) ===
+                    job = form.save(commit=False)
+                    if job.project and not job.project.can_access(user):
+                        messages.error(request, "Anda tidak memiliki akses ke project ini.")
+                        # Re-render form with errors
+                        return redirect('core:job_form')
+                    
                     # === PENTING: Save original assigned_to value sebelum form process ===
                     original_assigned_to = None
                     if instance:
                         original_assigned_to = instance.assigned_to
                     
-                    job = form.save(commit=False)
                     # Hanya set PIC saat create (bukan edit)
                     if not instance:
                         job.pic = user 

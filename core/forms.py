@@ -202,14 +202,28 @@ class JobForm(forms.ModelForm):
         # Sembunyikan 'project' awalnya
         self.fields['project'].required = False
         
-        # === LOGIKA FILTER PROJECT: Hanya tampilkan project yang bisa diakses user ===
+        # === LOGIKA FILTER PROJECT: Tampilkan project yang bisa diakses user (BIDIRECTIONAL) ===
         # User bisa akses project jika:
         # 1. User adalah owner/creator (manager_project)
         # 2. Project di-share (is_shared=True)
+        # 3. Project dari subordinates (untuk supervisor oversight)
+        # 4. Project dari supervisors/atasan (for collaborative work)
         if user:
+            subordinate_ids = user.get_all_subordinates()
+            
+            # Get all supervisors (people above in hierarchy)
+            supervisor_ids = []
+            current_user = user
+            while current_user.atasan:
+                supervisor_ids.append(current_user.atasan.id)
+                current_user = current_user.atasan
+            
             accessible_projects = Project.objects.filter(
-                Q(manager_project=user) | Q(is_shared=True)
-            ).order_by('nama_project')
+                Q(manager_project=user) |  # Owner
+                Q(is_shared=True) |  # Shared to all
+                Q(manager_project_id__in=subordinate_ids) |  # Subordinate projects
+                Q(manager_project_id__in=supervisor_ids)  # Supervisor projects (BIDIRECTIONAL)
+            ).order_by('nama_project').distinct()
             self.fields['project'].queryset = accessible_projects
         else:
             self.fields['project'].queryset = Project.objects.none()
