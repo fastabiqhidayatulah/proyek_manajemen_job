@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db import transaction 
 from .models import Job, Project, Personil, AsetMesin, JobDate, CustomUser, LeaveEvent, Karyawan
+from .cache_utils import get_user_accessible_projects
 from django.http import JsonResponse, HttpResponseRedirect, HttpResponse
 from django.views.decorators.http import require_http_methods
 import requests
@@ -102,29 +103,15 @@ def dashboard_view(request):
     else:
         team_query = (Q(pic=user) | Q(assigned_to=user)) | (Q(pic_id__in=subordinate_ids) | Q(assigned_to_id__in=subordinate_ids))
 
-    # === 2b. LOGIKA FILTER PROJECT SHARING (UPDATED - BIDIRECTIONAL) ===
+    # === 2b. LOGIKA FILTER PROJECT SHARING (UPDATED - BIDIRECTIONAL + CACHED) ===
     # Filter jobs hanya dari project yang bisa diakses user (bidirectional hierarchy):
     # 1. Project yang dibuat user
     # 2. Project yang di-share ke semua
     # 3. Project dari subordinates (untuk supervisor review)
     # 4. Project dari supervisors (untuk collaborative work)
-    subordinate_ids_for_dashboard = user.get_all_subordinates()
-    
-    # Get supervisor IDs (all people above in hierarchy)
-    supervisor_ids_for_dashboard = []
-    current_user = user
-    while current_user.atasan:
-        supervisor_ids_for_dashboard.append(current_user.atasan.id)
-        current_user = current_user.atasan
-    
-    accessible_projects = Project.objects.filter(
-        Q(manager_project=user) |  # Owner
-        Q(is_shared=True) |  # Shared to all
-        Q(manager_project_id__in=subordinate_ids_for_dashboard) |  # Subordinate projects (for review)
-        Q(manager_project_id__in=supervisor_ids_for_dashboard)  # Supervisor projects (for collaborative work)
-    ).values_list('id', flat=True)
-    
-    project_filter = Q(project__id__in=accessible_projects) | Q(project__isnull=True)
+    # Cache enabled: get_user_accessible_projects() uses caching
+    accessible_project_ids = get_user_accessible_projects(user)
+    project_filter = Q(project__id__in=accessible_project_ids) | Q(project__isnull=True)
 
     # === 3. LOGIKA FILTER ASET (BARU) ===
     selected_line_id = request.GET.get('line', '')
@@ -241,15 +228,19 @@ def dashboard_view(request):
     # Get all Lines (level=0)
     line_list = AsetMesin.objects.filter(level=0).order_by('nama')
     
-    # Get Mesin based on selected Line (level=1)
+    # Get Mesin based on selected Line (level=1) - with prefetch
     mesin_list = AsetMesin.objects.none()
     if selected_line_id:
-        mesin_list = AsetMesin.objects.filter(parent_id=selected_line_id, level=1).order_by('nama')
+        mesin_list = AsetMesin.objects.filter(
+            parent_id=selected_line_id, level=1
+        ).order_by('nama').prefetch_related('parent', 'children')
     
-    # Get Sub Mesin based on selected Mesin (level=2)
+    # Get Sub Mesin based on selected Mesin (level=2) - with prefetch
     sub_mesin_list = AsetMesin.objects.none()
     if selected_mesin_id:
-        sub_mesin_list = AsetMesin.objects.filter(parent_id=selected_mesin_id, level=2).order_by('nama')
+        sub_mesin_list = AsetMesin.objects.filter(
+            parent_id=selected_mesin_id, level=2
+        ).order_by('nama').prefetch_related('parent')
     
     # === 6. LOGIKA BARU: DASBOR PROGRES MESIN (KONSEP 2 ANDA) ===
     

@@ -96,6 +96,38 @@ DATABASES = {
 }
 
 
+# ==============================================================================
+# CACHE CONFIGURATION - Performance Optimization
+# ==============================================================================
+# For development: Use in-memory cache (LocMemCache)
+# For production: Use Redis for distributed caching
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-snowflake',
+        'TIMEOUT': 3600,  # Default cache timeout: 1 hour
+        'OPTIONS': {
+            'MAX_ENTRIES': 10000  # Maximum cached items
+        }
+    }
+}
+
+# Uncomment below for production with Redis
+# CACHES = {
+#     'default': {
+#         'BACKEND': 'django_redis.cache.RedisCache',
+#         'LOCATION': 'redis://127.0.0.1:6379/1',
+#         'OPTIONS': {
+#             'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+#             'CONNECTION_POOL_KWARGS': {'max_connections': 50},
+#             'SOCKET_CONNECT_TIMEOUT': 5,
+#             'SOCKET_TIMEOUT': 5,
+#         },
+#         'TIMEOUT': 3600,
+#     }
+# }
+
+
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
 

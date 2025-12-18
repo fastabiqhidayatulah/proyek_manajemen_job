@@ -3,7 +3,8 @@ from django.contrib.auth.models import AbstractUser
 from mptt.models import MPTTModel, TreeForeignKey
 import os 
 import json 
-from django.core.serializers.json import DjangoJSONEncoder 
+from django.core.serializers.json import DjangoJSONEncoder
+from django.core.cache import cache 
 
 # ==============================================================================
 # 1. MODEL AKUN / USER (UNTUK LOGIN)
@@ -33,7 +34,11 @@ class CustomUser(AbstractUser):
     )
     class Meta:
         verbose_name = "Pengguna"
-        verbose_name_plural = "Daftar Pengguna" 
+        verbose_name_plural = "Daftar Pengguna"
+        indexes = [
+            models.Index(fields=['atasan', 'id']),  # For hierarchy traversal
+            models.Index(fields=['username']),      # For user lookups
+        ]
     def __str__(self):
         return self.username
     
@@ -66,20 +71,54 @@ class CustomUser(AbstractUser):
         return nomor_clean
     
     def save(self, *args, **kwargs):
-        """Override save untuk auto-normalize nomor telepon"""
+        """Override save untuk auto-normalize nomor telepon dan invalidate cache"""
+        # Track if atasan changed
+        old_atasan = None
+        if self.pk:
+            try:
+                old = CustomUser.objects.get(pk=self.pk)
+                old_atasan = old.atasan_id
+            except CustomUser.DoesNotExist:
+                pass
+        
         if self.nomor_telepon:
             self.nomor_telepon = self.normalize_nomor_telepon(self.nomor_telepon)
+        
         super().save(*args, **kwargs)
+        
+        # Invalidate cache if hierarchy changed
+        if self.atasan_id != old_atasan:
+            self._invalidate_subordinates_cache()
+            if self.atasan:
+                self.atasan._invalidate_subordinates_cache()
+    
+    def _invalidate_subordinates_cache(self):
+        """Invalidate subordinates cache for this user and all supervisors"""
+        cache_key = f"subordinates_{self.id}"
+        cache.delete(cache_key)
+        
+        # Also invalidate cache for all supervisors up the chain
+        current = self
+        while current.atasan:
+            supervisor_key = f"subordinates_{current.atasan.id}"
+            cache.delete(supervisor_key)
+            current = current.atasan
     
     def get_all_subordinates(self, _visited=None):
         """
-        Get all subordinates recursively with circular reference prevention.
+        Get all subordinates recursively with circular reference prevention and caching.
         Args:
             _visited: Set of visited IDs (for internal recursion tracking)
         Returns:
             List of subordinate user IDs
         """
+        # Try cache first (only when called without _visited, i.e., top-level call)
         if _visited is None:
+            cache_key = f"subordinates_{self.id}"
+            cached = cache.get(cache_key)
+            if cached is not None:
+                return cached
+            
             _visited = set()
         
         # Prevent infinite loops due to circular organizational references
@@ -97,7 +136,14 @@ class CustomUser(AbstractUser):
                 # PENTING: Pass _visited directly (tidak copy) supaya bisa track semua visited nodes
                 subordinates.extend(sub.get_all_subordinates(_visited=_visited))
         
-        return list(set(subordinates)) 
+        result = list(set(subordinates))
+        
+        # Cache only at top level (when _visited was None initially)
+        if _visited and len(_visited) > 0:
+            cache_key = f"subordinates_{self.id}"
+            cache.set(cache_key, result, 3600)  # Cache for 1 hour
+        
+        return result 
 
 # ==============================================================================
 # 2. MODEL PERSONIL (ANAK BUAH / BUKAN USER LOGIN)
@@ -163,6 +209,10 @@ class Project(models.Model):
         verbose_name = "Project"
         verbose_name_plural = "Daftar Project" 
         ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['manager_project', 'is_shared']),  # For access check
+            models.Index(fields=['is_shared']),  # For shared projects query
+        ]
     def __str__(self):
         return self.nama_project
     
@@ -228,6 +278,26 @@ class Project(models.Model):
                 return True
         
         return False
+    
+    def save(self, *args, **kwargs):
+        """Invalidate accessible projects cache when project changes"""
+        super().save(*args, **kwargs)
+        
+        # Invalidate cache for manager and all supervisors
+        if self.manager_project:
+            self._invalidate_accessible_projects_cache(self.manager_project)
+    
+    def _invalidate_accessible_projects_cache(self, user):
+        """Invalidate accessible projects cache for user and supervisors"""
+        cache_key = f"accessible_projects_{user.id}"
+        cache.delete(cache_key)
+        
+        # Also invalidate for all supervisors
+        current = user
+        while current.atasan:
+            supervisor_key = f"accessible_projects_{current.atasan.id}"
+            cache.delete(supervisor_key)
+            current = current.atasan
     # ==================================
 
 # ==============================================================================
@@ -322,6 +392,11 @@ class Job(models.Model):
         verbose_name = "Pekerjaan (Job)"
         verbose_name_plural = "Daftar Pekerjaan (Job)" 
         ordering = ['-updated_at']
+        indexes = [
+            models.Index(fields=['pic', 'tipe_job']),  # For dashboard filtering
+            models.Index(fields=['project', 'status']),  # For project detail
+            models.Index(fields=['aset', 'status']),  # For asset filtering
+        ]
 
     def __str__(self):
         return self.nama_pekerjaan
