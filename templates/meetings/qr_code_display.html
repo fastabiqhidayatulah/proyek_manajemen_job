@@ -1,0 +1,148 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}QR Code - {{ meeting.no_dokumen }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid vh-100 d-flex flex-column" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 0; margin: 0;">
+    
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center p-4" style="background: rgba(0,0,0,0.2);">
+        <div>
+            <a href="{% url 'meetings:meeting-detail' meeting.pk %}" class="btn btn-light btn-sm">
+                <i class="bi bi-arrow-left"></i> Kembali
+            </a>
+        </div>
+        <div class="text-white text-center">
+            <h5 class="mb-0">{{ meeting.no_dokumen }}</h5>
+            <small>{{ meeting.get_status_display }}</small>
+        </div>
+        <div style="width: 100px;"></div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="flex-grow-1 d-flex align-items-center justify-content-center">
+        <div class="text-center">
+            <!-- Meeting Title -->
+            <h2 class="text-white mb-3" style="font-weight: bold; font-size: 2.5rem;">{{ meeting.agenda|truncatewords:10 }}</h2>
+
+            <!-- QR Code -->
+            <div class="bg-white p-5 rounded-4 mb-4" style="box-shadow: 0 20px 60px rgba(0,0,0,0.4); display: inline-block; max-width: 500px;">
+                <img src="{{ qr_code_img }}" alt="QR Code" class="img-fluid" style="max-width: 450px; width: 100%; height: auto;">
+            </div>
+
+            <!-- Instructions -->
+            <div class="alert alert-light text-dark" style="max-width: 600px; margin: 0 auto; font-size: 1.1rem;">
+                <i class="bi bi-phone" style="font-size: 1.5rem;"></i>
+                <strong class="d-block mt-2">Arahkan kamera smartphone Anda ke QR Code</strong>
+                <small class="d-block mt-1">untuk melakukan presensi kehadiran</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="p-4" style="background: rgba(0,0,0,0.2);">
+        <div class="row text-white text-center">
+            <div class="col-md-3">
+                <p class="mb-1"><i class="bi bi-calendar-event"></i></p>
+                <small>{{ meeting.tanggal_meeting|date:"d M Y" }}</small><br>
+                <small>{{ meeting.hari }}</small>
+            </div>
+            <div class="col-md-3">
+                <p class="mb-1"><i class="bi bi-clock"></i></p>
+                <small>{{ meeting.jam_mulai|time:"H:i" }}</small><br>
+                <small>s/d {{ meeting.jam_selesai|time:"H:i" }}</small>
+            </div>
+            <div class="col-md-3">
+                <p class="mb-1"><i class="bi bi-geo-alt"></i></p>
+                <small>{{ meeting.tempat }}</small>
+            </div>
+            <div class="col-md-3">
+                <p class="mb-1"><i class="bi bi-people"></i></p>
+                <small>{{ presensi_count }}/{{ meeting.peserta.count }} hadir</small>
+            </div>
+        </div>
+        
+        <hr style="border-color: rgba(255,255,255,0.3); margin: 1rem 0;">
+        
+        <div class="text-light text-center small">
+            <i class="bi bi-info-circle"></i> Token: <code style="background: rgba(255,255,255,0.2); padding: 0.3rem 0.8rem; border-radius: 3px; color: white; font-family: monospace;">{{ meeting.qr_code_token }}</code>
+            <span class="ms-3">|</span>
+            <span class="ms-3"><i class="bi bi-arrow-repeat"></i> Auto-refresh 30 detik</span>
+        </div>
+    </div>
+</div>
+
+<style>
+    html, body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        overflow: hidden;
+    }
+
+    .container-fluid {
+        overflow: hidden;
+    }
+
+    code {
+        font-family: 'Courier New', monospace;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        h2 {
+            font-size: 1.8rem !important;
+        }
+
+        .bg-white {
+            padding: 2rem !important;
+        }
+
+        img {
+            max-width: 300px !important;
+        }
+
+        .row {
+            gap: 1rem;
+        }
+
+        .col-md-3 {
+            font-size: 0.9rem;
+        }
+    }
+
+    /* Print */
+    @media print {
+        body {
+            background: white;
+        }
+
+        .container-fluid {
+            background: white !important;
+        }
+
+        div[style*="background: rgba"] {
+            background: white !important;
+        }
+    }
+</style>
+
+<script>
+    // Auto-refresh setiap 30 detik
+    setTimeout(function() {
+        location.reload();
+    }, 30000);
+
+    // Tekan F untuk fullscreen
+    document.addEventListener('keydown', function(e) {
+        if ((e.key === 'f' || e.key === 'F') && !e.ctrlKey && !e.metaKey) {
+            const elem = document.documentElement;
+            if (elem.requestFullscreen) {
+                elem.requestFullscreen();
+            }
+        }
+    });
+</script>
+{% endblock %}
+

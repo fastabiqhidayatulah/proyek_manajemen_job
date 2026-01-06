@@ -1,0 +1,192 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}
+    {% if form.instance.pk %}
+        Edit Notulen Item
+    {% else %}
+        Tambah Notulen Item
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-lg-8 offset-lg-2">
+            <!-- Header -->
+            <div class="mb-4">
+                <div class="d-flex align-items-center gap-3">
+                    <a href="{% url 'meetings:meeting-detail' meeting.pk %}" class="btn btn-secondary btn-sm">
+                        <i class="bi bi-arrow-left"></i> Kembali
+                    </a>
+                    <div>
+                        <h3 class="mb-1">
+                            {% if form.instance.pk %}
+                            <i class="bi bi-pencil-square"></i> Edit Item Notulen
+                            {% else %}
+                            <i class="bi bi-plus-circle"></i> Tambah Item Notulen
+                            {% endif %}
+                        </h3>
+                        <p class="text-muted mb-0">Meeting: {{ meeting.no_dokumen }} - {{ meeting.agenda }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form Card -->
+            <div class="card">
+                <div class="card-body">
+                    <form method="POST" class="needs-validation" novalidate>
+                        {% csrf_token %}
+
+                        <!-- Item Number (Display only) -->
+                        {% if form.instance.no %}
+                        <div class="mb-3">
+                            <label class="form-label">No. Item</label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="bi bi-list-ol"></i>
+                                </span>
+                                <input type="text" class="form-control" value="{{ form.instance.no }}" readonly>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Pokok Bahasan -->
+                        <div class="mb-3">
+                            <label for="{{ form.pokok_bahasan.id_for_label }}" class="form-label">
+                                Pokok Bahasan / Hasil Diskusi <span class="text-danger">*</span>
+                            </label>
+                            {{ form.pokok_bahasan }}
+                            {% if form.pokok_bahasan.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.pokok_bahasan.errors.0 }}
+                            </div>
+                            {% endif %}
+                            <small class="form-text text-muted">
+                                Hasil diskusi atau keputusan yang diambil dalam meeting
+                            </small>
+                        </div>
+
+                        <!-- Tanggapan -->
+                        <div class="mb-3">
+                            <label for="{{ form.tanggapan.id_for_label }}" class="form-label">
+                                Tanggapan / Detail
+                            </label>
+                            {{ form.tanggapan }}
+                            {% if form.tanggapan.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.tanggapan.errors.0 }}
+                            </div>
+                            {% endif %}
+                            <small class="form-text text-muted">
+                                Penjelasan atau detail tambahan (opsional)
+                            </small>
+                        </div>
+
+                        <!-- PIC (Person In Charge) -->
+                        <div class="mb-3">
+                            <label for="{{ form.pic.id_for_label }}" class="form-label">
+                                PIC (Penanggung Jawab) <span class="text-danger">*</span>
+                            </label>
+                            {{ form.pic }}
+                            {% if form.pic.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.pic.errors.0 }}
+                            </div>
+                            {% endif %}
+                            <small class="form-text text-muted">
+                                Siapa yang bertanggung jawab mengerjakan item ini?
+                            </small>
+                        </div>
+
+                        <!-- Target Deadline -->
+                        <div class="mb-3">
+                            <label for="{{ form.target_deadline.id_for_label }}" class="form-label">
+                                Target Deadline <span class="text-danger">*</span>
+                            </label>
+                            {{ form.target_deadline }}
+                            {% if form.target_deadline.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.target_deadline.errors.0 }}
+                            </div>
+                            {% endif %}
+                            <small class="form-text text-muted">
+                                Tanggal target penyelesaian
+                            </small>
+                        </div>
+
+                        <!-- Status (Display only for edit) -->
+                        {% if form.instance.pk %}
+                        <div class="mb-3">
+                            <label class="form-label">Status Saat Ini</label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="bi bi-circle"></i>
+                                </span>
+                                <input type="text" class="form-control" 
+                                    value="{{ form.instance.get_status_display }}" readonly>
+                            </div>
+                            <small class="form-text text-muted mt-2">
+                                Status dapat diubah melalui halaman detail meeting
+                            </small>
+                        </div>
+                        {% endif %}
+
+                        <!-- Info Box -->
+                        <div class="alert alert-info mb-4">
+                            <i class="bi bi-lightbulb"></i>
+                            <strong>Tips:</strong>
+                            <ul class="mb-0 mt-2">
+                                <li>Pastikan deskripsi jelas dan spesifik</li>
+                                <li>Pilih PIC yang tepat dan sudah confirm</li>
+                                <li>Set target date yang realistic</li>
+                                <li>Anda bisa buat Job dari item ini setelah finalisir meeting</li>
+                            </ul>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle"></i>
+                                {% if form.instance.pk %}
+                                    Update Item
+                                {% else %}
+                                    Tambah Item
+                                {% endif %}
+                            </button>
+                            <a href="{% url 'meetings:meeting-detail' meeting.pk %}" class="btn btn-secondary">
+                                <i class="bi bi-x-circle"></i> Batal
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .form-control, .form-select, textarea {
+        border-radius: 0.375rem;
+        border: 1px solid #dee2e6;
+    }
+
+    .form-control:focus, .form-select:focus, textarea:focus {
+        border-color: #0d6efd;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    }
+
+    .invalid-feedback {
+        display: block;
+    }
+
+    textarea {
+        resize: vertical;
+        min-height: 100px;
+    }
+
+    .alert ul {
+        padding-left: 1.5rem;
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Laporan Notulen Rapat - {{ meeting.no_dokumen }}</title>
+    <style>
+        @page {
+            size: A4 portrait;
+            margin: 15mm 10mm;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: "Segoe UI", Arial, sans-serif;
+            font-size: 10pt;
+            color: #333;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        .page-break {
+            page-break-after: always;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            border-bottom: 3px solid #1e40af;
+            padding-bottom: 15px;
+        }
+
+        .header h1 {
+            font-size: 18pt;
+            color: #1e40af;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            font-size: 10pt;
+            color: #666;
+            margin: 2px 0;
+        }
+
+        /* Section Title */
+        .section-title {
+            background-color: #1e40af;
+            color: white;
+            padding: 8px 10px;
+            margin-top: 15px;
+            margin-bottom: 10px;
+            font-weight: bold;
+            font-size: 11pt;
+            border-radius: 3px;
+        }
+
+        /* Info Grid */
+        .info-grid {
+            display: table;
+            width: 100%;
+            margin-bottom: 15px;
+            border-collapse: collapse;
+        }
+
+        .info-row {
+            display: table-row;
+        }
+
+        .info-label {
+            display: table-cell;
+            width: 15%;
+            font-weight: bold;
+            padding: 6px 8px;
+            background-color: #f0f0f0;
+            border: 1px solid #ddd;
+        }
+
+        .info-value {
+            display: table-cell;
+            width: 35%;
+            padding: 6px 8px;
+            border: 1px solid #ddd;
+        }
+
+        .info-label-2 {
+            display: table-cell;
+            width: 15%;
+            font-weight: bold;
+            padding: 6px 8px;
+            background-color: #f0f0f0;
+            border: 1px solid #ddd;
+        }
+
+        .info-value-2 {
+            display: table-cell;
+            width: 20%;
+            padding: 6px 8px;
+            border: 1px solid #ddd;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+
+        th {
+            background-color: #1e40af;
+            color: white;
+            padding: 8px;
+            text-align: left;
+            font-weight: bold;
+            font-size: 9.5pt;
+            border: 1px solid #1e40af;
+        }
+
+        td {
+            padding: 7px 8px;
+            border: 1px solid #ddd;
+            font-size: 9.5pt;
+            vertical-align: top;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 8.5pt;
+            font-weight: bold;
+            color: white;
+        }
+
+        .status-hadir {
+            background-color: #10b981;
+        }
+
+        .status-tidak-hadir {
+            background-color: #ef4444;
+        }
+
+        .status-izin {
+            background-color: #f59e0b;
+        }
+
+        .status-open {
+            background-color: #f59e0b;
+        }
+
+        .status-progress {
+            background-color: #3b82f6;
+        }
+
+        .status-done {
+            background-color: #10b981;
+        }
+
+        .status-overdue {
+            background-color: #ef4444;
+        }
+
+        /* Peserta Badge */
+        .peserta-badge {
+            display: inline-block;
+            padding: 2px 6px;
+            margin: 2px 3px 2px 0;
+            border-radius: 3px;
+            background-color: #e0f2fe;
+            color: #0369a1;
+            font-size: 8.5pt;
+            border: 1px solid #0369a1;
+        }
+
+        .peserta-badge.external {
+            background-color: #fef3c7;
+            color: #92400e;
+            border-color: #92400e;
+        }
+
+        /* Summary Section */
+        .summary-box {
+            background-color: #f0f9ff;
+            padding: 10px;
+            border-left: 4px solid #1e40af;
+            margin-bottom: 10px;
+            border-radius: 3px;
+        }
+
+        .summary-box strong {
+            color: #1e40af;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            font-size: 9pt;
+            color: #999;
+            margin-top: 20px;
+            padding-top: 10px;
+            border-top: 1px solid #ddd;
+        }
+
+        /* No Content */
+        .no-content {
+            text-align: center;
+            padding: 15px;
+            color: #999;
+            font-style: italic;
+        }
+
+        /* Column Widths */
+        .col-no { width: 5%; }
+        .col-pokok { width: 30%; }
+        .col-tanggapan { width: 25%; }
+        .col-pic { width: 15%; }
+        .col-deadline { width: 12%; }
+        .col-status { width: 13%; }
+
+        .col-peserta-name { width: 30%; }
+        .col-peserta-div { width: 25%; }
+        .col-peserta-status { width: 15%; }
+        .col-peserta-type { width: 10%; }
+
+    </style>
+</head>
+<body>
+
+    <!-- HEADER -->
+    <div class="header">
+        <h1>📋 LAPORAN NOTULEN RAPAT</h1>
+        <p>No. Dokumen: <strong>{{ meeting.no_dokumen }}</strong></p>
+        <p>Status: <strong>{{ meeting.get_status_display }}</strong></p>
+    </div>
+
+    <!-- INFORMASI RAPAT -->
+    <div class="section-title">📅 Informasi Rapat</div>
+    <div class="info-grid">
+        <div class="info-row">
+            <div class="info-label">Tanggal</div>
+            <div class="info-value">{{ meeting.tanggal_meeting|date:"l, d F Y" }}</div>
+            <div class="info-label-2">Hari</div>
+            <div class="info-value-2">{{ meeting.hari }}</div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">Waktu</div>
+            <div class="info-value">{{ meeting.jam_mulai|time:"H:i" }} - {{ meeting.jam_selesai|time:"H:i" }} WIB</div>
+            <div class="info-label-2">Tempat</div>
+            <div class="info-value-2">{{ meeting.tempat|default:"Ruang Meeting" }}</div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">Agenda</div>
+            <div class="info-value" colspan="3">{{ meeting.agenda }}</div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">Pembuat</div>
+            <div class="info-value">{{ meeting.created_by.get_full_name|default:meeting.created_by.username }}</div>
+            <div class="info-label-2">Dibuat Tanggal</div>
+            <div class="info-value-2">{{ meeting.created_at|date:"d-m-Y H:i" }}</div>
+        </div>
+    </div>
+
+    <!-- PESERTA RAPAT -->
+    <div class="section-title">👥 Peserta Rapat</div>
+    
+    {% if peserta_list %}
+        <table>
+            <thead>
+                <tr>
+                    <th class="col-no text-center">No</th>
+                    <th class="col-peserta-name">Nama</th>
+                    <th class="col-peserta-div">Divisi / Departemen</th>
+                    <th class="col-peserta-status text-center">Status Kehadiran</th>
+                    <th class="col-peserta-type text-center">Tipe</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for peserta in peserta_list %}
+                <tr>
+                    <td class="text-center">{{ forloop.counter }}</td>
+                    <td>{{ peserta.nama|default:peserta.peserta.get_full_name }}</td>
+                    <td>
+                        {% if peserta.peserta %}
+                            {{ peserta.peserta.departemen|default:"Departemen" }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td class="text-center">
+                        {% if peserta.status_kehadiran == 'hadir' %}
+                            <span class="status-badge status-hadir">Hadir</span>
+                        {% elif peserta.status_kehadiran == 'tidak_hadir' %}
+                            <span class="status-badge status-tidak-hadir">Tidak Hadir</span>
+                        {% elif peserta.status_kehadiran == 'izin' %}
+                            <span class="status-badge status-izin">Izin</span>
+                        {% else %}
+                            <span class="status-badge status-izin">-</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center">
+                        <span class="peserta-badge {% if peserta.tipe_peserta == 'external' %}external{% endif %}">
+                            {% if peserta.tipe_peserta == 'internal' %}Internal{% else %}External{% endif %}
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="summary-box">
+            {% if presensi_summary %}
+                <strong>📊 Ringkasan Kehadiran:</strong><br>
+                ✓ Hadir: <strong>{{ presensi_summary.hadir }}</strong> |
+                ✗ Tidak Hadir: <strong>{{ presensi_summary.tidak_hadir }}</strong> |
+                ⚠ Izin: <strong>{{ presensi_summary.izin }}</strong> |
+                Total: <strong>{{ peserta_list|length }}</strong>
+            {% endif %}
+        </div>
+    {% else %}
+        <div class="no-content">Tidak ada data peserta</div>
+    {% endif %}
+
+    <!-- NOTULEN ITEMS / ACTION ITEMS -->
+    <div class="section-title">✅ Action Items / Notulen Items</div>
+
+    {% if notulen_items %}
+        <table>
+            <thead>
+                <tr>
+                    <th class="col-no text-center">No</th>
+                    <th class="col-pokok">Pokok Bahasan</th>
+                    <th class="col-tanggapan">Tanggapan / Detail</th>
+                    <th class="col-pic">PIC</th>
+                    <th class="col-deadline text-center">Deadline</th>
+                    <th class="col-status text-center">Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in notulen_items %}
+                <tr>
+                    <td class="text-center"><strong>{{ item.no }}</strong></td>
+                    <td>{{ item.pokok_bahasan }}</td>
+                    <td>{{ item.tanggapan|default:"-" }}</td>
+                    <td>
+                        {% if item.pic %}
+                            {{ item.pic.get_full_name|default:"-" }}
+                        {% elif item.pic_eksternal %}
+                            {{ item.pic_eksternal }} (Eksternal)
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td class="text-center">
+                        {% if item.target_deadline %}
+                            {{ item.target_deadline|date:"d-m-Y" }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td class="text-center">
+                        {% if item.status == 'open' %}
+                            <span class="status-badge status-open">Open</span>
+                        {% elif item.status == 'progress' %}
+                            <span class="status-badge status-progress">Progress</span>
+                        {% elif item.status == 'done' %}
+                            <span class="status-badge status-done">Done</span>
+                        {% elif item.status == 'overdue' %}
+                            <span class="status-badge status-overdue">Overdue</span>
+                        {% else %}
+                            <span class="status-badge status-open">{{ item.get_status_display }}</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="summary-box">
+            <strong>📋 Ringkasan Action Items:</strong><br>
+            Total Items: <strong>{{ notulen_items|length }}</strong> |
+            Status Open: <strong>{{ open_count|default:0 }}</strong> |
+            Status Progress: <strong>{{ progress_count|default:0 }}</strong> |
+            Status Done: <strong>{{ done_count|default:0 }}</strong>
+        </div>
+    {% else %}
+        <div class="no-content">Tidak ada notulen items / action items</div>
+    {% endif %}
+
+    <!-- CATATAN TAMBAHAN -->
+    {% if meeting.catatan %}
+    <div class="section-title">📝 Catatan Tambahan</div>
+    <div class="summary-box">
+        {{ meeting.catatan|linebreaks }}
+    </div>
+    {% endif %}
+
+    <!-- FOOTER -->
+    <div class="footer">
+        <p>Laporan ini di-generate pada: {{ print_date }}</p>
+        <p>{{ company_name }}</p>
+    </div>
+
+</body>
+</html>

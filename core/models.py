@@ -385,6 +385,22 @@ class Job(models.Model):
     )
     # =====================================
     
+    # === FIELDS UNTUK NOTULEN INTEGRATION ===
+    notulen_item = models.OneToOneField(
+        'meetings.NotulenItem',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='job',
+        help_text="Notulen item yang membuat job ini"
+    )
+    notulen_target_date = models.DateField(
+        null=True,
+        blank=True,
+        help_text="Reference target date dari notulen"
+    )
+    # ==========================================
+    
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     

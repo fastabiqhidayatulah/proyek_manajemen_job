@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Formulir Notulen Rapat NBI - {{ meeting.title }}</title>
+    <style>
+        @page {
+            size: A4 landscape;
+            margin: 10mm;
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 11pt;
+            margin: 0;
+            padding: 0;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        .text-center { text-align: center; }
+        .text-left { text-align: left; }
+        .bold { font-weight: bold; }
+        .bg-yellow { background-color: #ffc000; }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            border-spacing: 0;
+            margin-bottom: 0;
+        }
+
+        td, th {
+            border: 1px solid #000;
+            padding: 4px 6px;
+            vertical-align: middle;
+        }
+
+        .header-table {
+            margin-bottom: 0;
+            border-bottom: none;
+        }
+
+        .nbi-logo {
+            font-family: "Arial Black", sans-serif;
+            font-size: 32pt;
+            line-height: 1;
+            display: inline-block;
+            text-shadow: 1px 1px 0 #000;
+        }
+        .nbi-n { color: #ce0000; }
+        .nbi-b { color: #008000; }
+        .nbi-i { color: #d4a000; }
+
+        .company-name {
+            font-size: 10pt;
+            font-weight: bold;
+            margin-top: 5px;
+            display: block;
+        }
+
+        .row-signature {
+            height: 80px;
+            vertical-align: top;
+        }
+
+        .info-label {
+            width: 15%;
+        }
+        .info-value {
+            width: 35%;
+        }
+
+        .main-table th {
+            padding: 8px;
+            text-transform: uppercase;
+        }
+
+        .col-no { width: 5%; }
+        .col-pokok { width: 30%; }
+        .col-tanggapan { width: 35%; }
+        .col-pic { width: 15%; }
+        .col-deadline { width: 15%; }
+
+        .empty-row td {
+            height: 25px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- HEADER FORMULIR -->
+    <table class="header-table">
+        <tr>
+            <th class="bg-yellow" style="width: 30%; font-size: 14pt;">FORMULIR</th>
+            <th colspan="2" class="text-center bold" style="font-size: 14pt;">NOTULEN RAPAT</th>
+            <th class="text-center" style="width: 15%;">Notulis</th>
+            <th class="text-center" style="width: 15%;">Diketahui oleh,</th>
+        </tr>
+
+        <tr>
+            <td rowspan="4" class="text-center bg-yellow">
+                <div class="nbi-logo">
+                    <span class="nbi-n">N</span><span class="nbi-b">B</span><span class="nbi-i">I</span>
+                </div>
+                <div class="company-name">PT. NUSANTARA BUILDING<br>INDUSTRIES</div>
+            </td>
+
+            <td class="bg-yellow info-label" style="width: 15%;">No. Dokumen</td>
+            <td class="text-left info-value" style="width: 25%;">{{ meeting.no_dokumen|default:"F.93/WM/01/03" }}</td>
+
+            <td rowspan="4" class="row-signature"></td>
+            <td rowspan="4" class="row-signature"></td>
+        </tr>
+        <tr>
+            <td class="bg-yellow info-label">Revisi</td>
+            <td class="text-left info-value">01</td>
+        </tr>
+        <tr>
+            <td class="bg-yellow info-label">Tanggal</td>
+            <td class="text-left info-value">{{ meeting.tanggal_meeting|date:"d-m-Y" }}</td>
+        </tr>
+        <tr>
+            <td class="bg-yellow info-label">Terbitan</td>
+            <td class="text-left info-value">01</td>
+        </tr>
+    </table>
+
+    <!-- INFO RAPAT -->
+    <table style="border-top: none; margin-bottom: 0;">
+        <tr>
+            <td style="width: 12%;">Tanggal / Hari</td>
+            <td style="width: 38%;">{{ meeting.tanggal_meeting|date:"l, d F Y"|default:"-" }}</td>
+            <td style="width: 10%;">Tempat</td>
+            <td style="width: 40%;">{{ meeting.tempat|default:"-" }}</td>
+        </tr>
+        <tr>
+            <td>Waktu</td>
+            <td>{{ meeting.jam_mulai|date:"H:i"|default:"-" }} - {{ meeting.jam_selesai|date:"H:i"|default:"-" }} WIB</td>
+            <td>Agenda</td>
+            <td>{{ meeting.agenda|default:"-" }}</td>
+        </tr>
+    </table>
+
+    <!-- TABEL ISI NOTULEN -->
+    <table class="main-table" style="border-top: none;">
+        <thead>
+            <tr>
+                <th class="col-no text-center">NO</th>
+                <th class="col-pokok text-center">POKOK BAHASAN</th>
+                <th class="col-tanggapan text-center">TANGGAPAN</th>
+                <th class="col-pic text-center">PIC</th>
+                <th class="col-deadline text-center">DEADLINE</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in notulen_items %}
+            <tr>
+                <td class="text-center">{{ item.no }}</td>
+                <td>{{ item.pokok_bahasan }}</td>
+                <td>{{ item.tanggapan|default:"-" }}</td>
+                <td class="text-center">
+                    {% if item.pic %}
+                        {{ item.pic.get_full_name|default:"-" }}
+                    {% elif item.pic_eksternal %}
+                        {{ item.pic_eksternal }} (Eksternal)
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                <td class="text-center">{% if item.target_deadline %}{{ item.target_deadline|date:"d-m-Y" }}{% else %}-{% endif %}</td>
+            </tr>
+            {% endfor %}
+            
+            <!-- Empty rows sampai 15 baris total -->
+            {% for i in empty_rows %}
+            <tr class="empty-row"><td></td><td></td><td></td><td></td><td></td></tr>
+            {% endfor %}
+</body>
+</html>

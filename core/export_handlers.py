@@ -143,3 +143,5 @@ def send_to_google_apps_script(payload, export_type="preventif"):
     except Exception as e:
         return {"status": "error", "message": f"Error: {str(e)}"}
 
+
+

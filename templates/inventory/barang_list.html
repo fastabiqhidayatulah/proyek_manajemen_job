@@ -1,0 +1,348 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Inventory - Daftar Barang{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2 class="mb-0">
+                <i class="bi bi-box-seam"></i> Inventory Barang
+            </h2>
+            <small class="text-muted">Manajemen stok spare parts</small>
+        </div>
+        <div class="col-md-4 text-end">
+            {% if user.is_staff or user.groups.count %}
+            <a href="{% url 'inventory:barang-create' %}" class="btn btn-primary btn-sm">
+                <i class="bi bi-plus-circle"></i> Tambah Barang
+            </a>
+            {% endif %}
+            <a href="{% url 'inventory:export-pdf' %}" class="btn btn-success btn-sm">
+                <i class="bi bi-file-pdf"></i> Export PDF
+            </a>
+        </div>
+    </div>
+
+    <!-- Search -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-2">
+                <div class="col-md-6">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                        <input type="text" name="search" class="form-control" placeholder="Cari berdasarkan kode atau nama barang..." value="{{ current_search }}">
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <select name="kategori" class="form-select">
+                        <option value="">-- Semua Kategori --</option>
+                        {% for value, label in kategori_choices %}
+                        <option value="{{ value }}" {% if current_kategori == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-funnel"></i> Filter
+                    </button>
+                </div>
+            </form>
+            {% if current_search or current_kategori %}
+            <div class="mt-2">
+                <a href="{% url 'inventory:barang-list' %}" class="btn btn-sm btn-secondary">
+                    <i class="bi bi-x-circle"></i> Hapus Filter
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Table -->
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 10%; cursor: pointer;">
+                            <a href="?sort=kode&order={% if current_sort == 'kode' and current_order == 'asc' %}desc{% else %}asc{% endif %}{% if current_search %}&search={{ current_search }}{% endif %}{% if current_kategori %}&kategori={{ current_kategori }}{% endif %}" style="text-decoration: none; color: inherit;">
+                                Kode
+                                {% if current_sort == 'kode' %}
+                                    <i class="bi bi-arrow-{% if current_order == 'asc' %}up{% else %}down{% endif %}"></i>
+                                {% endif %}
+                            </a>
+                        </th>
+                        <th style="width: 15%; cursor: pointer;">
+                            <a href="?sort=kategori&order={% if current_sort == 'kategori' and current_order == 'asc' %}desc{% else %}asc{% endif %}{% if current_search %}&search={{ current_search }}{% endif %}{% if current_kategori %}&kategori={{ current_kategori }}{% endif %}" style="text-decoration: none; color: inherit;">
+                                Kategori
+                                {% if current_sort == 'kategori' %}
+                                    <i class="bi bi-arrow-{% if current_order == 'asc' %}up{% else %}down{% endif %}"></i>
+                                {% endif %}
+                            </a>
+                        </th>
+                        <th style="width: 20%; cursor: pointer;">
+                            <a href="?sort=nama&order={% if current_sort == 'nama' and current_order == 'asc' %}desc{% else %}asc{% endif %}{% if current_search %}&search={{ current_search }}{% endif %}{% if current_kategori %}&kategori={{ current_kategori }}{% endif %}" style="text-decoration: none; color: inherit;">
+                                Nama Barang
+                                {% if current_sort == 'nama' %}
+                                    <i class="bi bi-arrow-{% if current_order == 'asc' %}up{% else %}down{% endif %}"></i>
+                                {% endif %}
+                            </a>
+                        </th>
+                        <th style="width: 25%;">Spesifikasi</th>
+                        <th style="width: 10%; text-align: center; cursor: pointer;">
+                            <a href="?sort=stock_level__qty&order={% if current_sort == 'stock_level__qty' and current_order == 'asc' %}desc{% else %}asc{% endif %}{% if current_search %}&search={{ current_search }}{% endif %}{% if current_kategori %}&kategori={{ current_kategori }}{% endif %}" style="text-decoration: none; color: inherit;">
+                                Stok
+                                {% if current_sort == 'stock_level__qty' %}
+                                    <i class="bi bi-arrow-{% if current_order == 'asc' %}up{% else %}down{% endif %}"></i>
+                                {% endif %}
+                            </a>
+                        </th>
+                        <th style="width: 12%; text-align: center;">Last Updated</th>
+                        <th style="width: 12%;">Lokasi</th>
+                        <th style="width: 8%; text-align: center;">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if barang_list %}
+                        {% for barang in barang_list %}
+                        <tr>
+                            <td><strong>{{ barang.kode }}</strong></td>
+                            <td>
+                                {% if barang.kategori == 'electrical' %}
+                                    <span class="badge bg-primary">
+                                        <i class="bi bi-lightning-fill"></i> {{ barang.get_kategori_display }}
+                                    </span>
+                                {% elif barang.kategori == 'mechanical' %}
+                                    <span class="badge bg-success">
+                                        <i class="bi bi-gear-fill"></i> {{ barang.get_kategori_display }}
+                                    </span>
+                                {% elif barang.kategori == 'hydraulic' %}
+                                    <span class="badge bg-danger">
+                                        <i class="bi bi-water"></i> {{ barang.get_kategori_display }}
+                                    </span>
+                                {% elif barang.kategori == 'seals' %}
+                                    <span class="badge bg-warning text-dark">
+                                        <i class="bi bi-ring"></i> {{ barang.get_kategori_display }}
+                                    </span>
+                                {% elif barang.kategori == 'fasteners' %}
+                                    <span class="badge bg-info">
+                                        <i class="bi bi-tools"></i> {{ barang.get_kategori_display }}
+                                    </span>
+                                {% elif barang.kategori == 'lubricants' %}
+                                    <span class="badge" style="background-color: #14b8a6;">
+                                        <i class="bi bi-droplet-fill"></i> {{ barang.get_kategori_display }}
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-dark">
+                                        <i class="bi bi-box-fill"></i> {{ barang.get_kategori_display }}
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td>{{ barang.nama }}</td>
+                            <td>
+                                <small class="text-muted">
+                                    {{ barang.spesifikasi|truncatewords:10|default:"-" }}
+                                </small>
+                            </td>
+                            <td style="text-align: center;">
+                                <span class="badge bg-info" style="font-size: 13px;">
+                                    {{ barang.stock_level.qty|default:"0" }}
+                                </span>
+                            </td>
+                            <td style="text-align: center; font-size: 12px;">
+                                {% if barang.stock_level.updated_by %}
+                                    <small class="text-muted d-block">
+                                        <i class="bi bi-clock"></i> {{ barang.stock_level.updated_at|date:"d-m-Y H:i" }}
+                                    </small>
+                                    <small class="text-muted d-block">
+                                        <i class="bi bi-person-fill"></i> {{ barang.stock_level.updated_by.first_name|default:barang.stock_level.updated_by.username }}
+                                    </small>
+                                {% else %}
+                                    <small class="text-muted">-</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <small>{{ barang.lokasi_penyimpanan|default:"-" }}</small>
+                            </td>
+                            <td style="text-align: center;">
+                                <div class="btn-group btn-group-sm" role="group">
+                                    {% if can_edit_stock %}
+                                    <button type="button" class="btn btn-outline-primary edit-stock-btn" 
+                                            data-barang-id="{{ barang.id }}"
+                                            data-barang-kode="{{ barang.kode }}"
+                                            data-barang-nama="{{ barang.nama }}"
+                                            data-stock-qty="{{ barang.stock_level.qty|default:'0' }}"
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#updateStockModal"
+                                            title="Edit Stok">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    {% endif %}
+                                    {% if user.is_staff or user.groups.filter|length %}
+                                    <a href="{% url 'inventory:barang-edit' barang.id %}" class="btn btn-outline-secondary btn-sm" title="Edit Barang">
+                                        <i class="bi bi-gear"></i>
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-4">
+                                <i class="bi bi-inbox"></i><br>
+                                Tidak ada barang ditemukan
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pagination -->
+        {% if is_paginated %}
+        <nav class="card-footer border-top">
+            <ul class="pagination mb-0">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page=1">Pertama</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Sebelumnya</a>
+                </li>
+                {% endif %}
+                
+                <li class="page-item disabled">
+                    <span class="page-link">Halaman {{ page_obj.number }} dari {{ page_obj.paginator.num_pages }}</span>
+                </li>
+                
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}">Selanjutnya</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">Terakhir</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Update Stock Modal -->
+<div class="modal fade" id="updateStockModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Update Stok Barang</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="updateStockForm" method="POST">
+                {% csrf_token %}
+                <input type="hidden" id="barangId" name="barang_id">
+                
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label"><strong>Barang</strong></label>
+                        <div class="form-control-plaintext">
+                            <span id="barangInfo"></span>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Stok Lama</label>
+                                <input type="text" class="form-control" id="oldQty" readonly>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="newQty" class="form-label">Stok Baru <span class="text-danger">*</span></label>
+                                <input type="number" id="newQty" name="qty" class="form-control" min="0" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="keterangan" class="form-label">Keterangan (Optional)</label>
+                        <textarea id="keterangan" name="keterangan" class="form-control" rows="2" placeholder="Alasan update stok..."></textarea>
+                        <small class="text-muted">Contoh: Service selesai, pemakaian maintenance, dll</small>
+                    </div>
+                </div>
+                
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary" id="submitBtn">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle update stock modal
+    const editButtons = document.querySelectorAll('.edit-stock-btn');
+    const modal = new bootstrap.Modal(document.getElementById('updateStockModal'));
+    const form = document.getElementById('updateStockForm');
+    
+    editButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const barangId = this.dataset.barangId;
+            const barangKode = this.dataset.barangKode;
+            const barangNama = this.dataset.barangNama;
+            const stockQty = this.dataset.stockQty;
+            
+            // Populate modal
+            document.getElementById('barangId').value = barangId;
+            document.getElementById('barangInfo').textContent = `${barangKode} - ${barangNama}`;
+            document.getElementById('oldQty').value = stockQty;
+            document.getElementById('newQty').value = stockQty;
+            document.getElementById('keterangan').value = '';
+            
+            // Show modal
+            modal.show();
+        });
+    });
+    
+    // Form submit
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const barangId = document.getElementById('barangId').value;
+        const formData = new FormData(this);
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        
+        fetch(`/inventory/${barangId}/update-stock/`, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': csrfToken
+            }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                // Close modal
+                modal.hide();
+                
+                // Show success alert
+                alert('✓ Stok berhasil diupdate: ' + data.message);
+                
+                // Refresh page after 1 second
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                alert('❌ Error: ' + (data.error || 'Gagal update stok'));
+            }
+        })
+        .catch(e => {
+            console.error('Error:', e);
+            alert('❌ Error: ' + e.message);
+        });
+    });
+});
+</script>
+{% endblock %}

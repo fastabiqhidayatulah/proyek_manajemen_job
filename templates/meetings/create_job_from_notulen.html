@@ -1,0 +1,397 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Buat Job dari Notulen Item{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<style>
+    .form-control, .form-select {
+        border-radius: 0.375rem;
+    }
+    
+    .form-control:focus, 
+    .form-select:focus {
+        border-color: #0d6efd;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    }
+    
+    .readonly-box {
+        background-color: #f8f9fa;
+        padding: 12px;
+        border-radius: 0.375rem;
+        border-left: 3px solid #0d6efd;
+    }
+    
+    textarea {
+        resize: vertical;
+        min-height: 80px;
+    }
+    
+    .card {
+        border: 1px solid #dee2e6;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    }
+    
+    .card-header {
+        background-color: #f8f9fa;
+        border-bottom: 1px solid #dee2e6;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-3 mb-5">
+    <div class="row">
+        <div class="col-lg-9">
+            
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2>Buat Job dari Notulen</h2>
+                    <p class="text-muted">Meeting: <strong>{{ meeting.no_dokumen }}</strong></p>
+                </div>
+                <a href="{% url 'meetings:meeting-detail' meeting.pk %}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Kembali
+                </a>
+            </div>
+
+            <!-- Messages -->
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <form method="POST" enctype="multipart/form-data" id="createJobForm">
+                {% csrf_token %}
+
+                <!-- SECTION 1: Notulen Reference -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-list-check"></i> Data Notulen (Referensi)
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-12">
+                                <label class="form-label">
+                                    <strong>Pokok Bahasan</strong>
+                                </label>
+                                <div class="readonly-box">
+                                    {{ notulen_item.pokok_bahasan }}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">
+                                    <strong>PIC</strong>
+                                </label>
+                                <div class="readonly-box">
+                                    {{ notulen_item.pic.username|default:"-" }}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">
+                                    <strong>Target Deadline (Notulen)</strong>
+                                </label>
+                                <div class="readonly-box">
+                                    {{ notulen_item.target_deadline|date:"d M Y" }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECTION 2: Job Details -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-briefcase"></i> Detail Pekerjaan
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <!-- Nama Pekerjaan -->
+                            <div class="col-md-12">
+                                <label for="id_nama" class="form-label">
+                                    Nama Pekerjaan <span class="text-danger">*</span>
+                                </label>
+                                <input type="text" class="form-control" id="id_nama" name="nama_pekerjaan" 
+                                       value="{{ notulen_item.pokok_bahasan }}" required>
+                            </div>
+
+                            <!-- Tipe Job -->
+                            <div class="col-md-6">
+                                <label class="form-label">
+                                    Tipe Pekerjaan <span class="text-danger">*</span>
+                                </label>
+                                <select class="form-select" name="tipe_job" id="id_tipe_job" required>
+                                    <option value="">-- Pilih --</option>
+                                    <option value="Daily" selected>Daily Job</option>
+                                    <option value="Project">Project Job</option>
+                                </select>
+                            </div>
+
+                            <!-- Prioritas -->
+                            <div class="col-md-6">
+                                <label class="form-label">Prioritas</label>
+                                <select class="form-select" name="prioritas">
+                                    <option value="">-- Pilih --</option>
+                                    <option value="P1">P1 - Mendesak</option>
+                                    <option value="P2" selected>P2 - Tinggi</option>
+                                    <option value="P3">P3 - Normal</option>
+                                    <option value="P4">P4 - Rendah</option>
+                                </select>
+                            </div>
+
+                            <!-- Fokus -->
+                            <div class="col-md-6">
+                                <label class="form-label">Fokus</label>
+                                <select class="form-select" name="fokus">
+                                    <option value="">-- Pilih --</option>
+                                    <option value="Perawatan">Perawatan</option>
+                                    <option value="Perbaikan">Perbaikan</option>
+                                    <option value="Proyek">Proyek</option>
+                                    <option value="Lainnya" selected>Lainnya</option>
+                                </select>
+                            </div>
+
+                            <!-- Deskripsi -->
+                            <div class="col-md-6">
+                                <label for="id_deskripsi" class="form-label">Deskripsi / Catatan</label>
+                                <textarea class="form-control" id="id_deskripsi" name="deskripsi" 
+                                          placeholder="Catatan tambahan (opsional)"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECTION 3: Scheduling -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-calendar3"></i> Penjadwalan
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info small" role="alert">
+                            <i class="bi bi-info-circle"></i>
+                            <strong>Catatan:</strong> Job deadline ini <strong>independen</strong> dari deadline notulen 
+                            ({{ notulen_item.target_deadline|date:"d M Y" }}). Anda bisa atur deadline sesuai execution plan.
+                        </div>
+
+                        <div class="row g-3">
+                            <!-- Job Deadline -->
+                            <div class="col-md-6">
+                                <label for="id_job_deadline" class="form-label">
+                                    Job Deadline <span class="text-danger">*</span>
+                                </label>
+                                <input type="date" class="form-control" id="id_job_deadline" 
+                                       name="job_deadline" required>
+                            </div>
+
+                            <!-- Jadwal Pelaksanaan (Multi-date) -->
+                            <div class="col-md-6">
+                                <label for="flatpickr-calendar" class="form-label">
+                                    Jadwal Pelaksanaan (Multi-date)
+                                </label>
+                                <input type="text" class="form-control" id="flatpickr-calendar" 
+                                       placeholder="Klik untuk pilih tanggal (bisa multiple)">
+                                <input type="hidden" id="id_jadwal" name="jadwal_pelaksanaan">
+                                <small class="form-text text-muted d-block mt-2">
+                                    Daily Job: required. Project Job: optional.
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECTION 4: Assignment & Project -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-people"></i> Penugasan & Project
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <!-- Assign To -->
+                            <div class="col-md-6">
+                                <label for="id_assigned_to" class="form-label">
+                                    Ditugaskan Kepada <span class="text-danger">*</span>
+                                </label>
+                                <select class="form-select" id="id_assigned_to" name="assigned_to" required>
+                                    <option value="">-- Pilih User --</option>
+                                    {% for user in allowed_users %}
+                                        <option value="{{ user.id }}">{{ user.username }}</option>
+                                    {% endfor %}
+                                </select>
+                                <small class="form-text text-muted d-block mt-2">
+                                    Hanya user dalam hierarchy notulen PIC yang ditampilkan.
+                                </small>
+                            </div>
+
+                            <!-- Project -->
+                            <div class="col-md-6">
+                                <label for="id_project" class="form-label">Project (Opsional)</label>
+                                <select class="form-select" id="id_project" name="project">
+                                    <option value="">-- Pilih Project --</option>
+                                    {% for project in projects %}
+                                        <option value="{{ project.id }}">{{ project.nama_project }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <!-- Aset (Line/Mesin/Sub-Mesin) -->
+                            <div class="col-md-6">
+                                <label class="form-label d-block mb-3">
+                                    <strong>Pilih Aset (Line/Mesin)</strong>
+                                </label>
+                                <div class="row g-2">
+                                    <div class="col-md-4">
+                                        <label for="id_line" class="form-label small">Line <span class="text-danger">*</span></label>
+                                        <select class="form-select" id="id_line" name="line" required>
+                                            <option value="">-- Pilih Line --</option>
+                                            {% for line in lines %}
+                                                <option value="{{ line.id }}">{{ line.nama }}</option>
+                                            {% endfor %}
+                                        </select>
+                                        <small class="form-text text-muted d-block mt-1">Wajib dipilih</small>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label for="id_mesin" class="form-label small">Mesin <span class="badge bg-secondary">Opsional</span></label>
+                                        <select class="form-select" id="id_mesin" name="mesin">
+                                            <option value="">-- Pilih Mesin --</option>
+                                        </select>
+                                        <small class="form-text text-muted d-block mt-1">Kosongkan untuk semua mesin</small>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label for="id_sub_mesin" class="form-label small">Sub Mesin <span class="badge bg-secondary">Opsional</span></label>
+                                        <select class="form-select" id="id_sub_mesin" name="sub_mesin">
+                                            <option value="">-- Pilih Sub Mesin --</option>
+                                        </select>
+                                        <small class="form-text text-muted d-block mt-1">Kosongkan untuk semua sub-mesin</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="d-flex gap-2 mb-4">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="bi bi-check-circle"></i> Buat Job
+                    </button>
+                    <a href="{% url 'meetings:meeting-detail' meeting.pk %}" class="btn btn-secondary btn-lg">
+                        <i class="bi bi-x-circle"></i> Batal
+                    </a>
+                </div>
+
+            </form>
+
+            <!-- Help Section -->
+            <div class="alert alert-success" role="alert">
+                <h6 class="alert-heading">
+                    <i class="bi bi-lightbulb"></i> Setelah Job Dibuat:
+                </h6>
+                <ul class="mb-0 mt-2 small">
+                    <li>Job akan otomatis ter-link dengan notulen item ini</li>
+                    <li>Status notulen akan berubah menjadi "progress"</li>
+                    <li>Anda bisa lihat job di Core job management</li>
+                    <li>Jadwal pelaksanaan akan disimpan sebagai JobDate entries</li>
+                </ul>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- Flatpickr for Multi-date Picker + Dynamic Aset Dropdowns -->
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // === 1. Initialize Flatpickr for jadwal_pelaksanaan ===
+    const calendarInput = document.getElementById('flatpickr-calendar');
+    const jadwalHidden = document.getElementById('id_jadwal');
+    
+    if (calendarInput) {
+        flatpickr(calendarInput, {
+            mode: 'multiple',
+            dateFormat: 'Y-m-d',
+            minDate: 'today',
+            allowInput: true,
+            onChange: function(selectedDates, dateStr, instance) {
+                jadwalHidden.value = dateStr;
+            }
+        });
+    }
+    
+    // === 2. Dynamic dropdown loading for Line/Mesin/Sub-Mesin ===
+    const lineSelect = document.getElementById('id_line');
+    const mesinSelect = document.getElementById('id_mesin');
+    const subMesinSelect = document.getElementById('id_sub_mesin');
+    const ajaxUrl = '{% url "core:load_children" %}';
+    
+    function updateDropdown(selectElement, options, selectedId) {
+        selectElement.innerHTML = '<option value="">---------</option>'; 
+        let isSelectedIdInOptions = false;
+        options.forEach(function(option) {
+            let selected = '';
+            if (option.id == selectedId) {
+                selected = ' selected';
+                isSelectedIdInOptions = true;
+            }
+            selectElement.innerHTML += `<option value="${option.id}"${selected}>${option.nama}</option>`;
+        });
+        
+        if (selectedId && !isSelectedIdInOptions) {
+            selectElement.value = "";
+        }
+    }
+
+    function loadChildren(parentId, targetSelect, selectedId) {
+        if (!parentId) {
+            updateDropdown(targetSelect, [], null);
+            return;
+        }
+        
+        targetSelect.innerHTML = '<option value="">Loading...</option>'; 
+        
+        fetch(`${ajaxUrl}?parent_id=${parentId}`)
+            .then(response => response.json())
+            .then(data => {
+                updateDropdown(targetSelect, data, selectedId);
+                if (selectedId) {
+                    targetSelect.dispatchEvent(new Event('change'));
+                }
+            })
+            .catch(error => {
+                console.error('Error loading children:', error);
+                updateDropdown(targetSelect, [], null);
+            });
+    }
+
+    if (lineSelect) {
+        lineSelect.addEventListener('change', function() {
+            const lineId = this.value;
+            const selectedMesinId = mesinSelect.value;
+            loadChildren(lineId, mesinSelect, selectedMesinId);
+            updateDropdown(subMesinSelect, [], null);
+        });
+    }
+
+    if (mesinSelect) {
+        mesinSelect.addEventListener('change', function() {
+            const mesinId = this.value;
+            const selectedSubMesinId = subMesinSelect.value;
+            loadChildren(mesinId, subMesinSelect, selectedSubMesinId);
+        });
+    }
+});
+</script>
+{% endblock %}

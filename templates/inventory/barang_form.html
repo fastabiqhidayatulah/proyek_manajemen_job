@@ -1,0 +1,144 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}
+    {% if form.instance.pk %}
+        Edit Barang - {{ form.instance.nama }}
+    {% else %}
+        Tambah Barang Baru
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <!-- Header -->
+            <div class="mb-4">
+                <h2 class="mb-0">
+                    {% if form.instance.pk %}
+                        <i class="bi bi-pencil"></i> Edit Barang
+                    {% else %}
+                        <i class="bi bi-plus-circle"></i> Tambah Barang Baru
+                    {% endif %}
+                </h2>
+            </div>
+
+            <!-- Form Card -->
+            <div class="card">
+                <div class="card-body">
+                    <form method="POST" novalidate>
+                        {% csrf_token %}
+                        
+                        <!-- Kode Barang - Display Only (jika edit) -->
+                        {% if form.instance.pk %}
+                        <div class="mb-3">
+                            <label class="form-label">Kode Barang</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-tag"></i></span>
+                                <input type="text" class="form-control" value="{{ form.instance.kode }}" readonly>
+                            </div>
+                            <small class="text-muted">(Auto-generated, tidak bisa diubah)</small>
+                        </div>
+                        {% else %}
+                        <div class="alert alert-info" role="alert">
+                            <i class="bi bi-info-circle"></i> <strong>Kode barang akan otomatis dibuat setelah disimpan</strong> dengan format INV-00001, INV-00002, dst
+                        </div>
+                        {% endif %}
+
+                        <div class="mb-3">
+                            <label for="{{ form.kategori.id_for_label }}" class="form-label">
+                                Kategori <span class="text-danger">*</span>
+                            </label>
+                            {{ form.kategori }}
+                            <small class="form-text text-muted d-block mt-2">
+                                <i class="bi bi-info-circle"></i>
+                                <strong>Panduan Pemilihan Kategori:</strong>
+                            </small>
+                            <div style="background: #f0f9ff; border-left: 4px solid #1e40af; padding: 12px; border-radius: 4px; margin-top: 10px; font-size: 12px;">
+                                <p style="margin-bottom: 8px; color: #1e40af;"><strong>⚡ Electrical:</strong> Motor listrik, Solenoid, Relay, Sensor, Transformer</p>
+                                <p style="margin-bottom: 8px; color: #16a34a;"><strong>⚙️ Mechanical:</strong> Bearing, Sprocket, Pulley, Gear, Pompa air, Shaft</p>
+                                <p style="margin-bottom: 8px; color: #dc2626;"><strong>🔴 Hydraulic:</strong> Pompa hidrolis, Valve, Cylinder, Actuator, Hose</p>
+                                <p style="margin-bottom: 8px; color: #ea580c;"><strong>🔶 Seals:</strong> O-ring, Packing, Gasket, Seal</p>
+                                <p style="margin-bottom: 8px; color: #7c3aed;"><strong>🔩 Fasteners:</strong> Bolt, Nut, Screw, Rivet, Pin</p>
+                                <p style="margin-bottom: 8px; color: #0891b2;"><strong>💧 Lubricants:</strong> Oli, Grease, Coolant, Filter</p>
+                                <p style="margin-bottom: 0; color: #6366f1;"><strong>📦 Consumables:</strong> Spare part kecil, Item habis pakai</p>
+                            </div>
+                            {% if form.kategori.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.kategori.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.nama.id_for_label }}" class="form-label">
+                                Nama Barang <span class="text-danger">*</span>
+                            </label>
+                            {{ form.nama }}
+                            {% if form.nama.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.nama.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.spesifikasi.id_for_label }}" class="form-label">
+                                Spesifikasi / Deskripsi
+                            </label>
+                            {{ form.spesifikasi }}
+                            <small class="text-muted">Deskripsi detail barang (dimensi, material, dst)</small>
+                            {% if form.spesifikasi.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.spesifikasi.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.lokasi_penyimpanan.id_for_label }}" class="form-label">
+                                Lokasi Penyimpanan
+                            </label>
+                            {{ form.lokasi_penyimpanan }}
+                            <small class="text-muted">Contoh: Rak A1, Bin 3, Lokasi gudang utama</small>
+                            {% if form.lokasi_penyimpanan.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.lokasi_penyimpanan.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.status.id_for_label }}" class="form-label">
+                                Status <span class="text-danger">*</span>
+                            </label>
+                            {{ form.status }}
+                            {% if form.status.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.status.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Buttons -->
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle"></i> Simpan
+                            </button>
+                            <a href="{% url 'inventory:barang-list' %}" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i> Kembali
+                            </a>
+                            {% if form.instance.pk %}
+                            <a href="{% url 'inventory:barang-delete' form.instance.pk %}" class="btn btn-danger ms-auto">
+                                <i class="bi bi-trash"></i> Hapus Barang
+                            </a>
+                            {% endif %}
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

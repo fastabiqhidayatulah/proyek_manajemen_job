@@ -429,3 +429,180 @@ class LeaveEventForm(forms.ModelForm):
             instance.save()
         
         return instance
+
+
+# ==============================================================================
+# FORM UNTUK CREATE JOB DARI NOTULEN ITEM
+# ==============================================================================
+class JobFromNotulenForm(forms.Form):
+    """
+    Form khusus untuk membuat job dari notulen item.
+    Menampilkan data notulen sebagai reference (read-only) dan 
+    memungkinkan user mengisi detail job dengan multi-date picker.
+    """
+    
+    # ===== DISPLAY-ONLY FIELDS (dari notulen) =====
+    pokok_bahasan_notulen = forms.CharField(
+        label='Pokok Bahasan (dari Notulen)',
+        widget=forms.Textarea(attrs={
+            'class': 'form-control-plaintext',
+            'rows': 2,
+            'readonly': True
+        }),
+        required=False
+    )
+    
+    pic_notulen = forms.CharField(
+        label='PIC Notulen',
+        widget=forms.TextInput(attrs={
+            'class': 'form-control-plaintext',
+            'readonly': True
+        }),
+        required=False
+    )
+    
+    target_deadline_notulen = forms.DateField(
+        label='Target Deadline Notulen (Referensi)',
+        widget=forms.DateInput(attrs={
+            'class': 'form-control-plaintext',
+            'type': 'date',
+            'readonly': True
+        }),
+        required=False
+    )
+    
+    # ===== EDITABLE FIELDS (untuk job) =====
+    nama_pekerjaan = forms.CharField(
+        label='Nama Pekerjaan',
+        max_length=255,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Nama job (default dari notulen, bisa diubah)'
+        }),
+        help_text='Deskripsi singkat job yang akan dibuat'
+    )
+    
+    tipe_job = forms.ChoiceField(
+        label='Tipe Pekerjaan',
+        choices=Job.TIPE_JOB_CHOICES,
+        initial='Daily',
+        widget=forms.RadioSelect(attrs={
+            'class': 'form-check-input'
+        })
+    )
+    
+    assigned_to = forms.ModelChoiceField(
+        label='Assign ke User',
+        queryset=CustomUser.objects.none(),
+        widget=forms.Select(attrs={
+            'class': 'form-select'
+        }),
+        help_text='Pilih user yang bertanggung jawab (dalam hierarchy PIC)',
+        required=True
+    )
+    
+    job_deadline = forms.DateField(
+        label='Job Deadline',
+        widget=forms.DateInput(attrs={
+            'class': 'form-control',
+            'type': 'date'
+        }),
+        help_text='Tanggal deadline job (independent dari notulen deadline)',
+        required=True
+    )
+    
+    # Multi-date picker untuk jadwal pelaksanaan (Daily Job)
+    jadwal_pelaksanaan = forms.CharField(
+        label='Jadwal Pelaksanaan',
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'id': 'jadwal_pelaksanaan_picker',
+            'placeholder': 'Pilih tanggal pelaksanaan (flatpickr multi-select)',
+            'data-flatpickr': 'true',
+            'data-mode': 'multiple'
+        }),
+        required=False,
+        help_text='Untuk Daily Job: pilih satu atau lebih tanggal pelaksanaan'
+    )
+    
+    # Optional fields
+    deskripsi = forms.CharField(
+        label='Deskripsi / Catatan Tambahan',
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 3,
+            'placeholder': 'Deskripsi detail job dari hasil notulen (opsional)'
+        }),
+        required=False
+    )
+    
+    prioritas = forms.ChoiceField(
+        label='Prioritas',
+        choices=[('', '--- Pilih Prioritas ---')] + list(Job.PRIORITAS_CHOICES),
+        widget=forms.Select(attrs={
+            'class': 'form-select'
+        }),
+        required=False
+    )
+    
+    fokus = forms.ChoiceField(
+        label='Fokus',
+        choices=[('', '--- Pilih Fokus ---')] + list(Job.FOKUS_CHOICES),
+        widget=forms.Select(attrs={
+            'class': 'form-select'
+        }),
+        required=False
+    )
+    
+    project = forms.ModelChoiceField(
+        label='Project (Opsional)',
+        queryset=Project.objects.all(),
+        widget=forms.Select(attrs={
+            'class': 'form-select'
+        }),
+        required=False,
+        help_text='Pilih project jika job ini bagian dari project'
+    )
+    
+    aset = forms.ModelChoiceField(
+        label='Mesin/Sub Mesin (Opsional)',
+        queryset=AsetMesin.objects.none(),
+        widget=forms.Select(attrs={
+            'class': 'form-select'
+        }),
+        required=False,
+        help_text='Pilih mesin/sub-mesin yang terkait job'
+    )
+    
+    def __init__(self, *args, notulen_pic_user=None, allowed_users=None, **kwargs):
+        """
+        Args:
+            notulen_pic_user: CustomUser yang merupakan PIC dari notulen
+            allowed_users: List of CustomUser IDs yang boleh di-assign
+        """
+        super().__init__(*args, **kwargs)
+        
+        # Filter assigned_to hanya user dalam hierarchy PIC
+        if allowed_users:
+            self.fields['assigned_to'].queryset = CustomUser.objects.filter(
+                id__in=allowed_users,
+                is_active=True
+            ).order_by('username')
+        
+        # Filter aset: hanya sub-mesin (level 2)
+        self.fields['aset'].queryset = AsetMesin.objects.filter(
+            level=2
+        ).order_by('nama')
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        tipe_job = cleaned_data.get('tipe_job')
+        jadwal_pelaksanaan = cleaned_data.get('jadwal_pelaksanaan')
+        
+        # Validasi: Daily job harus punya jadwal
+        if tipe_job == 'Daily' and not jadwal_pelaksanaan:
+            self.add_error('jadwal_pelaksanaan', 
+                          'Daily Job harus punya jadwal pelaksanaan. '
+                          'Pilih minimal satu tanggal di field "Jadwal Pelaksanaan"')
+        
+        return cleaned_data

@@ -61,18 +61,43 @@ class CustomUserAdmin(UserAdmin):
     model = CustomUser
     
     # Menambahkan field custom ke form edit user
-    fieldsets = UserAdmin.fieldsets + (
+    fieldsets = (
+        (None, {'fields': ('username', 'password')}),
+        ('Personal info', {'fields': ('first_name', 'last_name', 'email')}),
+        ('Permissions', {
+            'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions'),
+            'description': 'Groups: "Workshop" = edit stok barang, "Warehouse" = full access + import'
+        }),
+        ('Important dates', {'fields': ('last_login', 'date_joined')}),
         ('Informasi Tambahan', {'fields': ('jabatan', 'atasan')}),
     )
-    add_fieldsets = UserAdmin.add_fieldsets + (
+    add_fieldsets = (
+        (None, {
+            'classes': ('wide',),
+            'fields': ('username', 'password1', 'password2'),
+        }),
+        ('Personal info', {'fields': ('first_name', 'last_name', 'email')}),
+        ('Permissions', {
+            'fields': ('is_active', 'is_staff', 'is_superuser', 'groups'),
+            'description': 'Groups: "Workshop" = edit stok barang, "Warehouse" = full access + import'
+        }),
         ('Informasi Tambahan', {'fields': ('jabatan', 'atasan')}),
     )
     
-    list_display = ['username', 'email', 'first_name', 'last_name', 'jabatan', 'atasan', 'is_staff']
-    list_filter = UserAdmin.list_filter + ('jabatan', 'atasan',)
+    list_display = ['username', 'email', 'first_name', 'last_name', 'get_groups', 'jabatan', 'atasan', 'is_staff']
+    list_filter = UserAdmin.list_filter + ('groups', 'jabatan', 'atasan',)
     
     # Penting untuk autocomplete_fields 'pic' di JobAdmin
     search_fields = ('username', 'first_name', 'last_name')
+    
+    def get_groups(self, obj):
+        """Tampilkan groups user di list view"""
+        groups = obj.groups.all()
+        if not groups:
+            return '-'
+        group_names = ', '.join([f'<span style="background: #e0e7ff; color: #3730a3; padding: 2px 6px; border-radius: 3px; margin: 2px; display: inline-block; font-size: 11px;">{g.name}</span>' for g in groups])
+        return format_html(group_names)
+    get_groups.short_description = 'Groups'
 
 # ============================================================
 # 4. SETUP PROJECT & PERSONIL

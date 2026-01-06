@@ -1,0 +1,194 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Daftar Meetings & Notulen{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- Header Section -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2 class="mb-0">
+                <i class="bi bi-chat-left-text"></i> Meetings & Notulen Rapat
+            </h2>
+            <small class="text-muted">Kelola notulen rapat dan action items</small>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{% url 'meetings:meeting-create' %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Buat Meeting Baru
+            </a>
+        </div>
+    </div>
+
+    <!-- Filter Section -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Status</label>
+                    <select name="status" class="form-select">
+                        <option value="">-- Semua Status --</option>
+                        {% for value, label in status_choices %}
+                            <option value="{{ value }}" {% if current_status == value %}selected{% endif %}>
+                                {{ label }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Dari Tanggal</label>
+                    <input type="date" name="date_from" class="form-control" value="{{ current_date_from }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Sampai Tanggal</label>
+                    <input type="date" name="date_to" class="form-control" value="{{ current_date_to }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">&nbsp;</label>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary flex-grow-1">
+                            <i class="bi bi-funnel"></i> Filter
+                        </button>
+                        <a href="{% url 'meetings:meeting-list' %}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-clockwise"></i>
+                        </a>
+                    </div>
+                </div>
+            </form>
+
+            <!-- Search Bar -->
+            <div class="mt-3">
+                <form method="GET" class="input-group">
+                    <span class="input-group-text">
+                        <i class="bi bi-search"></i>
+                    </span>
+                    <input type="text" name="search" class="form-control" placeholder="Cari agenda..." 
+                           value="{{ current_search }}">
+                    <button type="submit" class="btn btn-outline-secondary">Cari</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Meetings Table -->
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th style="width: 15%;">No. Dokumen</th>
+                        <th style="width: 30%;">Agenda</th>
+                        <th style="width: 12%;">Tanggal</th>
+                        <th style="width: 12%;">Hari/Jam</th>
+                        <th style="width: 10%;">Peserta</th>
+                        <th style="width: 12%;">Status</th>
+                        <th style="width: 9%;">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if meetings %}
+                        {% for meeting in meetings %}
+                        <tr>
+                            <td>
+                                <strong>{{ meeting.no_dokumen }}</strong>
+                            </td>
+                            <td style="word-wrap: break-word; white-space: normal; max-width: 300px;">
+                                {{ meeting.agenda }}
+                            </td>
+                            <td>
+                                {{ meeting.tanggal_meeting|date:"d M Y" }}
+                            </td>
+                            <td>
+                                <small class="text-muted">
+                                    {{ meeting.hari }}<br>
+                                    {{ meeting.jam_mulai|time:"H:i" }} - {{ meeting.jam_selesai|time:"H:i" }}
+                                </small>
+                            </td>
+                            <td>
+                                <span class="badge bg-info">{{ meeting.get_peserta_count }}</span>
+                            </td>
+                            <td>
+                                {% if meeting.status == 'draft' %}
+                                    <span class="badge bg-warning text-dark">Draft</span>
+                                {% elif meeting.status == 'final' %}
+                                    <span class="badge bg-primary">Final</span>
+                                {% elif meeting.status == 'closed' %}
+                                    <span class="badge bg-secondary">Closed</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <a href="{% url 'meetings:meeting-detail' meeting.pk %}" 
+                                       class="btn btn-info" title="View">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    {% if meeting.status == 'draft' %}
+                                        <a href="{% url 'meetings:meeting-edit' meeting.pk %}" 
+                                           class="btn btn-warning" title="Edit">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <a href="{% url 'meetings:meeting-delete' meeting.pk %}" 
+                                           class="btn btn-danger" title="Delete">
+                                            <i class="bi bi-trash"></i>
+                                        </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-4">
+                                <i class="bi bi-inbox"></i><br>
+                                Tidak ada meeting ditemukan
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if is_paginated %}
+        <nav aria-label="Page navigation" class="mt-3">
+            <ul class="pagination justify-content-center mb-0">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page=1">First</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+                </li>
+                {% endif %}
+
+                {% for num in page_obj.paginator.page_range %}
+                <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+                    <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                </li>
+                {% endfor %}
+
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">Last</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+    .table-hover tbody tr:hover {
+        background-color: #f8f9fa;
+    }
+    
+    .btn-group-sm .btn {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+    }
+</style>
+{% endblock %}

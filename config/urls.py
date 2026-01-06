@@ -14,6 +14,12 @@ urlpatterns = [
     
     # Preventive Job URLs (V2)
     path('preventive/', include('preventive_jobs.urls', namespace='preventive_jobs')),
+    
+    # Meetings & Notulen URLs (V3)
+    path('meetings/', include('meetings.urls', namespace='meetings')),
+    
+    # Inventory URLs (Spare Parts)
+    path('inventory/', include('inventory.urls', namespace='inventory')),
 ]
 
 # Baris ini tetap di bawah (tidak berubah)

@@ -44,6 +44,8 @@ INSTALLED_APPS = [
     # Aplikasi kita
     'core.apps.CoreConfig', # Nama lengkap aplikasi kita
     'preventive_jobs.apps.PreventiveJobsConfig', # V2 - Preventive Job Management
+    'meetings.apps.MeetingsConfig', # Meetings & Notulen Management
+    'inventory.apps.InventoryConfig', # Inventory Management (Spare Parts)
 ]
 
 MIDDLEWARE = [
@@ -203,7 +205,8 @@ PREVENTIVE_SHARE_SIGN_SALT = 'preventive-checklist-share'
 # Untuk Ngrok/Public URL (set saat production)
 # Format: https://your-ngrok-url.ngrok.io
 # Bisa di-set via environment variable DJANGO_PUBLIC_URL
-DJANGO_PUBLIC_URL = os.environ.get('DJANGO_PUBLIC_URL', 'http://192.168.10.239:4321')
+# CONTOH: https://one-chimp-hardly.ngrok-free.app
+DJANGO_PUBLIC_URL = os.environ.get('DJANGO_PUBLIC_URL', 'https://one-chimp-hardly.ngrok-free.app')
 
 # Untuk Development: Set False untuk disable actual API sending (just generate links)
 # Set True untuk production setelah configure API credentials

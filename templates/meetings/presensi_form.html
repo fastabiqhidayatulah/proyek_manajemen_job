@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Form Presensi - {{ meeting.no_dokumen }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .form-container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h3 {
+            color: #667eea;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 0.95rem;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+        }
+
+        .form-control, .form-select {
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 10px 15px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+
+        .invalid-feedback {
+            display: block;
+            color: #dc3545;
+            font-size: 0.85rem;
+            margin-top: 5px;
+        }
+
+        .btn-submit {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            padding: 12px 30px;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+            color: white;
+        }
+
+        .btn-submit:active {
+            transform: translateY(0);
+        }
+
+        .alert {
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .success-message {
+            display: none;
+            text-align: center;
+        }
+
+        .success-checkmark {
+            font-size: 3rem;
+            color: #28a745;
+            margin-bottom: 15px;
+        }
+
+        .info-box {
+            background: #f0f4ff;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+
+        .info-box strong {
+            color: #667eea;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .info-text {
+            color: #555;
+            font-size: 0.9rem;
+        }
+
+        .spinner-border-sm {
+            width: 1rem;
+            height: 1rem;
+            margin-right: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <!-- Header -->
+        <div class="header">
+            <h3>
+                <i class="bi bi-check2-circle"></i> Form Presensi
+            </h3>
+            <p>{{ meeting.no_dokumen }}</p>
+        </div>
+
+        <!-- Meeting Info -->
+        <div class="info-box">
+            <strong>{{ meeting.agenda }}</strong>
+            <div class="info-text">
+                {% if meeting.tanggal_meeting %}
+                <div><i class="bi bi-calendar-event"></i> {{ meeting.tanggal_meeting|date:"d M Y" }}</div>
+                {% endif %}
+                {% if meeting.jam_mulai %}
+                <div><i class="bi bi-clock"></i> {{ meeting.jam_mulai|time:"H:i" }}
+                    {% if meeting.jam_selesai %}- {{ meeting.jam_selesai|time:"H:i" }}{% endif %}
+                </div>
+                {% endif %}
+                {% if meeting.tempat %}
+                <div><i class="bi bi-geo-alt"></i> {{ meeting.tempat }}</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Error Messages -->
+        {% if error %}
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-circle"></i>
+            <strong>Error:</strong>
+            <div>{{ error }}</div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endif %}
+        
+        {% if warning %}
+        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle"></i>
+            <strong>Peringatan:</strong>
+            <div>{{ warning }}</div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endif %}
+        
+        {% if form.non_field_errors %}
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-circle"></i>
+            <strong>Error:</strong>
+            {% for error in form.non_field_errors %}
+            <div>{{ error }}</div>
+            {% endfor %}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endif %}
+
+        <!-- Form -->
+        <form method="POST" id="presensiForm" class="needs-validation" novalidate>
+            {% csrf_token %}
+
+            <!-- Name Field -->
+            <div class="form-group">
+                <label for="id_nama" class="form-label">
+                    <i class="bi bi-person"></i> Nama Lengkap
+                    <span class="text-danger">*</span>
+                </label>
+                <input type="text" name="nama" id="id_nama" class="form-control" 
+                       placeholder="Masukkan nama lengkap Anda" required>
+                {% if form.nama.errors %}
+                <div class="invalid-feedback d-block">
+                    {{ form.nama.errors.0 }}
+                </div>
+                {% endif %}
+                <small class="form-text text-muted">Contoh: Budi Santoso</small>
+            </div>
+
+            <!-- NIK Field -->
+            <div class="form-group">
+                <label for="id_nik" class="form-label">
+                    <i class="bi bi-card-text"></i> NIK / No. ID
+                </label>
+                <input type="text" name="nik" id="id_nik" class="form-control" 
+                       placeholder="NIK Karyawan (opsional)" maxlength="20">
+                {% if form.nik.errors %}
+                <div class="invalid-feedback d-block">
+                    {{ form.nik.errors.0 }}
+                </div>
+                {% endif %}
+                <small class="form-text text-muted">Contoh: 1234567890 (opsional)</small>
+            </div>
+
+            <!-- Bagian/Divisi Field -->
+            <div class="form-group">
+                <label for="id_bagian" class="form-label">
+                    <i class="bi bi-building"></i> Divisi / Bagian
+                </label>
+                <input type="text" name="bagian" id="id_bagian" class="form-control" 
+                       placeholder="Masukkan divisi/bagian Anda">
+                {% if form.bagian.errors %}
+                <div class="invalid-feedback d-block">
+                    {{ form.bagian.errors.0 }}
+                </div>
+                {% endif %}
+                <small class="form-text text-muted">Contoh: Engineering (opsional)</small>
+            </div>
+
+            <!-- Submit Button -->
+            <button type="submit" class="btn btn-submit">
+                <i class="bi bi-check-circle"></i> Daftar Kehadiran
+            </button>
+        </form>
+
+        <!-- Success Message -->
+        <div class="success-message">
+            <div class="success-checkmark">
+                <i class="bi bi-check-circle-fill"></i>
+            </div>
+            <h5 style="color: #28a745;">Terima Kasih!</h5>
+            <p style="color: #666;">Presensi Anda telah terdaftar dengan baik.</p>
+            <p style="color: #999; font-size: 0.9rem;">Halaman akan ditutup dalam 3 detik...</p>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Check if success message should be shown
+        const urlParams = new URLSearchParams(window.location.search);
+        const isSuccess = '{{ success }}' === 'True';
+        
+        if (isSuccess) {
+            document.getElementById('presensiForm').style.display = 'none';
+            document.querySelector('.info-box').style.display = 'none';
+            document.querySelector('.header').style.display = 'none';
+            document.querySelector('.success-message').style.display = 'block';
+            
+            setTimeout(function() {
+                window.close();
+            }, 3000);
+        }
+        
+        // Form validation
+        const form = document.getElementById('presensiForm');
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                // HTML5 validation
+                if (!form.checkValidity()) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+                form.classList.add('was-validated');
+            });
+        }
+    </script>
+</body>
+</html>

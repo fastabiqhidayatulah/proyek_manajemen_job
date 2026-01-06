@@ -1,0 +1,1045 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ meeting.no_dokumen }} - {{ meeting.agenda }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4 mb-5">
+    <div class="row">
+        <!-- Left Column: Meeting Info & Peserta -->
+        <div class="col-lg-8">
+            <!-- Meeting Header -->
+            <div class="card mb-4 border-top border-top-3" style="border-top-color: #0d6efd !important;">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h4 class="card-title">{{ meeting.no_dokumen }}</h4>
+                            <p class="card-text text-muted mb-3">{{ meeting.agenda }}</p>
+                            <div class="d-flex gap-3 flex-wrap">
+                                <div>
+                                    <small class="text-muted">Tanggal:</small>
+                                    <div>
+                                        <i class="bi bi-calendar-event"></i>
+                                        {{ meeting.tanggal_meeting|date:"d M Y" }} - {{ meeting.hari }}
+                                    </div>
+                                </div>
+                                <div>
+                                    <small class="text-muted">Waktu:</small>
+                                    <div>
+                                        <i class="bi bi-clock"></i>
+                                        {{ meeting.jam_mulai|time:"H:i" }} - {{ meeting.jam_selesai|time:"H:i" }}
+                                    </div>
+                                </div>
+                                <div>
+                                    <small class="text-muted">Lokasi:</small>
+                                    <div>
+                                        <i class="bi bi-geo-alt"></i> {{ meeting.tempat }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <span class="badge
+                                {% if meeting.status == 'draft' %}
+                                    bg-warning
+                                {% elif meeting.status == 'final' %}
+                                    bg-primary
+                                {% elif meeting.status == 'closed' %}
+                                    bg-secondary
+                                {% endif %}
+                                ">
+                                {{ meeting.get_status_display }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons (Draft only) -->
+            {% if meeting.status == 'draft' %}
+            <div class="d-flex gap-2 mb-4">
+                <a href="{% url 'meetings:meeting-edit' meeting.pk %}" class="btn btn-sm btn-warning">
+                    <i class="bi bi-pencil"></i> Edit
+                </a>
+                <form method="POST" action="{% url 'meetings:meeting-finalize' meeting.pk %}" style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('Finalisir meeting ini?')">
+                        <i class="bi bi-check-circle"></i> Finalisir
+                    </button>
+                </form>
+                <a href="{% url 'meetings:meeting-delete' meeting.pk %}" class="btn btn-sm btn-danger">
+                    <i class="bi bi-trash"></i> Hapus
+                </a>
+            </div>
+            {% elif meeting.status == 'final' %}
+            <div class="d-flex gap-2 mb-4">
+                <button type="button" class="btn btn-sm btn-success" id="exportSheetsBtn" data-meeting-id="{{ meeting.pk }}">
+                    <i class="bi bi-file-pdf"></i> Export to PDF
+                </button>
+                <a href="{% url 'meetings:export-pdf-v2' meeting.pk %}" class="btn btn-sm btn-primary">
+                    <i class="bi bi-file-pdf"></i> Export PDF v2 (Lengkap)
+                </a>
+                <form method="POST" action="{% url 'meetings:meeting-close' meeting.pk %}" style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-secondary" onclick="return confirm('Tutup meeting ini?')">
+                        <i class="bi bi-lock"></i> Tutup Meeting
+                    </button>
+                </form>
+            </div>
+            {% endif %}
+
+            <!-- Notes Section -->
+            {% if meeting.notes %}
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h6 class="card-title mb-3">
+                        <i class="bi bi-chat-left"></i> Catatan
+                    </h6>
+                    <p class="card-text">{{ meeting.notes|linebreaks }}</p>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Peserta Section -->
+            <div class="card mb-4">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">
+                        <i class="bi bi-people-fill"></i> Peserta ({{ peserta_list|length }})
+                    </h6>
+                    {% if meeting.status == 'draft' %}
+                    <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addPesertaModal">
+                        <i class="bi bi-plus"></i> Tambah
+                    </button>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    {% if peserta_list %}
+                    <div class="table-responsive" style="overflow: visible !important;">
+                        <table class="table table-hover mb-0" style="position: relative;">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Nama</th>
+                                    <th>Divisi</th>
+                                    <th>Status Kehadiran</th>
+                                    <th class="text-center">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for peserta in peserta_list %}
+                                <tr>
+                                    <td>
+                                        {% if peserta.tipe_peserta == 'internal' and peserta.peserta %}
+                                            <strong>{{ peserta.peserta.get_full_name }}</strong>
+                                        {% else %}
+                                            <strong>{{ peserta.nama }}</strong>
+                                        {% endif %}
+                                        {% if peserta.tipe_peserta == 'internal' %}
+                                        <span class="badge bg-info">Internal</span>
+                                        {% else %}
+                                        <span class="badge bg-warning">External</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if peserta.tipe_peserta == 'external' %}
+                                            {{ peserta.bagian|default:"-" }}
+                                        {% else %}
+                                            {{ peserta.peserta.jabatan.nama_jabatan|default:"-" }}
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if meeting.status == 'draft' %}
+                                            <div class="dropdown" style="display: inline-block; position: relative;">
+                                                <button class="btn btn-sm badge
+                                                    {% if peserta.status_kehadiran == 'hadir' %}
+                                                        bg-success
+                                                    {% elif peserta.status_kehadiran == 'absen' or peserta.status_kehadiran == 'alpa' %}
+                                                        bg-danger
+                                                    {% elif peserta.status_kehadiran == 'izin' %}
+                                                        bg-warning
+                                                    {% else %}
+                                                        bg-secondary
+                                                    {% endif %}
+                                                    " 
+                                                    dropdown-toggle-status 
+                                                    data-peserta-id="{{ peserta.pk }}" 
+                                                    data-current-status="{{ peserta.status_kehadiran }}" 
+                                                    style="border: none; cursor: pointer;">
+                                                    {{ peserta.get_status_kehadiran_display }}
+                                                </button>
+                                                <ul class="dropdown-menu dropdown-menu-status" style="display: none; position: absolute; top: 100%; left: 0; list-style: none; padding: 0; margin: 0; min-width: 120px;">
+                                                    <li><a class="dropdown-item status-option" href="#" data-status="belum">Belum Diisi</a></li>
+                                                    <li><a class="dropdown-item status-option" href="#" data-status="hadir">Hadir</a></li>
+                                                    <li><a class="dropdown-item status-option" href="#" data-status="izin">Izin</a></li>
+                                                    <li><a class="dropdown-item status-option" href="#" data-status="alpa">Alpa</a></li>
+                                                </ul>
+                                            </div>
+                                        {% else %}
+                                            <span class="badge
+                                                {% if peserta.status_kehadiran == 'hadir' %}
+                                                    bg-success
+                                                {% elif peserta.status_kehadiran == 'absen' or peserta.status_kehadiran == 'alpa' %}
+                                                    bg-danger
+                                                {% elif peserta.status_kehadiran == 'izin' %}
+                                                    bg-warning
+                                                {% else %}
+                                                    bg-secondary
+                                                {% endif %}
+                                                ">
+                                                {{ peserta.get_status_kehadiran_display }}
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        {% if meeting.status == 'draft' %}
+                                        <form method="POST" action="{% url 'meetings:meeting-delete-peserta' peserta.pk %}" style="display: inline;" onsubmit="return confirm('Hapus peserta ini?');">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-sm btn-link text-danger" title="Hapus Peserta">
+                                                <i class="bi bi-x"></i>
+                                            </button>
+                                        </form>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted mb-0">Belum ada peserta terdaftar</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Notulen Items Section -->
+            <div class="card">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">
+                        <i class="bi bi-list-check"></i> Notulen Items / Action Items ({{ notulen_items|length }})
+                    </h6>
+                    {% if meeting.status == 'draft' %}
+                    <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#notulenAddModal">
+                        <i class="bi bi-plus"></i> Tambah Item
+                    </button>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive" id="notulen-table-container" {% if not notulen_items %}style="display: none;"{% endif %}>
+                        <table class="table table-sm mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th width="40px">#</th>
+                                    <th>Deskripsi</th>
+                                    <th>Tanggapan / Detail</th>
+                                    <th>PIC</th>
+                                    <th>Target Date</th>
+                                    <th>Status</th>
+                                    <th width="100px" class="text-center">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody class="notulen-tbody">
+                                {% for item in notulen_items %}
+                                <tr data-item-id="{{ item.pk }}">
+                                    <td><strong>{{ item.no }}</strong></td>
+                                    <td>
+                                        {{ item.pokok_bahasan }}
+                                        {% if item.status == 'overdue' %}
+                                        <span class="badge bg-danger">OVERDUE</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">{{ item.tanggapan|default:"" }}</small>
+                                    </td>
+                                    <td>
+                                        {% if item.pic %}
+                                            {{ item.pic.get_full_name }}
+                                            <br>
+                                            <small class="text-muted">@{{ item.pic.username }}</small>
+                                        {% elif item.pic_eksternal %}
+                                            {{ item.pic_eksternal }} (Eksternal)
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {{ item.target_deadline|date:"d M Y" }}
+                                    </td>
+                                    <td>
+                                        <span class="badge
+                                            {% if item.status == 'open' %}
+                                                bg-warning
+                                            {% elif item.status == 'progress' %}
+                                                bg-info
+                                            {% elif item.status == 'done' %}
+                                                bg-success
+                                            {% elif item.status == 'overdue' %}
+                                                bg-danger
+                                            {% endif %}
+                                            ">
+                                            {{ item.get_status_display }}
+                                        </span>
+                                        {% if item.status == 'progress' and item.job_created %}
+                                            <br>
+                                            <small class="badge bg-light text-dark mt-1">
+                                                {{ item.job_created.get_progress_percent }}%
+                                            </small>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        {% if meeting.status == 'draft' %}
+                                        <button type="button" class="btn btn-xs btn-sm btn-link text-primary edit-notulen-btn" 
+                                                data-item-id="{{ item.pk }}"
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#notulenAddModal"
+                                                title="Edit">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-xs btn-sm btn-link text-danger delete-notulen-btn" 
+                                                data-item-id="{{ item.pk }}"
+                                                data-item-title="{{ item.pokok_bahasan|truncatewords:5 }}"
+                                                title="Hapus">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                        {% endif %}
+                                        
+                                        <!-- VIEW JOB Link - jika job sudah dibuat -->
+                                        {% if item.job_created %}
+                                        <a href="{% if item.job_created.tipe_job == 'Daily' %}{% url 'core:daily_job_detail' item.job_created.id %}{% else %}{% url 'core:project_job_detail' item.job_created.id %}{% endif %}" 
+                                           class="btn btn-xs btn-sm btn-link text-info"
+                                           title="Lihat detail job"
+                                           data-bs-toggle="tooltip">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        {% endif %}
+                                        
+                                        <!-- CREATE JOB Button -->
+                                        {% if item.status != 'done' and not item.job_created %}
+                                        <a href="{% url 'meetings:create-job-from-notulen' item.pk %}" 
+                                           class="btn btn-xs btn-sm btn-link text-success"
+                                           title="Buat Job dari item ini"
+                                           data-bs-toggle="tooltip">
+                                            <i class="bi bi-arrow-right-circle"></i>
+                                        </a>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <p class="text-muted mb-0" id="notulen-empty-msg" {% if notulen_items %}style="display: none;"{% endif %}>Belum ada notulen items</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: QR Code & Info -->
+        <div class="col-lg-4">
+            <!-- QR Code Card -->
+            <div class="card mb-4 sticky-top" style="top: 20px;">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0">
+                        <i class="bi bi-qr-code"></i> QR Code Presensi
+                    </h6>
+                </div>
+                <div class="card-body text-center">
+                    {% if meeting.qr_code_token %}
+                    <div class="mb-3">
+                        <img src="{{ qr_image }}" alt="QR Code" class="img-fluid" style="max-width: 250px;">
+                    </div>
+                    <p class="text-muted small mb-2">Token: <code>{{ meeting.qr_code_token }}</code></p>
+                    {% if meeting.qr_code_active %}
+                    <div class="alert alert-success mb-2">
+                        <i class="bi bi-check-circle"></i> QR Code Aktif
+                    </div>
+                    {% else %}
+                    <div class="alert alert-warning mb-2">
+                        <i class="bi bi-exclamation-circle"></i> QR Code Nonaktif
+                    </div>
+                    {% endif %}
+
+                    <!-- QR Toggle Button -->
+                    <button class="btn btn-sm
+                        {% if meeting.qr_code_active %}
+                            btn-danger
+                        {% else %}
+                            btn-success
+                        {% endif %}
+                        " id="toggleQRBtn" data-meeting-id="{{ meeting.pk }}">
+                        <i class="bi
+                            {% if meeting.qr_code_active %}
+                                bi-x-circle
+                            {% else %}
+                                bi-check-circle
+                            {% endif %}
+                            "></i>
+                        {% if meeting.qr_code_active %}
+                            Nonaktifkan QR
+                        {% else %}
+                            Aktifkan QR
+                        {% endif %}
+                    </button>
+
+                    <!-- Open Fullscreen QR -->
+                    <a href="{% url 'meetings:qr-display' meeting.qr_code_token %}" class="btn btn-sm btn-outline-primary mt-2" target="_blank">
+                        <i class="bi bi-fullscreen"></i> Fullscreen
+                    </a>
+                    {% else %}
+                    <p class="text-muted">QR Code belum dihasilkan</p>
+                    <button class="btn btn-sm btn-primary" id="generateQRBtn" data-meeting-id="{{ meeting.pk }}">
+                        <i class="bi bi-qr-code"></i> Generate QR
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Meeting Info Card -->
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0">
+                        <i class="bi bi-info-circle"></i> Informasi
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-5">No. Dokumen:</dt>
+                        <dd class="col-sm-7"><code>{{ meeting.no_dokumen }}</code></dd>
+
+                        <dt class="col-sm-5">Status:</dt>
+                        <dd class="col-sm-7">
+                            <span class="badge
+                                {% if meeting.status == 'draft' %}
+                                    bg-warning
+                                {% elif meeting.status == 'final' %}
+                                    bg-primary
+                                {% else %}
+                                    bg-secondary
+                                {% endif %}
+                                ">
+                                {{ meeting.get_status_display }}
+                            </span>
+                        </dd>
+
+                        <dt class="col-sm-5">Pembuat:</dt>
+                        <dd class="col-sm-7">
+                            {% if meeting.created_by %}
+                                {{ meeting.created_by.get_full_name|default:meeting.created_by.username }}
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </dd>
+
+                        <dt class="col-sm-5">Tgl Dibuat:</dt>
+                        <dd class="col-sm-7">{{ meeting.created_at|date:"d M Y H:i" }}</dd>
+
+                        <dt class="col-sm-5">Update Terakhir:</dt>
+                        <dd class="col-sm-7">{{ meeting.updated_at|date:"d M Y H:i" }}</dd>
+
+                        <dt class="col-sm-5">Peserta:</dt>
+                        <dd class="col-sm-7">{{ peserta_list|length }} orang</dd>
+
+                        <dt class="col-sm-5">Items:</dt>
+                        <dd class="col-sm-7">{{ notulen_items|length }} items</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Notulen Item Add/Edit Modal -->
+<div class="modal fade" id="notulenAddModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="notulenModalTitle">Tambah Notulen Item</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="notulenForm" method="POST">
+                {% csrf_token %}
+                <input type="hidden" id="itemId" name="item_id" value="">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="id_pokok_bahasan" class="form-label">
+                            Pokok Bahasan <span class="text-danger">*</span>
+                        </label>
+                        <textarea id="id_pokok_bahasan" name="pokok_bahasan" class="form-control" rows="3" placeholder="Hasil diskusi / keputusan" required></textarea>
+                        <div class="invalid-feedback"></div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="id_tanggapan" class="form-label">
+                            Tanggapan / Detail
+                        </label>
+                        <textarea id="id_tanggapan" name="tanggapan" class="form-control" rows="2" placeholder="Detail tambahan (optional)"></textarea>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="id_pic" class="form-label">
+                                    PIC (dari Sistem)
+                                </label>
+                                <select id="id_pic" name="pic" class="form-select">
+                                    <option value="">-- Tidak ada --</option>
+                                    {% for user in all_users %}
+                                    <option value="{{ user.pk }}">{{ user.get_full_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="id_pic_eksternal" class="form-label">
+                                    PIC Eksternal (Nama Lainnya)
+                                </label>
+                                <input type="text" id="id_pic_eksternal" name="pic_eksternal" class="form-control" placeholder="Nama PIC dari luar">
+                            </div>
+                        </div>
+                    </div>
+                    <small class="text-muted d-block mb-3">Catatan: Isi salah satu dari PIC (dari Sistem atau Eksternal)</small>
+
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="mb-3">
+                                <label for="id_target_deadline" class="form-label">
+                                    Target Deadline <span class="text-danger">*</span>
+                                </label>
+                                <input type="date" id="id_target_deadline" name="target_deadline" class="form-control" required>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                    <button type="submit" class="btn btn-primary" id="notulenSubmitBtn">Tambah Item</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Add Peserta Modal -->
+<div class="modal fade" id="addPesertaModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Tambah Peserta Internal</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{% url 'meetings:meeting-add-peserta' meeting.pk %}" id="addPesertaForm">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="pesertaSelect" class="form-label">Pilih Peserta</label>
+                        <select id="pesertaSelect" name="peserta" class="form-select" required>
+                            <option value="">-- Pilih --</option>
+                            {% for user in available_users %}
+                            <option value="{{ user.pk }}">{{ user.get_full_name }} @{{ user.username }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                    <button type="submit" class="btn btn-primary">Tambah</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Status dropdown init...');
+    
+    // Status dropdown functionality
+    const statusButtons = document.querySelectorAll('[dropdown-toggle-status]');
+    console.log('Found status buttons:', statusButtons.length);
+    
+    statusButtons.forEach((button, idx) => {
+        console.log('Button', idx, ':', button.textContent.trim());
+        
+        // Find dropdown menu (should be next ul)
+        const dropdown = button.parentElement.querySelector('.dropdown-menu-status');
+        console.log('Dropdown found:', !!dropdown);
+        
+        if (!dropdown) {
+            console.error('Dropdown menu not found for button', idx);
+            return;
+        }
+        
+        // Button click handler
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('Button clicked, toggling dropdown');
+            dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+        });
+        
+        // Handle status option click
+        const options = dropdown.querySelectorAll('.status-option');
+        console.log('Found options:', options.length);
+        
+        options.forEach(option => {
+            option.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const newStatus = this.dataset.status;
+                const pesertaId = button.dataset.pesertaId;
+                
+                console.log('Updating status to:', newStatus, 'for peserta:', pesertaId);
+                
+                // AJAX update
+                fetch(`/meetings/peserta/${pesertaId}/status/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || ''
+                    },
+                    body: `status_kehadiran=${newStatus}`
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Response:', data);
+                    if (data.success) {
+                        // Update button text
+                        const statusText = option.textContent.trim();
+                        button.textContent = statusText;
+                        
+                        // Update button color
+                        button.className = 'btn btn-sm badge';
+                        if (newStatus === 'hadir') {
+                            button.classList.add('bg-success');
+                        } else if (newStatus === 'absen' || newStatus === 'alpa') {
+                            button.classList.add('bg-danger');
+                        } else if (newStatus === 'izin') {
+                            button.classList.add('bg-warning');
+                        } else {
+                            button.classList.add('bg-secondary');
+                        }
+                        button.style.cursor = 'pointer';
+                        button.style.border = 'none';
+                        
+                        // Close dropdown
+                        dropdown.style.display = 'none';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error updating status');
+                });
+            });
+        });
+    });
+    
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!e.target.matches('[dropdown-toggle-status]')) {
+            document.querySelectorAll('.dropdown-menu-status').forEach(menu => {
+                menu.style.display = 'none';
+            });
+        }
+    });
+    
+    console.log('Status dropdown init complete');
+    
+    // Notulen Item Modal Handling
+    const notulenForm = document.getElementById('notulenForm');
+    const notulenModal = document.getElementById('notulenAddModal');
+    const notulenModalBS = new bootstrap.Modal(notulenModal);
+    
+    // Reset form when add new, or fetch data when edit
+    notulenModal.addEventListener('show.bs.modal', function(e) {
+        const trigger = e.relatedTarget;
+        const itemId = trigger?.getAttribute('data-item-id');
+        
+        if (!itemId) {
+            // Add mode - reset form
+            notulenForm.reset();
+            document.getElementById('itemId').value = '';
+            document.getElementById('id_pic').value = '';
+            document.getElementById('id_pic_eksternal').value = '';
+            document.getElementById('notulenModalTitle').textContent = 'Tambah Notulen Item';
+            document.getElementById('notulenSubmitBtn').textContent = 'Tambah Item';
+        } else {
+            // Edit mode - fetch data dan populate form
+            console.log('Edit mode - fetching item data:', itemId);
+            
+            fetch(`/meetings/notulen/${itemId}/`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Fetched item data:', data);
+                
+                if (data.success) {
+                    // Populate form fields
+                    document.getElementById('itemId').value = data.item_id;
+                    document.getElementById('id_pokok_bahasan').value = data.pokok_bahasan;
+                    document.getElementById('id_tanggapan').value = data.tanggapan || '';
+                    document.getElementById('id_pic').value = data.pic_id || '';
+                    document.getElementById('id_pic_eksternal').value = data.pic_eksternal || '';
+                    document.getElementById('id_target_deadline').value = data.target_deadline;
+                    
+                    // Update modal title dan button
+                    document.getElementById('notulenModalTitle').textContent = `Edit Item #${data.no}`;
+                    document.getElementById('notulenSubmitBtn').textContent = 'Simpan Perubahan';
+                } else {
+                    alert('Error: ' + (data.error || 'Tidak bisa fetch data'));
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching item:', error);
+                alert('Error loading item data');
+            });
+        }
+    });
+    
+    // Form submit
+    notulenForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        const meetingId = '{{ meeting.pk }}';
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+        
+        console.log('Submitting notulen form...', {
+            meetingId,
+            pokok_bahasan: formData.get('pokok_bahasan'),
+            pic: formData.get('pic'),
+            target_deadline: formData.get('target_deadline')
+        });
+        
+        fetch(`/meetings/${meetingId}/notulen/save/`, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': csrfToken
+            }
+        })
+        .then(async r => {
+            const text = await r.text();
+            console.log('Response status:', r.status);
+            console.log('Response text:', text);
+            
+            try {
+                return JSON.parse(text);
+            } catch(e) {
+                throw new Error(`Invalid JSON response: ${text}`);
+            }
+        })
+        .then(data => {
+            console.log('Response data:', data);
+            if (data.success) {
+                console.log('Item saved successfully');
+                notulenModalBS.hide();
+                // Append or update row
+                addOrUpdateNotulenRow(data);
+                // Reset form
+                notulenForm.reset();
+            } else {
+                alert('Error: ' + (data.error || 'Unknown error'));
+            }
+        })
+        .catch(e => {
+            console.error('Submit error:', e);
+            alert('Error: ' + e.message);
+        });
+    });
+    
+    // Delete notulen item (event delegation)
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.delete-notulen-btn')) {
+            e.preventDefault();
+            const btn = e.target.closest('.delete-notulen-btn');
+            const itemId = btn.getAttribute('data-item-id');
+            const title = btn.getAttribute('data-item-title');
+            
+            if (confirm(`Hapus item: "${title}"?`)) {
+                fetch(`/meetings/notulen/${itemId}/delete-ajax/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || ''
+                    }
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        const row = document.querySelector(`tr[data-item-id="${itemId}"]`);
+                        if (row) {
+                            row.remove();
+                        }
+                    } else {
+                        alert('Error: ' + (data.error || 'Unknown error'));
+                    }
+                })
+                .catch(e => {
+                    console.error('Delete error:', e);
+                    alert('Error deleting notulen item');
+                });
+            }
+        }
+    });
+    
+    function addOrUpdateNotulenRow(data) {
+        const tbody = document.querySelector('.notulen-tbody');
+        const tableContainer = document.querySelector('#notulen-table-container');
+        const emptyMsg = document.querySelector('#notulen-empty-msg');
+        
+        console.log('Looking for tbody:', tbody);
+        console.log('Table container:', tableContainer);
+        console.log('Empty msg:', emptyMsg);
+        
+        if (!tbody) {
+            console.error('Table tbody .notulen-tbody not found!');
+            alert('Error: Table not found. Please refresh page.');
+            return;
+        }
+        
+        const existingRow = document.querySelector(`tr[data-item-id="${data.item_id}"]`);
+        
+        // Handle pic display - untuk sistem atau eksternal
+        let picDisplay = data.pic_name;
+        if (data.pic_username) {
+            picDisplay += `<br><small class="text-muted">@${data.pic_username}</small>`;
+        }
+        
+        const rowHtml = `
+            <tr data-item-id="${data.item_id}">
+                <td><strong>${data.no}</strong></td>
+                <td>
+                    ${data.pokok_bahasan}
+                    ${data.status === 'Overdue' ? '<span class="badge bg-danger">OVERDUE</span>' : ''}
+                </td>
+                <td>
+                    <small class="text-muted">${data.tanggapan || ''}</small>
+                </td>
+                <td>${picDisplay}</td>
+                <td>${data.target_deadline}</td>
+                <td><span class="badge bg-${data.status_badge_color}">${data.status}</span></td>
+                <td class="text-center">
+                    <button type="button" class="btn btn-xs btn-sm btn-link text-primary edit-notulen-btn" 
+                            data-item-id="${data.item_id}"
+                            data-bs-toggle="modal" 
+                            data-bs-target="#notulenAddModal"
+                            title="Edit">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <button type="button" class="btn btn-xs btn-sm btn-link text-danger delete-notulen-btn" 
+                            data-item-id="${data.item_id}"
+                            data-item-title="${data.pokok_bahasan}"
+                            title="Hapus">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+        
+        console.log('Adding/updating row:', rowHtml);
+        
+        if (existingRow) {
+            console.log('Updating existing row');
+            existingRow.outerHTML = rowHtml;
+        } else {
+            console.log('Adding new row to tbody');
+            tbody.insertAdjacentHTML('beforeend', rowHtml);
+        }
+        
+        // Show table, hide empty message
+        if (tableContainer) tableContainer.style.display = '';
+        if (emptyMsg) emptyMsg.style.display = 'none';
+        
+        console.log('Row added/updated successfully');
+    }
+    
+    // Generate QR Code
+    const generateQRBtn = document.getElementById('generateQRBtn');
+    if (generateQRBtn) {
+        generateQRBtn.addEventListener('click', function() {
+            const meetingId = this.dataset.meetingId;
+            fetch(`/meetings/${meetingId}/qr-code/generate/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || ''
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error generating QR code');
+            });
+        });
+    }
+
+    // Toggle QR Code
+    const toggleQRBtn = document.getElementById('toggleQRBtn');
+    if (toggleQRBtn) {
+        toggleQRBtn.addEventListener('click', function() {
+            const meetingId = this.dataset.meetingId;
+            fetch(`/meetings/${meetingId}/qr-code/toggle/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || ''
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error toggling QR code');
+            });
+        });
+    }
+});
+</script>
+
+<style>
+    .btn-xs {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+    }
+
+    .sticky-top {
+        z-index: 100;
+    }
+
+    code {
+        background-color: #f8f9fa;
+        padding: 0.2rem 0.4rem;
+        border-radius: 3px;
+    }
+    
+    /* Status dropdown styling */
+    [dropdown-toggle-status] {
+        cursor: pointer !important;
+        border: none !important;
+    }
+    
+    /* Dropdown container - allow overflow */
+    .dropdown {
+        position: relative !important;
+        display: inline-block !important;
+    }
+    
+    .dropdown-menu-status {
+        position: absolute !important;
+        background: white !important;
+        border: 1px solid #ddd !important;
+        border-radius: 4px !important;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
+        z-index: 9999 !important;
+        min-width: 140px !important;
+        top: 100% !important;
+        left: 0 !important;
+        margin-top: 4px !important;
+        list-style: none !important;
+        padding: 0 !important;
+        margin: 4px 0 0 0 !important;
+    }
+    
+    .dropdown-menu-status .status-option {
+        display: block !important;
+        padding: 10px 12px !important;
+        color: #333 !important;
+        text-decoration: none !important;
+        border: none !important;
+        background: none !important;
+        width: 100% !important;
+        text-align: left !important;
+        cursor: pointer !important;
+        font-size: 14px !important;
+    }
+    
+    .dropdown-menu-status .status-option:hover {
+        background-color: #f5f5f5 !important;
+    }
+    
+    .dropdown-menu-status .status-option:first-child {
+        border-radius: 4px 4px 0 0 !important;
+    }
+    
+    .dropdown-menu-status .status-option:last-child {
+        border-radius: 0 0 4px 4px !important;
+    }
+    
+    /* Table overflow fix */
+    .table-responsive {
+        overflow: visible !important;
+    }
+    
+    table td {
+        overflow: visible !important;
+    }
+</style>
+
+<script>
+// Export to PDF
+document.addEventListener('DOMContentLoaded', function() {
+    const exportBtn = document.getElementById('exportSheetsBtn');
+    if (exportBtn) {
+        exportBtn.addEventListener('click', function() {
+            const meetingId = this.dataset.meetingId;
+            
+            // Show loading state
+            this.disabled = true;
+            this.innerHTML = '<i class="bi bi-hourglass-split"></i> Generating PDF...';
+            
+            // Trigger direct download
+            window.location.href = `/meetings/${meetingId}/export-pdf/`;
+            
+            // Reset button after a short delay
+            setTimeout(() => {
+                this.disabled = false;
+                this.innerHTML = '<i class="bi bi-file-pdf"></i> Export to PDF';
+            }, 2000);
+            
+            // Show toast notification
+            const toast = document.createElement('div');
+            toast.className = 'toast align-items-center text-white bg-success border-0';
+            toast.innerHTML = `
+                <div class="d-flex">
+                    <div class="toast-body">
+                        ✓ PDF generated and downloading...
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            `;
+            
+            // Add to page and show
+            const toastContainer = document.getElementById('toastContainer') || (() => {
+                const container = document.createElement('div');
+                container.id = 'toastContainer';
+                container.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+                document.body.appendChild(container);
+                return container;
+            })();
+            
+            toastContainer.appendChild(toast);
+            const bsToast = new bootstrap.Toast(toast);
+            bsToast.show();
+        });
+    }
+});
+</script>
+
+
+{% endblock %}

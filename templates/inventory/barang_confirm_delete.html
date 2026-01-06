@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Hapus Barang - {{ object.nama }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <!-- Alert Danger -->
+            <div class="alert alert-danger" role="alert">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+                <strong>Peringatan!</strong>
+                <p style="margin-top: 10px; margin-bottom: 0;">
+                    Anda akan menghapus barang: <strong>{{ object.nama }}</strong> ({{ object.kode }})
+                </p>
+                <small style="color: #721c24;">Aksi ini tidak dapat dibatalkan!</small>
+            </div>
+
+            <!-- Card -->
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <i class="bi bi-trash"></i> Hapus Barang
+                </div>
+                <div class="card-body">
+                    <!-- Info Barang -->
+                    <div class="mb-4">
+                        <h5>Informasi Barang</h5>
+                        <table class="table table-sm table-borderless">
+                            <tr>
+                                <td style="width: 150px;"><strong>Kode</strong></td>
+                                <td>: {{ object.kode }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Nama</strong></td>
+                                <td>: {{ object.nama }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Kategori</strong></td>
+                                <td>: {{ object.get_kategori_display }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Stok Saat Ini</strong></td>
+                                <td>: <strong>{{ object.stock_level.qty }}</strong> pcs</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Status</strong></td>
+                                <td>: {{ object.get_status_display }}</td>
+                            </tr>
+                        </table>
+                    </div>
+
+                    <!-- Warning -->
+                    <div class="alert alert-warning" role="alert">
+                        <i class="bi bi-info-circle"></i> 
+                        <strong>Apa yang akan terjadi:</strong>
+                        <ul style="margin-top: 10px; margin-bottom: 0;">
+                            <li>Barang akan dihapus dari database</li>
+                            <li>Stok level akan otomatis terhapus juga</li>
+                            <li>Data tidak dapat dipulihkan</li>
+                        </ul>
+                    </div>
+
+                    <!-- Confirm Message -->
+                    <p style="color: #721c24; margin-bottom: 20px;">
+                        <strong>Pastikan Anda benar-benar ingin menghapus barang ini.</strong>
+                    </p>
+
+                    <!-- Form -->
+                    <form method="POST" style="display: inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger">
+                            <i class="bi bi-trash"></i> Ya, Hapus Barang
+                        </button>
+                        <a href="{% url 'inventory:barang-edit' object.pk %}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> Batal, Kembali
+                        </a>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

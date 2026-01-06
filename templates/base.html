@@ -14,6 +14,14 @@
     <!-- CSS FLATPICKR -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     
+    <!-- jQuery (untuk Select2) -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
+    <!-- Select2 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <!-- Select2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    
     <style>
         /* Perbaikan kecil untuk form login Django */
         .login-form .form-control { margin-bottom: 1rem; }
@@ -23,6 +31,71 @@
             top: 5rem;
             right: 1rem;
             z-index: 1050;
+        }
+        
+        /* Select2 Custom Styling */
+        .select2-container--default .select2-selection--multiple {
+            border: 1px solid #dee2e6;
+            border-radius: 0.375rem;
+            min-height: 200px;
+            padding: 5px;
+            overflow-y: auto;
+        }
+        
+        .select2-container--default .select2-selection--multiple .select2-selection__choice {
+            background-color: #0d6efd;
+            border-color: #0d6efd;
+            color: white;
+            padding: 5px 24px 5px 8px;
+            margin-right: 4px;
+            margin-bottom: 4px;
+            border-radius: 3px;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
+            color: white;
+            margin-right: 8px;
+            cursor: pointer;
+            float: right;
+            font-weight: bold;
+        }
+        
+        .select2-container--default.select2-container--focus .select2-selection--multiple {
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+        }
+        
+        /* Select2 search field */
+        .select2-search__field {
+            padding: 8px 12px !important;
+            height: 38px !important;
+            font-size: 14px !important;
+            border: 1px solid #dee2e6 !important;
+            border-radius: 0.375rem !important;
+            margin-top: 5px !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
+            position: relative !important;
+            z-index: 10 !important;
+        }
+        
+        .select2-search {
+            margin-bottom: 10px;
+            padding: 5px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        /* Select2 dropdown styling */
+        .select2-container--default .select2-results__option {
+            padding: 10px 12px;
+        }
+        
+        .select2-container--default .select2-results__option--highlighted[aria-selected] {
+            background-color: #0d6efd;
         }
         
         /* ===== OVERDUE JOBS HIGHLIGHTING ===== */
@@ -67,10 +140,30 @@
     <!-- Navigasi Bar Utama -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
         <div class="container-fluid">
-            <a class="navbar-brand" href="{% url 'core:dashboard' %}">
-                <i class="bi bi-calendar-check"></i>
-                Manajemen Pekerjaan
-            </a>
+            <!-- DROPDOWN MODULE SELECTOR (pojok kiri atas) -->
+            <div class="dropdown">
+                <button class="navbar-brand btn btn-link dropdown-toggle text-white text-decoration-none" 
+                        type="button" id="moduleDropdown" data-bs-toggle="dropdown" aria-expanded="false"
+                        style="border: none; padding: 0; font-size: 1.25rem;">
+                    <i class="bi bi-calendar-check"></i>
+                    Manajemen Pekerjaan
+                </button>
+                <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="moduleDropdown">
+                    <li>
+                        <a class="dropdown-item {% if request.resolver_match.namespace == 'core' %}active{% endif %}" 
+                           href="{% url 'core:dashboard' %}">
+                            <i class="bi bi-calendar-check"></i> Manajemen Pekerjaan
+                        </a>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <a class="dropdown-item {% if request.resolver_match.namespace == 'meetings' %}active{% endif %}" 
+                           href="{% url 'meetings:meeting-list' %}">
+                            <i class="bi bi-chat-left-text"></i> Meetings & Notulen
+                        </a>
+                    </li>
+                </ul>
+            </div>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
@@ -93,13 +186,36 @@
                                 <i class="bi bi-lightning-charge-fill"></i> Preventive
                             </a>
                         </li>
-                        
-                        <!-- MENU "TIM SAYA" -->
+
+                        <!-- MENU "MEETINGS & NOTULEN" (NEW) -->
                         <li class="nav-item">
-                            <a class="nav-link {% if 'manajemen_personil' in request.resolver_match.url_name %}active{% endif %}" 
-                               href="{% url 'core:manajemen_personil' %}">
-                                <i class="bi bi-people-fill"></i> Tim Saya
+                            <a class="nav-link {% if 'meetings' in request.resolver_match.namespace %}active{% endif %}" 
+                               href="{% url 'meetings:meeting-list' %}">
+                                <i class="bi bi-chat-left-text"></i> Meetings
                             </a>
+                        </li>
+
+                        <!-- MENU "INVENTORY" (with dropdown) -->
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle {% if 'inventory' in request.resolver_match.namespace %}active{% endif %}" 
+                               href="#" id="inventoryDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-box-seam"></i> Inventory
+                            </a>
+                            <ul class="dropdown-menu" aria-labelledby="inventoryDropdown">
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'inventory:barang-list' %}">
+                                        <i class="bi bi-list-check"></i> Daftar Barang
+                                    </a>
+                                </li>
+                                {% if user.is_staff or user.groups.count %}
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'inventory:barang-import' %}">
+                                        <i class="bi bi-upload"></i> Import Barang
+                                    </a>
+                                </li>
+                                {% endif %}
+                            </ul>
                         </li>
                         
                         <!-- MENU "DAFTAR PROJECT" -->
@@ -232,6 +348,11 @@
                                 <li>
                                     <a class="dropdown-item" href="{% url 'core:profile_edit' %}">
                                         <i class="bi bi-pencil"></i> Edit Profil
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'core:manajemen_personil' %}">
+                                        <i class="bi bi-people-fill"></i> Tim Saya
                                     </a>
                                 </li>
                                 <li><hr class="dropdown-divider"></li>

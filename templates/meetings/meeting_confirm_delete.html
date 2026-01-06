@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Hapus Meeting - {{ meeting.no_dokumen }}{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-lg-6 offset-lg-3">
+            <div class="card border-danger">
+                <div class="card-body text-center">
+                    <div class="mb-4">
+                        <i class="bi bi-exclamation-triangle" style="font-size: 3rem; color: #dc3545;"></i>
+                    </div>
+
+                    <h4 class="card-title">Hapus Meeting?</h4>
+                    <p class="card-text mb-3">
+                        Anda akan menghapus meeting berikut:
+                    </p>
+
+                    <!-- Meeting Info -->
+                    <div class="alert alert-light mb-4" style="border: 2px solid #f0f0f0;">
+                        <h6 class="mb-2">{{ meeting.no_dokumen }}</h6>
+                        <p class="mb-2"><strong>{{ meeting.agenda }}</strong></p>
+                        <small class="text-muted">
+                            <i class="bi bi-calendar-event"></i> {{ meeting.tanggal_meeting|date:"d M Y" }}<br>
+                            <i class="bi bi-clock"></i> {{ meeting.jam_mulai|time:"H:i" }} - {{ meeting.jam_selesai|time:"H:i" }}
+                        </small>
+                    </div>
+
+                    <div class="alert alert-warning mb-4">
+                        <i class="bi bi-exclamation-circle"></i>
+                        <small>
+                            <strong>Catatan:</strong> Tindakan ini tidak bisa dibatalkan. 
+                            Semua data peserta dan notulen item akan dihapus juga.
+                        </small>
+                    </div>
+
+                    <!-- Conditions -->
+                    {% if can_delete %}
+                    <!-- Delete Form -->
+                    <form method="POST" style="display: inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger btn-lg me-2" 
+                                onclick="return confirm('Yakin ingin menghapus meeting ini? Tindakan tidak bisa dibatalkan!')">
+                            <i class="bi bi-trash"></i> Ya, Hapus
+                        </button>
+                    </form>
+                    <a href="{% url 'meetings:meeting-detail' meeting.pk %}" class="btn btn-secondary btn-lg">
+                        <i class="bi bi-x-circle"></i> Batal
+                    </a>
+                    {% else %}
+                    <div class="alert alert-danger">
+                        <i class="bi bi-lock"></i>
+                        <strong>Tidak Bisa Dihapus</strong><br>
+                        <small>Hanya meeting dengan status DRAFT yang bisa dihapus.</small>
+                    </div>
+                    <a href="{% url 'meetings:meeting-detail' meeting.pk %}" class="btn btn-primary">
+                        <i class="bi bi-arrow-left"></i> Kembali
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

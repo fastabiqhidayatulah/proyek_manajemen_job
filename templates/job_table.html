@@ -134,7 +134,13 @@ window.jobAttachments[{{ data.id }}] = [
     {% endfor %}
 ];
 </script>
-<td class="text-center">{% if data|can_edit_job:request.user %}<a href="{% url 'core:job_edit' data.id %}" class="btn btn-sm btn-outline-warning py-0 px-1" title="Edit Job"><i class="bi bi-pencil"></i></a> <a href="{% url 'core:job_delete' data.id %}" class="btn btn-sm btn-outline-danger py-0 px-1" title="Hapus Job" onclick="return confirm('Anda yakin ingin menghapus job: {{ data.nama_pekerjaan }}?')"><i class="bi bi-trash"></i></a>{% endif %}</td>
+<td class="text-center">
+    <a href="{% if data.tipe_job == 'Project' %}{% url 'core:project_job_detail' data.id %}{% else %}{% url 'core:daily_job_detail' data.id %}{% endif %}" class="btn btn-sm btn-outline-primary py-0 px-1" title="Lihat Detail Job"><i class="bi bi-eye"></i></a>
+    {% if data|can_edit_job:request.user %}
+    <a href="{% url 'core:job_edit' data.id %}" class="btn btn-sm btn-outline-warning py-0 px-1" title="Edit Job"><i class="bi bi-pencil"></i></a>
+    <a href="{% url 'core:job_delete' data.id %}" class="btn btn-sm btn-outline-danger py-0 px-1" title="Hapus Job" onclick="return confirm('Anda yakin ingin menghapus job: {{ data.nama_pekerjaan }}?')"><i class="bi bi-trash"></i></a>
+    {% endif %}
+</td>
 </tr>
 {% empty %}
 <tr><td colspan="13" class="text-center p-4">Tidak ada pekerjaan untuk ditampilkan.</td></tr>

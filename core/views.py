@@ -676,6 +676,17 @@ def update_job_date_status(request, job_date_id):
         if form.is_valid():
             form.save()
             messages.success(request, f"Sukses update status tanggal {job_date.tanggal}!")
+            
+            # Check if job is now 100% complete
+            job = job_date.job
+            progress = job.get_progress_percent()
+            
+            if progress == 100:
+                # Update linked NotulenItem to 'done' if it exists
+                if job.notulen_item:
+                    job.notulen_item.status = 'done'
+                    job.notulen_item.save()
+                    messages.info(request, "Notulen item status updated to Done!")
         else:
             messages.error(request, "Gagal update status.")
             

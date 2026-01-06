@@ -1,0 +1,223 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Import Barang dari Excel{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8">
+            <!-- Header -->
+            <div class="mb-4">
+                <h2 class="mb-0">
+                    <i class="bi bi-upload"></i> Import Barang dari Excel
+                </h2>
+                <p class="text-muted">Upload file Excel untuk menambahkan banyak barang sekaligus</p>
+            </div>
+
+            <!-- Main Card -->
+            <div class="card">
+                <div class="card-body">
+                    <!-- Template Download -->
+                    <div class="alert alert-info" role="alert">
+                        <i class="bi bi-info-circle"></i>
+                        <strong>Panduan:</strong>
+                        <ol style="margin-top: 10px; margin-bottom: 0;">
+                            <li>Download template Excel di bawah</li>
+                            <li>Isi data barang sesuai format</li>
+                            <li>Upload file yang sudah diisi</li>
+                        </ol>
+                    </div>
+
+                    <!-- Template Download Button -->
+                    <div class="mb-4">
+                        <a href="{% static 'templates/Barang_Import_Template.xlsx' %}" 
+                           class="btn btn-info" download>
+                            <i class="bi bi-download"></i> Download Template Excel
+                        </a>
+                    </div>
+
+                    <!-- Upload Form -->
+                    <form method="POST" enctype="multipart/form-data" novalidate>
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.file.id_for_label }}" class="form-label">
+                                File Excel <span class="text-danger">*</span>
+                            </label>
+                            {{ form.file }}
+                            {% if form.file.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.file.errors }}
+                                </div>
+                            {% endif %}
+                            <small class="text-muted d-block mt-2">
+                                Format: .xlsx atau .xls | Ukuran maksimal: 5MB
+                            </small>
+                        </div>
+
+                        <!-- Format Help -->
+                        <div class="card card-body bg-light mb-3">
+                            <h6 class="mb-3"><i class="bi bi-list-check"></i> Format File Excel</h6>
+                            <table class="table table-sm table-borderless mb-0">
+                                <tr>
+                                    <td style="width: 150px;"><strong>Nama Barang</strong></td>
+                                    <td><span class="badge bg-danger">Wajib</span> Nama/tipe barang</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Kategori</strong></td>
+                                    <td>
+                                        <span class="badge bg-danger">Wajib</span>
+                                        Salah satu dari:
+                                        <br>
+                                        <small>
+                                            <code>electrical</code>, <code>mechanical</code>, <code>hydraulic</code>, 
+                                            <code>seals</code>, <code>fasteners</code>, <code>lubricants</code>, <code>consumables</code>
+                                        </small>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Spesifikasi</strong></td>
+                                    <td><span class="badge bg-secondary">Opsional</span> Detail teknis</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Lokasi Penyimpanan</strong></td>
+                                    <td><span class="badge bg-secondary">Opsional</span> Lokasi gudang/rak</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Stok Awal</strong></td>
+                                    <td><span class="badge bg-secondary">Opsional</span> Angka (default: 0)</td>
+                                </tr>
+                            </table>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-cloud-upload"></i> Upload & Import
+                            </button>
+                            <a href="{% url 'inventory:barang-list' %}" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i> Kembali
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Result Section -->
+            {% if has_result %}
+            <div class="card mt-4">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0"><i class="bi bi-check-circle"></i> Hasil Import</h6>
+                </div>
+                <div class="card-body">
+                    <!-- Summary -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="text-center p-3 border rounded" style="background: #d1f2eb;">
+                                <h4 style="color: #10b981; margin-bottom: 5px;">{{ result.success }}</h4>
+                                <p style="color: #059669; margin: 0;">Barang Berhasil Diimport</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="text-center p-3 border rounded" style="background: #fee2e2;">
+                                <h4 style="color: #ef4444; margin-bottom: 5px;">{{ result.failed }}</h4>
+                                <p style="color: #dc2626; margin: 0;">Baris Gagal</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Errors -->
+                    {% if result.errors %}
+                    <div class="alert alert-danger" role="alert">
+                        <strong><i class="bi bi-exclamation-triangle"></i> Error:</strong>
+                        <ul style="margin-top: 10px; margin-bottom: 0;">
+                            {% for error in result.errors %}
+                            <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+
+                    <!-- Failed Rows -->
+                    {% if result.failed_rows %}
+                    <div class="alert alert-warning" role="alert">
+                        <strong><i class="bi bi-exclamation-circle"></i> Detail Baris yang Gagal:</strong>
+                        <div class="mt-3" style="max-height: 300px; overflow-y: auto;">
+                            <table class="table table-sm table-borderless">
+                                <thead>
+                                    <tr style="border-bottom: 2px solid #fbbf24;">
+                                        <th>Baris</th>
+                                        <th>Error</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for failed_row in result.failed_rows %}
+                                    <tr>
+                                        <td><strong>#{{ failed_row.row }}</strong></td>
+                                        <td>{{ failed_row.error }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Next Actions -->
+                    <div class="mt-4 pt-3 border-top">
+                        <p class="mb-3"><strong>Langkah Selanjutnya:</strong></p>
+                        <div class="d-flex gap-2">
+                            <a href="{% url 'inventory:barang-list' %}" class="btn btn-primary">
+                                <i class="bi bi-list-check"></i> Lihat Daftar Barang
+                            </a>
+                            <a href="{% url 'inventory:barang-import' %}" class="btn btn-secondary">
+                                <i class="bi bi-arrow-clockwise"></i> Import Lagi
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Sidebar Info -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-info-circle"></i> Informasi</h6>
+                </div>
+                <div class="card-body">
+                    <h6 class="mb-3">Tips Import:</h6>
+                    <ul style="padding-left: 20px; font-size: 13px;">
+                        <li>Gunakan template Excel yang disediakan</li>
+                        <li>Jangan ubah nama kolom header</li>
+                        <li>Jangan kosongkan Nama Barang dan Kategori</li>
+                        <li>Gunakan kategori yang benar (lihat daftar)</li>
+                        <li>Stok harus berupa angka</li>
+                    </ul>
+
+                    <hr>
+
+                    <h6 class="mb-3">Daftar Kategori:</h6>
+                    <div style="font-size: 12px; line-height: 1.8;">
+                        <p><span class="badge bg-primary">electrical</span> Electrical Components</p>
+                        <p><span class="badge bg-success">mechanical</span> Mechanical Components</p>
+                        <p><span class="badge bg-danger">hydraulic</span> Hydraulic & Pneumatic</p>
+                        <p><span class="badge bg-warning text-dark">seals</span> Seals & Gaskets</p>
+                        <p><span class="badge bg-info">fasteners</span> Fasteners & Hardware</p>
+                        <p><span class="badge bg-secondary">lubricants</span> Lubricants & Fluids</p>
+                        <p><span class="badge bg-dark">consumables</span> Consumables</p>
+                    </div>
+
+                    <hr>
+
+                    <p style="font-size: 12px; color: #6b7280; margin: 0;">
+                        <i class="bi bi-shield-check"></i> Data akan divalidasi sebelum disimpan
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
