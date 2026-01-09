@@ -1,0 +1,185 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Import Tools dari Excel{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2 class="mb-0">
+                <i class="bi bi-upload"></i> Import Tools dari Excel
+            </h2>
+            <small class="text-muted">Upload file Excel untuk menambah banyak alat sekaligus</small>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{% url 'toolkeeper:tool-list' %}" class="btn btn-secondary btn-sm">
+                <i class="bi bi-arrow-left"></i> Kembali
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Upload Form -->
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0"><i class="bi bi-file-earmark-excel"></i> Upload File Excel</h6>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.excel_file.id_for_label }}" class="form-label">
+                                {{ form.excel_file.label }} <span class="text-danger">*</span>
+                            </label>
+                            {{ form.excel_file }}
+                            <small class="form-text text-muted d-block mt-1">
+                                Format: .xlsx atau .xls | Ukuran max: 5MB
+                            </small>
+                            {% if form.excel_file.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.excel_file.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="bi bi-cloud-upload"></i> Upload dan Import
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Download Template -->
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0"><i class="bi bi-download"></i> Template Excel</h6>
+                </div>
+                <div class="card-body">
+                    <p>Gunakan template di bawah sebagai referensi. Download template untuk memudahkan:</p>
+                    <table class="table table-sm table-bordered">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 30%;">Kolom 1: Nama Alat</th>
+                                <th style="width: 40%;">Kolom 2: Spesifikasi</th>
+                                <th style="width: 30%;">Kolom 3: Jumlah</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Bor Listrik</strong></td>
+                                <td>Merk Bosch, 500W, RPM 3000</td>
+                                <td><strong>5</strong></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Meteran</strong></td>
+                                <td>Panjang 5 meter, plastik</td>
+                                <td><strong>10</strong></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Kunci Pas Set</strong></td>
+                                <td>Ukuran 8-22mm, stainless steel</td>
+                                <td><strong>3</strong></td>
+                            </tr>
+                            <tr>
+                                <td><em>Nama Alat...</em></td>
+                                <td><em>Spesifikasi/Detail...</em></td>
+                                <td><em>Jumlah...</em></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Panduan -->
+        <div class="col-md-4">
+            <div class="card sticky-top" style="top: 20px;">
+                <div class="card-header bg-warning text-dark">
+                    <h6 class="mb-0"><i class="bi bi-info-circle"></i> Panduan Import</h6>
+                </div>
+                <div class="card-body">
+                    <h6 class="mb-2">📋 Persiapan File</h6>
+                    <ul class="small mb-3">
+                        <li>Buka Excel atau aplikasi spreadsheet lainnya</li>
+                        <li>Buat 3 kolom: <code>Nama Alat</code>, <code>Spesifikasi</code>, <code>Jumlah</code></li>
+                        <li>Masukkan data mulai dari baris ke-2 (baris 1 untuk header)</li>
+                        <li>Simpan sebagai format .xlsx atau .xls</li>
+                    </ul>
+
+                    <h6 class="mb-2">✔ Validasi Data</h6>
+                    <ul class="small mb-3">
+                        <li><strong>Nama Alat:</strong> Wajib diisi, tidak boleh kosong</li>
+                        <li><strong>Spesifikasi:</strong> Opsional, boleh kosong</li>
+                        <li><strong>Jumlah:</strong> Harus angka (tidak ada teks)</li>
+                        <li><strong>Duplikat:</strong> Nama alat tidak boleh sama dengan yang sudah ada</li>
+                    </ul>
+
+                    <h6 class="mb-2">🔄 Proses Import</h6>
+                    <ol class="small mb-3">
+                        <li>Upload file Excel di form di atas</li>
+                        <li>Sistem akan membaca dan validasi setiap baris</li>
+                        <li>Jika ada error, akan ditampilkan pesan kesalahan</li>
+                        <li>Data yang valid akan disimpan ke database</li>
+                    </ol>
+
+                    <h6 class="mb-2">⚠ Pesan Error Umum</h6>
+                    <ul class="small">
+                        <li><strong>Nama alat kosong:</strong> Pastikan kolom nama terisi</li>
+                        <li><strong>Jumlah harus angka:</strong> Jangan gunakan format "5 unit"</li>
+                        <li><strong>Sudah ada:</strong> Gunakan nama alat yang unik/berbeda</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contoh Format -->
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-secondary text-white">
+                    <h6 class="mb-0"><i class="bi bi-example"></i> Contoh Format File Excel</h6>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-light" style="background: #f5f5f5; border: 1px dashed #ddd;">
+                        <p class="mb-2"><strong>File: tools_import.xlsx</strong></p>
+                        <pre style="margin: 0; font-size: 11px;">┌─────────────────────┬──────────────────────────────┬────────┐
+│ Nama Alat           │ Spesifikasi                  │ Jumlah │
+├─────────────────────┼──────────────────────────────┼────────┤
+│ Bor Listrik         │ Bosch 500W                   │ 5      │
+│ Sander Listrik      │ DeWalt, 115mm               │ 2      │
+│ Gergaji Potong      │ Manual, 24 inch             │ 3      │
+│ Kompresor Udara     │ 2 HP, kapasitas 50L         │ 1      │
+│ Palu Pneumatik      │ 1/2 inch, impact           │ 4      │
+│ Set Kunci Pas       │ Stainless 8-22mm           │ 3      │
+│ Meteran             │ Panjang 5 meter            │ 10     │
+│ Level Laser         │ Digital, 30 meter          │ 2      │
+│ Tang Kombinasi      │ Kepala karet, 10 inch      │ 6      │
+│ Obeng Set           │ Phillips & Flat, 6 pcs     │ 5      │
+└─────────────────────┴──────────────────────────────┴────────┘</pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .card {
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .sticky-top {
+        z-index: 100;
+    }
+    
+    pre {
+        overflow-x: auto;
+    }
+</style>
+{% endblock %}

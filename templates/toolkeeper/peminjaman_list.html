@@ -1,0 +1,568 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Tool Keeper - Daftar Peminjaman{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2 class="mb-0">
+                <i class="bi bi-tools"></i> Peminjaman Alat/Tools
+            </h2>
+            <small class="text-muted">Track peminjaman dan pengembalian alat</small>
+        </div>
+        <div class="col-md-4 text-end">
+            {% if can_manage %}
+            <a href="{% url 'toolkeeper:peminjaman-create' %}" class="btn btn-primary btn-sm">
+                <i class="bi bi-plus-circle"></i> Peminjaman Baru
+            </a>
+            {% endif %}
+            <a href="{% url 'toolkeeper:tool-list' %}" class="btn btn-info btn-sm">
+                <i class="bi bi-tools"></i> Daftar Alat
+            </a>
+        </div>
+    </div>
+
+    <!-- Tabs Navigation -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <ul class="nav nav-tabs card-header-tabs" role="tablist">
+                <li class="nav-item">
+                    <a class="nav-link active" id="tab-peminjam" data-bs-toggle="tab" href="#content-peminjam" role="tab">
+                        <i class="bi bi-person"></i> Per Peminjam
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" id="tab-alat" data-bs-toggle="tab" href="#content-alat" role="tab">
+                        <i class="bi bi-box"></i> Per Alat
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Tab Content -->
+    <div class="tab-content">
+        <!-- TAB 1: PER PEMINJAM -->
+        <div class="tab-pane fade show active" id="content-peminjam" role="tabpanel">
+            <!-- Filter & Search -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <form method="GET" class="row g-2">
+                        <div class="col-md-6">
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                <input type="text" name="search" class="form-control" placeholder="Cari nama peminjam..." value="{{ search }}">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <select name="status" class="form-select">
+                                <option value="">-- Semua Status --</option>
+                                <option value="aktif" {% if status == 'aktif' %}selected{% endif %}>Aktif</option>
+                                <option value="overdue" {% if status == 'overdue' %}selected{% endif %}>Overdue</option>
+                                <option value="selesai" {% if status == 'selesai' %}selected{% endif %}>Selesai</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="bi bi-funnel"></i> Filter
+                            </button>
+                        </div>
+                    </form>
+                    {% if search or status %}
+                    <div class="mt-2">
+                        <a href="{% url 'toolkeeper:peminjaman-list' %}" class="btn btn-sm btn-secondary">
+                            <i class="bi bi-x-circle"></i> Hapus Filter
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Table Per Peminjam -->
+            <div class="card">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0" id="peminjaman_table">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 5%; text-align: center;">📋</th>
+                                <th style="width: 20%;">Nama Peminjam</th>
+                                <th style="width: 12%;">Tgl Pinjam</th>
+                                <th style="width: 12%;">Tgl Rencana Kembali</th>
+                                <th style="width: 8%; text-align: center;">Alat</th>
+                                <th style="width: 10%; text-align: center;">Status</th>
+                                <th style="width: 12%;">Pengembalian</th>
+                                <th style="width: 11%; text-align: center;">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                    {% if peminjaman_list %}
+                        {% for p in peminjaman_list %}
+                        <tr class="peminjaman-row cursor-pointer" data-peminjaman-id="{{ p.id }}" data-bs-toggle="collapse" data-bs-target="#detail_{{ p.id }}">
+                            <td style="text-align: center;">
+                                <i class="bi bi-chevron-right chevron-icon"></i>
+                            </td>
+                            <td><strong>{{ p.peminjam.nama_lengkap }}</strong></td>
+                            <td>{{ p.tgl_pinjam|date:"d-m-Y H:i" }}</td>
+                            <td>{{ p.tgl_rencana_kembali|date:"d-m-Y H:i" }}</td>
+                            <td style="text-align: center;">
+                                <span class="badge bg-info">{{ p.detail_peminjaman.count }}</span>
+                            </td>
+                            <td style="text-align: center;">
+                                {% if p.status == 'aktif' %}
+                                    <span class="badge bg-success">Aktif</span>
+                                {% elif p.status == 'overdue' %}
+                                    <span class="badge bg-danger">Overdue</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Selesai</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if p.is_complete %}
+                                    <span class="badge bg-success">✓ Lengkap</span>
+                                {% else %}
+                                    <span class="badge bg-warning text-dark">Belum</span>
+                                {% endif %}
+                            </td>
+                            <td style="text-align: center;">
+                                <a href="{% url 'toolkeeper:peminjaman-detail' p.id %}" class="btn btn-outline-info btn-sm" title="Detail" onclick="event.stopPropagation()">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        
+                        <!-- Detail Row -->
+                        <tr class="collapse" id="detail_{{ p.id }}">
+                            <td colspan="8">
+                                <div class="card card-body bg-light">
+                                    <!-- Alat Dipinjam -->
+                                    <h6 class="mb-3">
+                                        <i class="bi bi-list-check"></i> Alat yang Dipinjam
+                                    </h6>
+                                    <div class="table-responsive mb-4">
+                                        <table class="table table-sm">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>Alat</th>
+                                                    <th style="width: 80px; text-align: center;">Pinjam</th>
+                                                    <th style="width: 80px; text-align: center;">Kembali</th>
+                                                    <th style="width: 80px; text-align: center;">Belum</th>
+                                                    <th style="width: 100px;">Kondisi Awal</th>
+                                                    <th style="width: 120px; text-align: center;">Aksi</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for detail in p.detail_peminjaman.all %}
+                                                <tr>
+                                                    <td><strong>{{ detail.tool.nama }}</strong></td>
+                                                    <td style="text-align: center;">
+                                                        <span class="badge bg-info">{{ detail.qty_pinjam }}</span>
+                                                    </td>
+                                                    <td style="text-align: center;">
+                                                        <span class="badge bg-success">{{ detail.qty_kembali }}</span>
+                                                    </td>
+                                                    <td style="text-align: center;">
+                                                        {% if detail.qty_belum_kembali > 0 %}
+                                                            <span class="badge bg-danger">{{ detail.qty_belum_kembali }}</span>
+                                                        {% else %}
+                                                            <span class="badge bg-success">0</span>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>{{ detail.get_kondisi_pinjam_display }}</td>
+                                                    <td style="text-align: center;">
+                                                        {% if detail.qty_belum_kembali > 0 %}
+                                                            <button class="btn btn-sm btn-success return-tool-btn" 
+                                                                    data-peminjaman-id="{{ p.id }}"
+                                                                    data-detail-id="{{ detail.id }}"
+                                                                    data-tool-name="{{ detail.tool.nama }}"
+                                                                    data-qty-belum="{{ detail.qty_belum_kembali }}"
+                                                                    onclick="event.stopPropagation()">
+                                                                <i class="bi bi-check-circle"></i> Return
+                                                            </button>
+                                                        {% else %}
+                                                            <span class="badge bg-success">Selesai</span>
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+
+                                    <!-- History Pengembalian -->
+                                    {% if p.pengembalian.all %}
+                                    <h6 class="mb-3 mt-3">
+                                        <i class="bi bi-clock-history"></i> History Pengembalian
+                                    </h6>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-striped">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>Tgl Kembali</th>
+                                                    <th>Dikembalikan Oleh</th>
+                                                    <th>Alat</th>
+                                                    <th style="text-align: center;">Qty</th>
+                                                    <th>Kondisi</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for pengembalian in p.pengembalian.all %}
+                                                    {% for detail_return in pengembalian.detail_pengembalian.all %}
+                                                    <tr>
+                                                        <td>{{ pengembalian.tgl_kembali|date:"d-m-Y H:i" }}</td>
+                                                        <td>{{ pengembalian.dikembalikan_oleh.nama_lengkap }}</td>
+                                                        <td>{{ detail_return.tool.nama }}</td>
+                                                        <td style="text-align: center;">
+                                                            <span class="badge bg-info">{{ detail_return.qty_kembali }}</span>
+                                                        </td>
+                                                        <td>
+                                                            {% if detail_return.kondisi_kembali == 'baik' %}
+                                                                <span class="badge bg-success">Baik</span>
+                                                            {% elif detail_return.kondisi_kembali == 'rusak_ringan' %}
+                                                                <span class="badge bg-warning text-dark">Rusak Ringan</span>
+                                                            {% elif detail_return.kondisi_kembali == 'rusak_berat' %}
+                                                                <span class="badge bg-danger">Rusak Berat</span>
+                                                            {% elif detail_return.kondisi_kembali == 'hilang' %}
+                                                                <span class="badge bg-danger">Hilang</span>
+                                                            {% endif %}
+                                                        </td>
+                                                    </tr>
+                                                    {% endfor %}
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="8" class="text-center text-muted py-4">
+                                <i class="bi bi-inbox"></i><br>
+                                Tidak ada peminjaman ditemukan
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+            <!-- Pagination -->
+            {% if is_paginated %}
+            <nav class="mt-4" aria-label="Page navigation">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1{% if search %}&search={{ search }}{% endif %}{% if status %}&status={{ status }}{% endif %}">First</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search %}&search={{ search }}{% endif %}{% if status %}&status={{ status }}{% endif %}">Previous</a>
+                    </li>
+                    {% endif %}
+
+                    {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ num }}</span>
+                    </li>
+                    {% else %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ num }}{% if search %}&search={{ search }}{% endif %}{% if status %}&status={{ status }}{% endif %}">{{ num }}</a>
+                    </li>
+                    {% endif %}
+                    {% endfor %}
+
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search %}&search={{ search }}{% endif %}{% if status %}&status={{ status }}{% endif %}">Next</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if search %}&search={{ search }}{% endif %}{% if status %}&status={{ status }}{% endif %}">Last</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+
+        <!-- TAB 2: PER ALAT -->
+        <div class="tab-pane fade" id="content-alat" role="tabpanel">
+            <!-- Filter Alat -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <form method="GET" class="row g-2">
+                        <div class="col-md-6">
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-box"></i></span>
+                                <input type="text" id="tool_search" class="form-control" placeholder="Cari nama alat..." value="{{ search_tool }}">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-select" id="filter_status_alat">
+                                <option value="">-- Semua Status --</option>
+                                <option value="belum_kembali">Belum Kembali</option>
+                                <option value="sudah_kembali">Sudah Kembali</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <button type="button" class="btn btn-primary w-100" id="btn_cari_alat">
+                                <i class="bi bi-search"></i> Cari
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Table Per Alat -->
+            <div class="card">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0" id="alat_table">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 25%;">Alat</th>
+                                <th style="width: 20%;">Peminjam</th>
+                                <th style="width: 12%;">Tgl Pinjam</th>
+                                <th style="width: 10%; text-align: center;">Pinjam</th>
+                                <th style="width: 10%; text-align: center;">Kembali</th>
+                                <th style="width: 10%; text-align: center;">Belum</th>
+                                <th style="width: 13%; text-align: center;">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="alat_tbody">
+                            {% for tool_group in tools_data %}
+                            {% for detail in tool_group.peminjaman %}
+                            <tr>
+                                <td><strong>{{ detail.tool.nama }}</strong></td>
+                                <td>{{ detail.peminjaman.peminjam.nama_lengkap }}</td>
+                                <td>{{ detail.peminjaman.tgl_pinjam|date:"d-m-Y H:i" }}</td>
+                                <td style="text-align: center;">
+                                    <span class="badge bg-info">{{ detail.qty_pinjam }}</span>
+                                </td>
+                                <td style="text-align: center;">
+                                    <span class="badge bg-success">{{ detail.qty_kembali }}</span>
+                                </td>
+                                <td style="text-align: center;">
+                                    {% if detail.qty_belum_kembali > 0 %}
+                                        <span class="badge bg-danger">{{ detail.qty_belum_kembali }}</span>
+                                    {% else %}
+                                        <span class="badge bg-success">0</span>
+                                    {% endif %}
+                                </td>
+                                <td style="text-align: center;">
+                                    {% if detail.qty_belum_kembali > 0 %}
+                                        <button class="btn btn-sm btn-success return-tool-btn" 
+                                                data-peminjaman-id="{{ detail.peminjaman.id }}"
+                                                data-detail-id="{{ detail.id }}"
+                                                data-tool-name="{{ detail.tool.nama }}"
+                                                data-qty-belum="{{ detail.qty_belum_kembali }}">
+                                            <i class="bi bi-check-circle"></i> Return
+                                        </button>
+                                    {% else %}
+                                        <span class="badge bg-success">Selesai</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            {% endfor %}
+                            {% if not tools_data %}
+                            <tr>
+                                <td colspan="7" class="text-center text-muted py-4">
+                                    <i class="bi bi-inbox"></i><br>
+                                    Tidak ada data alat dipinjam
+                                </td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Return Per Alat -->
+<div class="modal fade" id="returnToolModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">
+                    <i class="bi bi-arrow-return-left"></i> Return Alat
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" id="returnForm">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <input type="hidden" id="return_peminjaman_id" name="peminjaman_id">
+                    <input type="hidden" id="return_detail_id" name="detail_id">
+                    
+                    <div class="mb-3">
+                        <label class="form-label"><strong>Alat</strong></label>
+                        <p id="return_tool_name" class="form-control-plaintext"></p>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label"><strong>Jumlah Belum Kembali</strong></label>
+                        <p id="return_qty_belum" class="form-control-plaintext"></p>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="return_qty_kembali" class="form-label">Jumlah Dikembalikan <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control" id="return_qty_kembali" name="qty_kembali" min="1" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="return_kondisi" class="form-label">Kondisi <span class="text-danger">*</span></label>
+                        <select class="form-select" id="return_kondisi" name="kondisi_kembali" required>
+                            <option value="">-- Pilih Kondisi --</option>
+                            <option value="baik">Baik</option>
+                            <option value="rusak_ringan">Rusak Ringan</option>
+                            <option value="rusak_berat">Rusak Berat</option>
+                            <option value="hilang">Hilang</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="return_catatan" class="form-label">Catatan</label>
+                        <textarea class="form-control" id="return_catatan" name="catatan" rows="2" placeholder="Kondisi/kerusakan alat"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-check-circle"></i> Simpan Return
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+    .cursor-pointer {
+        cursor: pointer;
+    }
+    
+    .chevron-icon {
+        transition: transform 0.3s ease;
+        display: inline-block;
+    }
+    
+    .peminjaman-row[aria-expanded="true"] .chevron-icon {
+        transform: rotate(90deg);
+    }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // All rows data for Per Alat filtering
+    const allRows = document.querySelectorAll('#alat_tbody tr:not(:has(td[colspan]))');
+    
+    // Search functionality for Per Alat
+    document.getElementById('btn_cari_alat').addEventListener('click', function() {
+        const searchValue = document.getElementById('tool_search').value.toLowerCase().trim();
+        const statusFilter = document.getElementById('filter_status_alat').value;
+        
+        allRows.forEach(row => {
+            const toolName = row.cells[0].textContent.toLowerCase();
+            const peminjamName = row.cells[1].textContent.toLowerCase();
+            const belumBadge = row.cells[5].textContent.trim(); // Kolom "Belum"
+            
+            // Check search
+            const matchSearch = searchValue === '' || toolName.includes(searchValue) || peminjamName.includes(searchValue);
+            
+            // Check status filter
+            let matchStatus = true;
+            if (statusFilter === 'belum_kembali') {
+                matchStatus = !belumBadge.startsWith('0');
+            } else if (statusFilter === 'sudah_kembali') {
+                matchStatus = belumBadge.startsWith('0');
+            }
+            
+            row.style.display = (matchSearch && matchStatus) ? '' : 'none';
+        });
+    });
+    
+    // Allow Enter key to search
+    document.getElementById('tool_search').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            document.getElementById('btn_cari_alat').click();
+        }
+    });
+    
+    // Filter status dropdown - auto apply
+    document.getElementById('filter_status_alat').addEventListener('change', function(e) {
+        document.getElementById('btn_cari_alat').click();
+    });
+    
+    // Handle return per alat button
+    document.querySelectorAll('.return-tool-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            
+            const peminjamanId = this.dataset.peminjamanId;
+            const detailId = this.dataset.detailId;
+            const toolName = this.dataset.toolName;
+            const qtyBelum = this.dataset.qtyBelum;
+            
+            // Set modal values
+            document.getElementById('return_peminjaman_id').value = peminjamanId;
+            document.getElementById('return_detail_id').value = detailId;
+            document.getElementById('return_tool_name').textContent = toolName;
+            document.getElementById('return_qty_belum').textContent = qtyBelum + ' unit';
+            document.getElementById('return_qty_kembali').value = qtyBelum;
+            document.getElementById('return_kondisi').value = '';
+            document.getElementById('return_catatan').value = '';
+            
+            // Show modal
+            new bootstrap.Modal(document.getElementById('returnToolModal')).show();
+        });
+    });
+    
+    // Handle return form submit
+    document.getElementById('returnForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const peminjamanId = document.getElementById('return_peminjaman_id').value;
+        const detailId = document.getElementById('return_detail_id').value;
+        const qtyKembali = document.getElementById('return_qty_kembali').value;
+        const kondisi = document.getElementById('return_kondisi').value;
+        const catatan = document.getElementById('return_catatan').value;
+        
+        // Submit via AJAX to create partial return
+        fetch('{% url "toolkeeper:api-return-tool" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify({
+                peminjaman_id: peminjamanId,
+                detail_id: detailId,
+                qty_kembali: qtyKembali,
+                kondisi_kembali: kondisi,
+                catatan: catatan
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                bootstrap.Modal.getInstance(document.getElementById('returnToolModal')).hide();
+                location.reload();
+            } else {
+                alert('Error: ' + (data.error || 'Unknown error'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error: ' + error);
+        });
+    });
+});
+</script>
+{% endblock %}

@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'preventive_jobs.apps.PreventiveJobsConfig', # V2 - Preventive Job Management
     'meetings.apps.MeetingsConfig', # Meetings & Notulen Management
     'inventory.apps.InventoryConfig', # Inventory Management (Spare Parts)
+    'toolkeeper.apps.ToolkeeperConfig', # Tool Keeper Management (Tool Lending System)
 ]
 
 MIDDLEWARE = [

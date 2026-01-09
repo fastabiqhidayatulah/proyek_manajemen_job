@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Detail Pengembalian - {{ pengembalian.peminjaman.peminjam.nama }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2 class="mb-0">
+                <i class="bi bi-arrow-return-left"></i> Detail Pengembalian
+            </h2>
+            <small class="text-muted">Peminjam: <strong>{{ pengembalian.peminjaman.peminjam.nama }}</strong></small>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{% url 'toolkeeper:peminjaman-detail' pengembalian.peminjaman.id %}" class="btn btn-secondary btn-sm">
+                <i class="bi bi-arrow-left"></i> Kembali
+            </a>
+        </div>
+    </div>
+
+    <!-- Info Card -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0"><i class="bi bi-info-circle"></i> Informasi Pengembalian</h6>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm table-borderless">
+                        <tr>
+                            <th style="width: 40%;">Nama Peminjam</th>
+                            <td><strong>{{ pengembalian.peminjaman.peminjam.nama }}</strong></td>
+                        </tr>
+                        <tr>
+                            <th>Tanggal Pinjam</th>
+                            <td>{{ pengembalian.peminjaman.tgl_pinjam|date:"d-m-Y H:i" }}</td>
+                        </tr>
+                        <tr>
+                            <th>Tanggal Kembali</th>
+                            <td>{{ pengembalian.tgl_kembali|date:"d-m-Y H:i" }}</td>
+                        </tr>
+                        <tr>
+                            <th>Dikembalikan Oleh</th>
+                            <td>{{ pengembalian.dikembalikan_oleh.nama }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    <h6 class="mb-0"><i class="bi bi-sticky"></i> Catatan</h6>
+                </div>
+                <div class="card-body">
+                    <p>{{ pengembalian.catatan|default:"<em class='text-muted'>Tidak ada catatan</em>" }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alat yang Dikembalikan -->
+    <div class="card">
+        <div class="card-header bg-success text-white">
+            <h6 class="mb-0"><i class="bi bi-list-check"></i> Alat yang Dikembalikan</h6>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 30%;">Nama Alat</th>
+                        <th style="width: 15%; text-align: center;">Jumlah Kembali</th>
+                        <th style="width: 25%;">Kondisi</th>
+                        <th style="width: 30%;">Spesifikasi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for detail in pengembalian.detail_pengembalian.all %}
+                    <tr>
+                        <td><strong>{{ detail.tool.nama }}</strong></td>
+                        <td style="text-align: center;">
+                            <span class="badge bg-success">{{ detail.qty_kembali }}</span>
+                        </td>
+                        <td>
+                            {% if detail.kondisi_kembali == 'baik' %}
+                                <span class="badge bg-success">Baik</span>
+                            {% elif detail.kondisi_kembali == 'rusak_ringan' %}
+                                <span class="badge bg-warning text-dark">Rusak Ringan</span>
+                            {% elif detail.kondisi_kembali == 'rusak_berat' %}
+                                <span class="badge bg-danger">Rusak Berat</span>
+                            {% elif detail.kondisi_kembali == 'hilang' %}
+                                <span class="badge bg-danger">Hilang</span>
+                            {% endif %}
+                        </td>
+                        <td><small class="text-muted">{{ detail.tool.spesifikasi|default:"-" }}</small></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

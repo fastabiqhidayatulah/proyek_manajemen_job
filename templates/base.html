@@ -207,6 +207,11 @@
                                         <i class="bi bi-list-check"></i> Daftar Barang
                                     </a>
                                 </li>
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'toolkeeper:peminjaman-list' %}">
+                                        <i class="bi bi-tools"></i> Tool Keeper
+                                    </a>
+                                </li>
                                 {% if user.is_staff or user.groups.count %}
                                 <li><hr class="dropdown-divider"></li>
                                 <li>

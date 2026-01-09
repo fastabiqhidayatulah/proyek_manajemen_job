@@ -1,0 +1,450 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Tool Keeper - {% if form.instance.pk %}Edit{% else %}Buat{% endif %} Peminjaman{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-10 offset-md-1">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-tools"></i>
+                        {% if form.instance.pk %}
+                            Edit Peminjaman
+                        {% else %}
+                            Buat Peminjaman Baru
+                        {% endif %}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <!-- Section 1: Peminjam -->
+                        <div class="mb-4">
+                            <h6 class="border-bottom pb-2"><i class="bi bi-person"></i> Informasi Peminjam</h6>
+                            
+                            <div class="mb-3">
+                                <label for="karyawan_search" class="form-label">{{ form.peminjam.label }} <span class="text-danger">*</span></label>
+                                <div class="input-group position-relative">
+                                    <!-- Search Input -->
+                                    <input type="text" 
+                                           id="karyawan_search" 
+                                           class="form-control" 
+                                           placeholder="🔍 Ketik nama atau NIK karyawan..."
+                                           style="font-size: 14px;">
+                                    <!-- Hidden field untuk store karyawan ID -->
+                                    {{ form.peminjam }}
+                                    <!-- Button Tambah Karyawan Baru -->
+                                    <button type="button" class="btn btn-outline-success" id="btn_tambah_karyawan" data-bs-toggle="modal" data-bs-target="#addKaryawanModal">
+                                        <i class="bi bi-plus-circle"></i> Tambah Karyawan
+                                    </button>
+                                    <!-- Custom Dropdown Suggestions -->
+                                    <div id="karyawan_dropdown" class="position-absolute top-100 start-0 bg-white border rounded shadow-sm" style="width: 100%; max-height: 300px; overflow-y: auto; display: none; z-index: 1000;">
+                                        <!-- Suggestions akan di-generate oleh JavaScript -->
+                                    </div>
+                                </div>
+                                {% if form.peminjam.errors %}
+                                <div class="invalid-feedback d-block">{{ form.peminjam.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Section 2: Jadwal -->
+                        <div class="mb-4">
+                            <h6 class="border-bottom pb-2"><i class="bi bi-calendar"></i> Jadwal Peminjaman</h6>
+                            
+                            <div class="mb-3">
+                                <label for="{{ form.tgl_rencana_kembali.id_for_label }}" class="form-label">{{ form.tgl_rencana_kembali.label }} <span class="text-danger">*</span></label>
+                                {{ form.tgl_rencana_kembali }}
+                                <small class="text-muted d-block mt-1">Tanggal & jam rencana pengembalian alat</small>
+                                {% if form.tgl_rencana_kembali.errors %}
+                                <div class="invalid-feedback d-block">{{ form.tgl_rencana_kembali.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Section 3: Detail Alat -->
+                        <div class="mb-4">
+                            <h6 class="border-bottom pb-2"><i class="bi bi-list-check"></i> Alat yang Dipinjam</h6>
+                            
+                            {{ formset.management_form }}
+                            
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Alat <small class="text-muted">(cari by nama)</small></th>
+                                            <th style="width: 120px;">Jumlah</th>
+                                            <th style="width: 140px;">Kondisi Awal</th>
+                                            <th style="width: 60px; text-align: center;">Hapus</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for form_detail in formset %}
+                                            <tr>
+                                                <td>
+                                                    <input type="text" 
+                                                           class="form-control form-control-sm tool-search-input" 
+                                                           placeholder="🔍 Cari alat..."
+                                                           list="tool_list"
+                                                           data-field-index="{{ forloop.counter0 }}">
+                                                    {{ form_detail.tool }}
+                                                </td>
+                                                <td>{{ form_detail.qty_pinjam }}</td>
+                                                <td>{{ form_detail.kondisi_pinjam }}</td>
+                                                <td style="text-align: center;">
+                                                    {% if form_detail.DELETE %}
+                                                        {{ form_detail.DELETE }}
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                            {% if form_detail.errors %}
+                                            <tr>
+                                                <td colspan="4" class="text-danger small">
+                                                    {{ form_detail.non_field_errors }}
+                                                    {{ form_detail.tool.errors }}
+                                                    {{ form_detail.qty_pinjam.errors }}
+                                                    {{ form_detail.kondisi_pinjam.errors }}
+                                                </td>
+                                            </tr>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <!-- Button Add More -->
+                            <button type="button" class="btn btn-sm btn-outline-primary mt-3" id="add_more_alat">
+                                <i class="bi bi-plus-circle"></i> Tambah Alat Lagi
+                            </button>
+                        </div>
+
+                        <!-- Section 4: Catatan -->
+                        <div class="mb-4">
+                            <h6 class="border-bottom pb-2"><i class="bi bi-sticky"></i> Catatan Tambahan</h6>
+                            
+                            <div class="mb-3">
+                                <label for="{{ form.catatan.id_for_label }}" class="form-label">{{ form.catatan.label }}</label>
+                                {{ form.catatan }}
+                                {% if form.catatan.errors %}
+                                <div class="invalid-feedback d-block">{{ form.catatan.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Buttons -->
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle"></i> Simpan Peminjaman
+                            </button>
+                            <a href="{% url 'toolkeeper:peminjaman-list' %}" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i> Batal
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    select, input[type="text"], input[type="number"], textarea {
+        height: auto !important;
+    }
+    
+    #id_peminjam {
+        display: none;
+    }
+    
+    [id$="-tool"] {
+        display: none;
+    }
+    
+    .tool-search-input {
+        margin-bottom: 0;
+    }
+    
+    /* Custom dropdown styling */
+    .karyawan-suggestion {
+        padding: 10px 15px;
+        cursor: pointer;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    
+    .karyawan-suggestion:hover {
+        background-color: #f8f9fa;
+    }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // ===== CUSTOM KARYAWAN AUTOCOMPLETE =====
+    const karyawanSearchInput = document.getElementById('karyawan_search');
+    const karyawanSelect = document.getElementById('id_peminjam');
+    const karyawanDropdown = document.getElementById('karyawan_dropdown');
+    
+    if (!karyawanSearchInput || !karyawanSelect) return;
+    
+    // Parse karyawan options
+    const karyawanOptions = Array.from(karyawanSelect.querySelectorAll('option')).map(opt => ({
+        id: opt.value,
+        text: opt.text,
+        nik: opt.text.split(' - ')[0],
+        nama: opt.text.split(' - ')[1] || opt.text
+    }));
+    
+    console.log('✓ Loaded', karyawanOptions.length, 'karyawan');
+    
+    // Show dropdown on input
+    karyawanSearchInput.addEventListener('input', function() {
+        const search = this.value.trim().toLowerCase();
+        
+        if (!search) {
+            karyawanDropdown.style.display = 'none';
+            return;
+        }
+        
+        // Filter
+        const filtered = karyawanOptions.filter(k => 
+            k.nama.toLowerCase().includes(search) ||
+            k.nik.toLowerCase().includes(search)
+        );
+        
+        if (filtered.length === 0) {
+            karyawanDropdown.innerHTML = '<div class="p-3 text-center text-muted">Tidak ditemukan</div>';
+            karyawanDropdown.style.display = 'block';
+            return;
+        }
+        
+        // Show results
+        karyawanDropdown.innerHTML = filtered.map(k => `
+            <div class="karyawan-suggestion" data-id="${k.id}" data-text="${k.text}">
+                <strong>${k.nama}</strong><br>
+                <small class="text-muted">${k.nik}</small>
+            </div>
+        `).join('');
+        
+        karyawanDropdown.style.display = 'block';
+        
+        // Click handlers
+        document.querySelectorAll('.karyawan-suggestion').forEach(el => {
+            el.addEventListener('click', function() {
+                karyawanSelect.value = this.dataset.id;
+                karyawanSearchInput.value = this.dataset.text;
+                karyawanDropdown.style.display = 'none';
+            });
+        });
+    });
+    
+    // Hide dropdown on blur
+    document.addEventListener('click', e => {
+        if (!e.target.closest('.position-relative')) {
+            karyawanDropdown.style.display = 'none';
+        }
+    });
+    
+    // ===== TOOL SEARCH =====
+    function setupToolSearch() {
+        document.querySelectorAll('.tool-search-input').forEach(input => {
+            const index = input.dataset.fieldIndex;
+            const toolSelect = document.getElementById(`id_detail_pengembalian_set-${index}-tool`);
+            
+            if (!toolSelect) return;
+            
+            input.addEventListener('input', function() {
+                const search = this.value.trim().toLowerCase();
+                
+                if (!search) {
+                    toolSelect.value = '';
+                    return;
+                }
+                
+                // Try exact, starts-with, then partial
+                for (let opt of toolSelect.options) {
+                    if (opt.text.toLowerCase() === search) {
+                        toolSelect.value = opt.value;
+                        return;
+                    }
+                }
+                
+                for (let opt of toolSelect.options) {
+                    if (opt.text.toLowerCase().startsWith(search)) {
+                        toolSelect.value = opt.value;
+                        return;
+                    }
+                }
+                
+                for (let opt of toolSelect.options) {
+                    if (opt.text.toLowerCase().includes(search)) {
+                        toolSelect.value = opt.value;
+                        return;
+                    }
+                }
+                
+                toolSelect.value = '';
+            });
+        });
+    }
+    
+    setupToolSearch();
+    
+    // ===== ADD MORE TOOL ROWS =====
+    const addMoreBtn = document.getElementById('add_more_alat');
+    if (addMoreBtn) {
+        addMoreBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const tbody = document.querySelector('table tbody');
+            const totalForms = document.querySelector('input[name$="-TOTAL_FORMS"]');
+            
+            if (!tbody || !totalForms) return;
+            
+            const count = parseInt(totalForms.value);
+            let templateRow = null;
+            
+            // Get last non-error row as template
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            for (let i = rows.length - 1; i >= 0; i--) {
+                if (!rows[i].querySelector('.text-danger')) {
+                    templateRow = rows[i].cloneNode(true);
+                    break;
+                }
+            }
+            
+            if (!templateRow) return;
+            
+            // Clear inputs and update names
+            templateRow.querySelectorAll('input, select').forEach(input => {
+                if (input.name && input.name.includes('-')) {
+                    const parts = input.name.split('-');
+                    const newName = input.name.replace(`-${parts[1]}-`, `-${count}-`);
+                    input.name = newName;
+                    input.id = `id_${newName}`;
+                }
+                input.value = '';
+                if (input.type === 'checkbox') input.checked = false;
+            });
+            
+            tbody.appendChild(templateRow);
+            totalForms.value = count + 1;
+            setupToolSearch();
+        });
+    }
+});
+</script>
+
+<datalist id="tool_list">
+    {% for tool in tool_list %}
+        <option value="{{ tool.nama }}">
+    {% endfor %}
+</datalist>
+
+<!-- Modal Tambah Karyawan Baru -->
+<div class="modal fade" id="addKaryawanModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">
+                    <i class="bi bi-person-plus"></i> Tambah Karyawan Baru
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="addKaryawanForm">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="new_nik" class="form-label">NIK <span class="text-danger">*</span></label>
+                        <input type="text" id="new_nik" class="form-control" placeholder="Nomor Identitas Karyawan" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="new_nama" class="form-label">Nama Lengkap <span class="text-danger">*</span></label>
+                        <input type="text" id="new_nama" class="form-control" placeholder="Nama lengkap karyawan" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-check-circle"></i> Simpan Karyawan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Script untuk handle add karyawan via AJAX -->
+<script>
+document.getElementById('addKaryawanForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const nik = document.getElementById('new_nik').value.trim();
+    const nama_lengkap = document.getElementById('new_nama').value.trim();
+    
+    // Get CSRF token dari modal form
+    const csrfToken = document.querySelector('#addKaryawanForm [name=csrfmiddlewaretoken]').value;
+    
+    console.log('Sending data:', {nik, nama_lengkap});
+    console.log('CSRF Token:', csrfToken);
+    
+    fetch('{% url "toolkeeper:api-add-karyawan" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({
+            nik: nik,
+            nama_lengkap: nama_lengkap
+        })
+    })
+    .then(response => {
+        console.log('Response status:', response.status);
+        return response.json();
+    })
+    .then(data => {
+        console.log('Response data:', data);
+        if (data.success) {
+            // Close modal
+            bootstrap.Modal.getInstance(document.getElementById('addKaryawanModal')).hide();
+            
+            // Add new option to select
+            const karyawanSelect = document.getElementById('id_peminjam');
+            const newOption = document.createElement('option');
+            newOption.value = data.karyawan_id;
+            newOption.text = data.karyawan_name;
+            karyawanSelect.appendChild(newOption);
+            console.log('✓ Added new option to select:', data.karyawan_name);
+            
+            // Add to datalist juga
+            const karyawanDatalist = document.getElementById('karyawan_list');
+            if (karyawanDatalist) {
+                const newDatalistOption = document.createElement('option');
+                newDatalistOption.value = data.karyawan_name;
+                newDatalistOption.textContent = data.karyawan_name.split(' - ')[1] || data.karyawan_name; // Show nama saja
+                karyawanDatalist.appendChild(newDatalistOption);
+                console.log('✓ Added new option to datalist');
+            }
+            
+            // Set the new karyawan as selected
+            document.getElementById('id_peminjam').value = data.karyawan_id;
+            document.getElementById('karyawan_search').value = data.karyawan_name;
+            
+            // Clear form
+            document.getElementById('addKaryawanForm').reset();
+            
+            // Show success message
+            alert('Karyawan berhasil ditambahkan!');
+        } else {
+            alert('Error: ' + (data.error || 'Gagal menambahkan karyawan'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error: ' + error.message);
+    });
+});
+</script>
+{% endblock %}

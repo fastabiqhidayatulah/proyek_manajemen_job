@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Hapus Alat - {{ object.nama }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-exclamation-triangle"></i> Konfirmasi Hapus Alat
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning" role="alert">
+                        <i class="bi bi-info-circle"></i>
+                        <strong>Peringatan!</strong> Anda akan menghapus data alat berikut. Tindakan ini tidak dapat dibatalkan.
+                    </div>
+
+                    <h6 class="mb-3">Alat yang akan dihapus:</h6>
+                    <table class="table table-sm border">
+                        <tr>
+                            <th style="width: 30%;">Nama Alat</th>
+                            <td><strong>{{ object.nama }}</strong></td>
+                        </tr>
+                        <tr>
+                            <th>Spesifikasi</th>
+                            <td>{{ object.spesifikasi|default:"-" }}</td>
+                        </tr>
+                        <tr>
+                            <th>Stok Total</th>
+                            <td>{{ object.jumlah_total }}</td>
+                        </tr>
+                    </table>
+
+                    <form method="post" class="mt-4">
+                        {% csrf_token %}
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-danger">
+                                <i class="bi bi-trash"></i> Ya, Hapus
+                            </button>
+                            <a href="{% url 'toolkeeper:tool-list' %}" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i> Batal
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

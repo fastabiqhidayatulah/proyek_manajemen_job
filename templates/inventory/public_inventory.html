@@ -299,6 +299,13 @@
                     <span class="barang-kode">{{ barang.kode }}</span>
                     <div class="barang-nama">{{ barang.nama }}</div>
                     
+                    <!-- Spesifikasi/Deskripsi -->
+                    {% if barang.spesifikasi %}
+                    <div style="font-size: 12px; color: #4b5563; margin-bottom: 4px; line-height: 1.4;">
+                        {{ barang.spesifikasi }}
+                    </div>
+                    {% endif %}
+                    
                     <!-- Detail baris -->
                     <div class="barang-detail">
                         <span class="barang-kategori">{{ barang.get_kategori_display }}</span>

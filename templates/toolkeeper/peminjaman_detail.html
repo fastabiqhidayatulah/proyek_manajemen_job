@@ -1,0 +1,168 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Detail Peminjaman - {{ peminjaman.peminjam.nama }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2 class="mb-0">
+                <i class="bi bi-tools"></i> Detail Peminjaman
+            </h2>
+            <small class="text-muted">Peminjam: <strong>{{ peminjaman.peminjam.nama }}</strong></small>
+        </div>
+        <div class="col-md-4 text-end">
+            {% if can_manage and peminjaman.status in 'aktif,overdue' %}
+            <a href="{% url 'toolkeeper:pengembalian-create' peminjaman.id %}" class="btn btn-success btn-sm">
+                <i class="bi bi-arrow-return-left"></i> Input Pengembalian
+            </a>
+            {% endif %}
+            <a href="{% url 'toolkeeper:peminjaman-list' %}" class="btn btn-secondary btn-sm">
+                <i class="bi bi-arrow-left"></i> Kembali
+            </a>
+        </div>
+    </div>
+
+    <!-- Main Info Card -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0"><i class="bi bi-info-circle"></i> Informasi Peminjaman</h6>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm table-borderless">
+                        <tr>
+                            <th style="width: 40%;">Nama Peminjam</th>
+                            <td><strong>{{ peminjaman.peminjam.nama }}</strong></td>
+                        </tr>
+                        <tr>
+                            <th>Tanggal Pinjam</th>
+                            <td>{{ peminjaman.tgl_pinjam|date:"d-m-Y H:i" }}</td>
+                        </tr>
+                        <tr>
+                            <th>Tgl Rencana Kembali</th>
+                            <td>{{ peminjaman.tgl_rencana_kembali|date:"d-m-Y H:i" }}</td>
+                        </tr>
+                        <tr>
+                            <th>Status</th>
+                            <td>
+                                {% if peminjaman.status == 'aktif' %}
+                                    <span class="badge bg-success">Aktif</span>
+                                {% elif peminjaman.status == 'overdue' %}
+                                    <span class="badge bg-danger">Overdue</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Selesai</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Status Pengembalian</th>
+                            <td>
+                                {% if peminjaman.is_complete %}
+                                    <span class="badge bg-success">✓ Lengkap</span>
+                                {% else %}
+                                    <span class="badge bg-warning text-dark">Belum Lengkap</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    <h6 class="mb-0"><i class="bi bi-sticky"></i> Catatan</h6>
+                </div>
+                <div class="card-body">
+                    <p>{{ peminjaman.catatan|default:"<em class='text-muted'>Tidak ada catatan</em>" }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detail Alat yang Dipinjam -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h6 class="mb-0"><i class="bi bi-list-check"></i> Alat yang Dipinjam</h6>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Nama Alat</th>
+                        <th style="width: 100px; text-align: center;">Pinjam</th>
+                        <th style="width: 100px; text-align: center;">Kembali</th>
+                        <th style="width: 100px; text-align: center;">Belum</th>
+                        <th style="width: 140px;">Kondisi Awal</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for detail in peminjaman.detail_peminjaman.all %}
+                    <tr>
+                        <td><strong>{{ detail.tool.nama }}</strong></td>
+                        <td style="text-align: center;">
+                            <span class="badge bg-info">{{ detail.qty_pinjam }}</span>
+                        </td>
+                        <td style="text-align: center;">
+                            <span class="badge bg-success">{{ detail.qty_kembali }}</span>
+                        </td>
+                        <td style="text-align: center;">
+                            {% if detail.qty_belum_kembali > 0 %}
+                                <span class="badge bg-warning text-dark">{{ detail.qty_belum_kembali }}</span>
+                            {% else %}
+                                <span class="badge bg-success">0</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ detail.get_kondisi_pinjam_display }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- History Pengembalian -->
+    {% if pengembalian_list %}
+    <div class="card">
+        <div class="card-header bg-success text-white">
+            <h6 class="mb-0"><i class="bi bi-arrow-return-left"></i> History Pengembalian</h6>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 150px;">Tanggal Kembali</th>
+                        <th>Dikembalikan Oleh</th>
+                        <th>Catatan</th>
+                        <th style="text-align: center;">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for pengembalian in pengembalian_list %}
+                    <tr>
+                        <td>{{ pengembalian.tgl_kembali|date:"d-m-Y H:i" }}</td>
+                        <td>{{ pengembalian.dikembalikan_oleh.nama }}</td>
+                        <td><small class="text-muted">{{ pengembalian.catatan|default:"-" }}</small></td>
+                        <td style="text-align: center;">
+                            <a href="{% url 'toolkeeper:pengembalian-detail' pengembalian.id %}" class="btn btn-outline-info btn-sm">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i> Belum ada pengembalian tercatat
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

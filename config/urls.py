@@ -20,6 +20,9 @@ urlpatterns = [
     
     # Inventory URLs (Spare Parts)
     path('inventory/', include('inventory.urls', namespace='inventory')),
+    
+    # Tool Keeper URLs (Tool Lending System)
+    path('toolkeeper/', include('toolkeeper.urls', namespace='toolkeeper')),
 ]
 
 # Baris ini tetap di bawah (tidak berubah)

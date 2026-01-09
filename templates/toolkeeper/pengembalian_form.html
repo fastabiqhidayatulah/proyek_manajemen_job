@@ -1,0 +1,386 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Input Pengembalian - {{ peminjaman.peminjam.nama }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-10 offset-md-1">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-arrow-return-left"></i> Input Pengembalian Alat
+                    </h5>
+                    <small>Peminjam: <strong>{{ peminjaman.peminjam.nama }}</strong></small>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <!-- Section 1: Yang Mengembalikan -->
+                        <div class="mb-4">
+                            <h6 class="border-bottom pb-2"><i class="bi bi-person"></i> Informasi Pengembalian</h6>
+                            
+                            <div class="mb-3">
+                                <label for="karyawan_search" class="form-label">{{ form.dikembalikan_oleh.label }} <span class="text-danger">*</span></label>
+                                <!-- Search Input -->
+                                <input type="text" 
+                                       id="karyawan_search" 
+                                       class="form-control mb-2" 
+                                       placeholder="🔍 Cari karyawan by nama atau NIK..."
+                                       autocomplete="off"
+                                       list="karyawan_list"
+                                       style="font-size: 14px;">
+                                <!-- Hidden field untuk store karyawan ID -->
+                                {{ form.dikembalikan_oleh }}
+                                <small class="text-muted d-block mt-1">Default: nama peminjam (bisa diubah jika dikembalikan orang lain)</small>
+                                {% if form.dikembalikan_oleh.errors %}
+                                <div class="invalid-feedback d-block">{{ form.dikembalikan_oleh.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Section 2: Detail Pengembalian -->
+                        <div class="mb-4">
+                            <h6 class="border-bottom pb-2"><i class="bi bi-list-check"></i> Alat yang Dikembalikan</h6>
+                            
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle"></i> 
+                                Masukkan qty alat yang dikembalikan. Bisa partial (sebagian) atau lengkap. Default sudah terisi dengan sisa yang belum dikembalikan.
+                            </div>
+                            
+                            {{ formset.management_form }}
+                            
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th style="width: 30%;">Alat</th>
+                                            <th style="width: 12%; text-align: center;">Pinjam</th>
+                                            <th style="width: 12%; text-align: center;">Sudah Kembali</th>
+                                            <th style="width: 12%; text-align: center;">Belum Kembali</th>
+                                            <th style="width: 15%;">Return Sekarang</th>
+                                            <th style="width: 12%;">Kondisi</th>
+                                            <th style="width: 7%; text-align: center;">Hapus</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for detail in peminjaman.detail_peminjaman.all %}
+                                            {% if detail.qty_belum_kembali > 0 %}
+                                            <tr>
+                                                <td><strong>{{ detail.tool.nama }}</strong></td>
+                                                <td style="text-align: center;">
+                                                    <span class="badge bg-info">{{ detail.qty_pinjam }}</span>
+                                                </td>
+                                                <td style="text-align: center;">
+                                                    <span class="badge bg-success">{{ detail.qty_kembali }}</span>
+                                                </td>
+                                                <td style="text-align: center;">
+                                                    <span class="badge bg-danger">{{ detail.qty_belum_kembali }}</span>
+                                                </td>
+                                                <td>
+                                                    <input type="hidden" name="detail_pengembalian_set-{{ forloop.counter0 }}-tool" value="{{ detail.tool.id }}">
+                                                    <input type="hidden" name="detail_pengembalian_set-{{ forloop.counter0 }}-id">
+                                                    <input type="number" 
+                                                           name="detail_pengembalian_set-{{ forloop.counter0 }}-qty_kembali" 
+                                                           value="{{ detail.qty_belum_kembali }}"
+                                                           class="form-control form-control-sm" 
+                                                           min="0" 
+                                                           required>
+                                                </td>
+                                                <td>
+                                                    <select name="detail_pengembalian_set-{{ forloop.counter0 }}-kondisi_kembali" class="form-select form-select-sm">
+                                                        <option value="baik">Baik</option>
+                                                        <option value="rusak_ringan">Rusak Ringan</option>
+                                                        <option value="rusak_berat">Rusak Berat</option>
+                                                        <option value="hilang">Hilang</option>
+                                                    </select>
+                                                </td>
+                                                <td style="text-align: center;">
+                                                    <input type="checkbox" 
+                                                           name="detail_pengembalian_set-{{ forloop.counter0 }}-DELETE">
+                                                </td>
+                                            </tr>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Section 3: Catatan -->
+                        <div class="mb-4">
+                            <h6 class="border-bottom pb-2"><i class="bi bi-sticky"></i> Catatan Pengembalian</h6>
+                            
+                            <div class="mb-3">
+                                <label for="{{ form.catatan.id_for_label }}" class="form-label">{{ form.catatan.label }}</label>
+                                {{ form.catatan }}
+                                <small class="text-muted d-block mt-1">Catatan kondisi alat, kerusakan, dll</small>
+                                {% if form.catatan.errors %}
+                                <div class="invalid-feedback d-block">{{ form.catatan.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Buttons -->
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-check-circle"></i> Simpan Pengembalian
+                            </button>
+                            <a href="{% url 'toolkeeper:peminjaman-detail' peminjaman.id %}" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i> Batal
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    select, input[type="text"], input[type="number"], textarea {
+        height: auto !important;
+    }
+    
+    /* Hide original select boxes - they'll be controlled by search inputs */
+    #id_dikembalikan_oleh {
+        display: none;
+    }
+    
+    [id$="-tool"] {
+        display: none;
+    }
+    
+    /* Style search inputs */
+    .tool-search-input {
+        margin-bottom: 0;
+    }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Init return search functionality');
+    
+    // ===== KARYAWAN SEARCH =====
+    const karyawanSearchInput = document.getElementById('karyawan_search');
+    const karyawanSelect = document.getElementById('id_dikembalikan_oleh');
+    
+    if (karyawanSearchInput && karyawanSelect) {
+        console.log('Karyawan search initialized');
+        
+        // Build map dari visible text ke ID
+        const karyawanMap = {};
+        const options = Array.from(karyawanSelect.querySelectorAll('option'));
+        options.forEach(opt => {
+            if (opt.value) {
+                karyawanMap[opt.text] = opt.value;
+            }
+        });
+        console.log('Karyawan options:', karyawanMap);
+        
+        // Set initial value if already selected
+        if (karyawanSelect.value) {
+            const match = options.find(opt => opt.value === karyawanSelect.value);
+            if (match) {
+                karyawanSearchInput.value = match.text;
+            }
+        }
+        
+        // Handle change event
+        karyawanSearchInput.addEventListener('change', function() {
+            const searchText = this.value.trim();
+            const selectedId = karyawanMap[searchText];
+            if (selectedId) {
+                karyawanSelect.value = selectedId;
+                console.log('Karyawan set:', selectedId);
+            }
+        });
+        
+        // Handle input event for real-time matching
+        karyawanSearchInput.addEventListener('input', function() {
+            const searchText = this.value.trim();
+            for (let displayText in karyawanMap) {
+                if (displayText.toLowerCase().includes(searchText.toLowerCase())) {
+                    const selectedId = karyawanMap[displayText];
+                    if (selectedId) {
+                        karyawanSelect.value = selectedId;
+                        break;
+                    }
+                }
+            }
+        });
+    }
+    
+    // ===== TOOL SEARCH IN FORMSET =====
+    function setupToolSearch() {
+        const toolSelects = document.querySelectorAll('[id$="-tool"]');
+        const toolSearches = document.querySelectorAll('.tool-search-input');
+        
+        // Build tool map dari semua select options
+        const toolMap = {};
+        toolSelects.forEach(select => {
+            Array.from(select.querySelectorAll('option')).forEach(opt => {
+                if (opt.value) {
+                    toolMap[opt.text] = opt.value;
+                    toolMap[opt.text.toLowerCase()] = opt.value;
+                }
+            });
+        });
+        console.log('Tool options map:', toolMap);
+        
+        toolSearches.forEach((searchInput, index) => {
+            if (toolSelects[index]) {
+                // Set initial value
+                if (toolSelects[index].value) {
+                    const match = Array.from(toolSelects[index].querySelectorAll('option')).find(
+                        opt => opt.value === toolSelects[index].value
+                    );
+                    if (match) {
+                        searchInput.value = match.text;
+                    }
+                }
+                
+                // Handler untuk change event (datalist selection)
+                searchInput.addEventListener('change', function() {
+                    const searchText = this.value.trim();
+                    let selectedId = toolMap[searchText];
+                    
+                    if (!selectedId) {
+                        selectedId = toolMap[searchText.toLowerCase()];
+                    }
+                    
+                    if (!selectedId) {
+                        for (let toolName in toolMap) {
+                            if (toolName.toLowerCase().includes(searchText.toLowerCase())) {
+                                selectedId = toolMap[toolName];
+                                break;
+                            }
+                        }
+                    }
+                    
+                    if (selectedId) {
+                        toolSelects[index].value = selectedId;
+                        console.log('Tool set:', selectedId, 'from:', searchText);
+                    }
+                });
+                
+                // Handler untuk input event
+                searchInput.addEventListener('input', function() {
+                    const searchText = this.value.trim();
+                    
+                    if (!searchText) {
+                        toolSelects[index].value = '';
+                        return;
+                    }
+                    
+                    let selectedId = toolMap[searchText];
+                    
+                    if (!selectedId) {
+                        selectedId = toolMap[searchText.toLowerCase()];
+                    }
+                    
+                    if (!selectedId) {
+                        for (let toolName in toolMap) {
+                            if (toolName.toLowerCase().includes(searchText.toLowerCase())) {
+                                selectedId = toolMap[toolName];
+                                break;
+                            }
+                        }
+                    }
+                    
+                    if (selectedId) {
+                        toolSelects[index].value = selectedId;
+                    }
+                });
+            }
+        });
+    }
+    
+    setupToolSearch();
+    
+    // ===== ADD MORE ALAT =====
+    const addMoreBtn = document.getElementById('add_more_alat');
+    if (addMoreBtn) {
+        addMoreBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            const formsetBody = document.querySelector('table tbody');
+            const totalFormsInput = document.querySelector('input[name$="-TOTAL_FORMS"]');
+            const currentFormCount = parseInt(totalFormsInput.value);
+            
+            // Get last row HTML untuk template
+            const lastRow = formsetBody.querySelector('tr:last-of-type');
+            if (!lastRow) return;
+            
+            // Clone the last visible row (skip error rows)
+            const allRows = formsetBody.querySelectorAll('tr');
+            let templateRow = null;
+            for (let i = allRows.length - 1; i >= 0; i--) {
+                if (!allRows[i].querySelector('.text-danger')) {
+                    templateRow = allRows[i].cloneNode(true);
+                    break;
+                }
+            }
+            
+            if (!templateRow) return;
+            
+            // Clear values dalam cloned row
+            const inputs = templateRow.querySelectorAll('input[type="text"], input[type="number"], select');
+            inputs.forEach(input => {
+                if (!input.classList.contains('tool-search-input')) {
+                    // Update field name dengan new index
+                    const oldName = input.name || input.id;
+                    if (oldName && oldName.includes('-')) {
+                        const parts = oldName.split('-');
+                        if (parts.length === 3) {
+                            input.name = `${parts[0]}-${currentFormCount}-${parts[2]}`;
+                            input.id = `id_${input.name}`;
+                        }
+                    }
+                    input.value = '';
+                }
+            });
+            
+            // Clear tool search input
+            const toolSearchInput = templateRow.querySelector('.tool-search-input');
+            if (toolSearchInput) {
+                toolSearchInput.value = '';
+                toolSearchInput.setAttribute('data-field-index', currentFormCount);
+            }
+            
+            // Uncheck delete checkbox
+            const deleteCheckbox = templateRow.querySelector('input[type="checkbox"]');
+            if (deleteCheckbox) {
+                deleteCheckbox.checked = false;
+                deleteCheckbox.style.display = 'inline';
+            }
+            
+            // Add row ke table
+            formsetBody.appendChild(templateRow);
+            
+            // Update total forms count
+            totalFormsInput.value = currentFormCount + 1;
+            
+            // Setup tool search untuk row baru
+            setupToolSearch();
+            
+            console.log('Row added. Total forms:', currentFormCount + 1);
+        });
+    }
+});
+</script>
+
+<datalist id="karyawan_list">
+    {% for karyawan in karyawan_list %}
+        <option value="{{ karyawan.nik }} - {{ karyawan.nama_lengkap }}">
+    {% endfor %}
+</datalist>
+
+<datalist id="tool_list">
+    {% for tool in tool_list %}
+        <option value="{{ tool.nama }}">
+    {% endfor %}
+</datalist>
+{% endblock %}
