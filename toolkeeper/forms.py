@@ -42,11 +42,16 @@ class ToolImportForm(forms.Form):
 class DetailPeminjamanForm(forms.ModelForm):
     """Form untuk detail peminjaman"""
     
+    tool = forms.ModelChoiceField(
+        queryset=Tool.objects.all(),
+        widget=forms.Select(attrs={'class': 'form-control'}),
+        required=False  # Allow empty rows (akan di-filter di view)
+    )
+    
     class Meta:
         model = DetailPeminjaman
         fields = ['tool', 'qty_pinjam', 'kondisi_pinjam']
         widgets = {
-            'tool': forms.Select(attrs={'class': 'form-control'}),
             'qty_pinjam': forms.NumberInput(attrs={
                 'class': 'form-control',
                 'placeholder': 'Jumlah'
@@ -61,7 +66,8 @@ class PeminjamanForm(forms.ModelForm):
     peminjam = forms.ModelChoiceField(
         queryset=Karyawan.objects.all(),
         widget=forms.Select(attrs={'class': 'form-control'}),
-        label='Nama Peminjam'
+        label='Nama Peminjam',
+        required=False  # Validasi di JavaScript karena field hidden
     )
     
     class Meta:
@@ -79,6 +85,15 @@ class PeminjamanForm(forms.ModelForm):
                 'placeholder': 'Catatan tambahan'
             }),
         }
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        peminjam = cleaned_data.get('peminjam')
+        
+        if not peminjam:
+            self.add_error('peminjam', 'Pilih peminjam terlebih dahulu')
+        
+        return cleaned_data
 
 
 # Formset untuk multiple detail peminjaman
@@ -87,7 +102,8 @@ DetailPeminjamanFormSet = inlineformset_factory(
     DetailPeminjaman,
     form=DetailPeminjamanForm,
     extra=1,
-    can_delete=True
+    can_delete=True,
+    validate_min=False  # Allow empty rows
 )
 
 

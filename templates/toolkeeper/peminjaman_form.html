@@ -72,7 +72,7 @@
                             
                             {{ formset.management_form }}
                             
-                            <div class="table-responsive">
+                            <div class="table-responsive" style="position: relative; overflow: visible;">
                                 <table class="table table-sm">
                                     <thead class="table-light">
                                         <tr>
@@ -85,13 +85,18 @@
                                     <tbody>
                                         {% for form_detail in formset %}
                                             <tr>
-                                                <td>
+                                                <td style="position: relative; overflow: visible;">
                                                     <input type="text" 
                                                            class="form-control form-control-sm tool-search-input" 
                                                            placeholder="🔍 Cari alat..."
-                                                           list="tool_list"
-                                                           data-field-index="{{ forloop.counter0 }}">
+                                                           data-field-index="{{ forloop.counter0 }}"
+                                                           autocomplete="off"
+                                                           style="position: relative; z-index: 1001;">
                                                     {{ form_detail.tool }}
+                                                    <!-- Custom dropdown untuk tool suggestions -->
+                                                    <div class="tool-dropdown position-absolute top-100 start-0 bg-white border rounded shadow-sm" 
+                                                         style="width: 100%; max-height: 250px; overflow-y: auto; display: none; z-index: 1010; margin-top: 2px;">
+                                                    </div>
                                                 </td>
                                                 <td>{{ form_detail.qty_pinjam }}</td>
                                                 <td>{{ form_detail.kondisi_pinjam }}</td>
@@ -137,7 +142,7 @@
 
                         <!-- Buttons -->
                         <div class="d-flex gap-2">
-                            <button type="submit" class="btn btn-primary">
+                            <button type="submit" class="btn btn-primary" id="submit_btn">
                                 <i class="bi bi-check-circle"></i> Simpan Peminjaman
                             </button>
                             <a href="{% url 'toolkeeper:peminjaman-list' %}" class="btn btn-secondary">
@@ -177,6 +182,22 @@
     
     .karyawan-suggestion:hover {
         background-color: #f8f9fa;
+    }
+    
+    /* Tool dropdown styling */
+    .tool-dropdown {
+        margin-top: 2px;
+    }
+    
+    .tool-suggestion {
+        padding: 8px 12px !important;
+        cursor: pointer;
+        transition: background-color 0.1s;
+    }
+    
+    .tool-suggestion:hover {
+        background-color: #e8f4f8;
+        font-weight: 500;
     }
 </style>
 
@@ -249,43 +270,122 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // ===== TOOL SEARCH =====
     function setupToolSearch() {
+        // Parse tool options dari datalist
+        const toolDatalist = document.getElementById('tool_list');
+        const toolOptions = Array.from(toolDatalist.querySelectorAll('option')).map(opt => ({
+            text: opt.value,
+            id: opt.value
+        }));
+        
+        console.log('✓ Loaded', toolOptions.length, 'tools');
+        
         document.querySelectorAll('.tool-search-input').forEach(input => {
-            const index = input.dataset.fieldIndex;
-            const toolSelect = document.getElementById(`id_detail_pengembalian_set-${index}-tool`);
+            const dropdown = input.closest('td').querySelector('.tool-dropdown');
+            const toolSelect = input.closest('td').querySelector('select');
             
-            if (!toolSelect) return;
+            if (!toolSelect || !dropdown) {
+                console.warn(`Tool select atau dropdown tidak ditemukan`);
+                return;
+            }
             
             input.addEventListener('input', function() {
                 const search = this.value.trim().toLowerCase();
                 
                 if (!search) {
+                    dropdown.style.display = 'none';
                     toolSelect.value = '';
                     return;
                 }
                 
-                // Try exact, starts-with, then partial
-                for (let opt of toolSelect.options) {
-                    if (opt.text.toLowerCase() === search) {
-                        toolSelect.value = opt.value;
-                        return;
-                    }
+                // Filter dengan 3-tier matching: exact → starts-with → partial
+                let filtered = toolOptions.filter(t => 
+                    t.text.toLowerCase() === search
+                );
+                
+                if (filtered.length === 0) {
+                    filtered = toolOptions.filter(t => 
+                        t.text.toLowerCase().startsWith(search)
+                    );
                 }
                 
-                for (let opt of toolSelect.options) {
-                    if (opt.text.toLowerCase().startsWith(search)) {
-                        toolSelect.value = opt.value;
-                        return;
-                    }
+                if (filtered.length === 0) {
+                    filtered = toolOptions.filter(t => 
+                        t.text.toLowerCase().includes(search)
+                    );
                 }
                 
-                for (let opt of toolSelect.options) {
-                    if (opt.text.toLowerCase().includes(search)) {
-                        toolSelect.value = opt.value;
-                        return;
-                    }
+                if (filtered.length === 0) {
+                    dropdown.innerHTML = '<div class="p-2 text-center text-muted small">Tidak ditemukan</div>';
+                    dropdown.style.display = 'block';
+                    toolSelect.value = '';
+                    return;
                 }
                 
-                toolSelect.value = '';
+                // Show suggestions
+                dropdown.innerHTML = filtered.map(t => `
+                    <div class="tool-suggestion p-2 border-bottom" data-tool="${t.text}" style="cursor: pointer;">
+                        ${t.text}
+                    </div>
+                `).join('');
+                
+                dropdown.style.display = 'block';
+                
+                // Click handlers
+                dropdown.querySelectorAll('.tool-suggestion').forEach(el => {
+                    el.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        const selectedText = this.dataset.tool;
+                        input.value = selectedText;
+                        
+                        console.log('User selected tool:', selectedText);
+                        console.log('Hidden select options:', toolSelect.options.length);
+                        
+                        // Set nilai di hidden select - CRITICAL
+                        let found = false;
+                        for (let opt of toolSelect.options) {
+                            console.log('  Comparing:', opt.text, '===', selectedText, '?', opt.text === selectedText);
+                            if (opt.text === selectedText) {
+                                toolSelect.value = opt.value;
+                                found = true;
+                                console.log('✓ SUCCESS: Set hidden select value to:', opt.value);
+                                break;
+                            }
+                        }
+                        
+                        if (!found) {
+                            console.warn('⚠ Tool option tidak ditemukan. Trying partial match...');
+                            // Try partial match sebagai fallback
+                            for (let opt of toolSelect.options) {
+                                if (opt.text.includes(selectedText) || selectedText.includes(opt.text)) {
+                                    toolSelect.value = opt.value;
+                                    found = true;
+                                    console.log('✓ Partial match found:', opt.text, '→', opt.value);
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        if (!found) {
+                            console.error('❌ Could not find matching tool option for:', selectedText);
+                        }
+                        
+                        dropdown.style.display = 'none';
+                    });
+                });
+            });
+            
+            // Show dropdown on focus
+            input.addEventListener('focus', function() {
+                if (this.value.trim()) {
+                    dropdown.style.display = 'block';
+                }
+            });
+            
+            // Hide dropdown on blur (tapi delay agar click bisa tertangkap)
+            input.addEventListener('blur', function() {
+                setTimeout(() => {
+                    dropdown.style.display = 'none';
+                }, 200);
             });
         });
     }
@@ -331,6 +431,52 @@ document.addEventListener('DOMContentLoaded', function() {
             tbody.appendChild(templateRow);
             totalForms.value = count + 1;
             setupToolSearch();
+        });
+    }
+    
+    // ===== FORM VALIDATION SEBELUM SUBMIT =====
+    const submitBtn = document.getElementById('submit_btn');
+    if (submitBtn) {
+        submitBtn.addEventListener('click', function(e) {
+            // Validate peminjam
+            if (!karyawanSelect.value) {
+                e.preventDefault();
+                alert('❌ Pilih peminjam terlebih dahulu!');
+                karyawanSearchInput.focus();
+                return false;
+            }
+            
+            // FALLBACK: Populate hidden selects dari visible inputs jika belum ter-set
+            const toolInputs = document.querySelectorAll('.tool-search-input');
+            let hasAlat = false;
+            
+            toolInputs.forEach(input => {
+                const value = input.value.trim();
+                const toolSelect = input.closest('td').querySelector('select');
+                
+                if (value && value !== '') {
+                    hasAlat = true;
+                    console.log('✓ Alat ditemukan:', value);
+                    
+                    // Jika hidden select masih kosong, coba populate
+                    if (!toolSelect.value) {
+                        console.log('Fallback: Populating hidden select untuk:', value);
+                        for (let opt of toolSelect.options) {
+                            if (opt.text === value) {
+                                toolSelect.value = opt.value;
+                                console.log('✓ Fallback: Set hidden select to:', opt.value);
+                                break;
+                            }
+                        }
+                    }
+                }
+            });
+            
+            if (!hasAlat) {
+                e.preventDefault();
+                alert('❌ Tambahkan minimal 1 alat yang dipinjam!');
+                return false;
+            }
         });
     }
 });
