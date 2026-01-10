@@ -12,6 +12,7 @@ from django.http import JsonResponse
 from .models import Tool, Peminjaman, DetailPeminjaman, Pengembalian, DetailPengembalian
 from .forms import (
     ToolForm, ToolImportForm, PeminjamanForm, DetailPeminjamanFormSet,
+    DetailPeminjamanFormSetWithStockValidation,
     PengembalianForm, DetailPengembalianFormSet
 )
 from core.models import Karyawan
@@ -269,7 +270,7 @@ class PeminjamanCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
     
     def get(self, request, *args, **kwargs):
         response = super().get(request, *args, **kwargs)
-        response.context_data['formset'] = DetailPeminjamanFormSet()
+        response.context_data['formset'] = DetailPeminjamanFormSetWithStockValidation()
         response.context_data['karyawan_list'] = Karyawan.objects.filter(status='Aktif').order_by('nama_lengkap')
         response.context_data['tool_list'] = Tool.objects.all().order_by('nama')
         return response
@@ -277,7 +278,7 @@ class PeminjamanCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
     def post(self, request, *args, **kwargs):
         self.object = None
         form = self.get_form()
-        formset = DetailPeminjamanFormSet(self.request.POST)
+        formset = DetailPeminjamanFormSetWithStockValidation(self.request.POST)
         
         if form.is_valid() and formset.is_valid():
             self.object = form.save(commit=False)
@@ -541,6 +542,27 @@ def api_return_tool(request):
     
     except json.JSONDecodeError:
         return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+@require_http_methods(['GET'])
+def api_get_tool_stock(request, tool_id):
+    """API endpoint untuk get stok tool"""
+    try:
+        tool = Tool.objects.get(id=tool_id)
+        
+        return JsonResponse({
+            'success': True,
+            'tool_id': str(tool.id),
+            'tool_name': tool.nama,
+            'jumlah_total': tool.jumlah_total,
+            'jumlah_tersedia': tool.jumlah_tersedia,
+            'message': f'{tool.nama}: {tool.jumlah_tersedia} / {tool.jumlah_total} tersedia'
+        })
+    except Tool.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Tool tidak ditemukan'}, status=404)
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 

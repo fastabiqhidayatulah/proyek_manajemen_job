@@ -107,6 +107,33 @@ DetailPeminjamanFormSet = inlineformset_factory(
 )
 
 
+# Custom formset dengan validasi stok
+class DetailPeminjamanFormSetWithStockValidation(DetailPeminjamanFormSet):
+    """Formset dengan validasi stok alat yang dipinjam"""
+    
+    def clean(self):
+        super().clean()
+        
+        # Skip validation jika form error sudah ada
+        if self.non_form_errors():
+            return
+        
+        # Cek setiap tool yang dipinjam
+        for form in self.forms:
+            if form.cleaned_data.get('tool') and not form.cleaned_data.get('DELETE'):
+                tool = form.cleaned_data['tool']
+                qty_pinjam = form.cleaned_data.get('qty_pinjam', 0)
+                
+                # Get stok tersedia
+                stok_tersedia = tool.jumlah_tersedia
+                
+                if qty_pinjam > stok_tersedia:
+                    form.add_error('qty_pinjam', 
+                        f'Stok "{tool.nama}" tidak mencukupi. '
+                        f'Diminta: {qty_pinjam}, Tersedia: {stok_tersedia}')
+
+
+
 class DetailPengembalianForm(forms.ModelForm):
     """Form untuk detail pengembalian"""
     

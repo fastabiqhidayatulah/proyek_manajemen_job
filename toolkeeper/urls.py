@@ -22,6 +22,7 @@ urlpatterns = [
     path('pengembalian/<uuid:pk>/', views.PengembalianDetailView.as_view(), name='pengembalian-detail'),
     path('api/return-tool/', views.api_return_tool, name='api-return-tool'),
     path('api/add-karyawan/', views.api_add_karyawan, name='api-add-karyawan'),
+    path('api/tool-stock/<uuid:tool_id>/', views.api_get_tool_stock, name='api-tool-stock'),
     
     # Reports
     path('report/', views.ReportView.as_view(), name='report'),

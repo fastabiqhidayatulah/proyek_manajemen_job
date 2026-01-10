@@ -97,6 +97,8 @@
                                                     <div class="tool-dropdown position-absolute top-100 start-0 bg-white border rounded shadow-sm" 
                                                          style="width: 100%; max-height: 250px; overflow-y: auto; display: none; z-index: 1010; margin-top: 2px;">
                                                     </div>
+                                                    <!-- Stock info display -->
+                                                    <small class="tool-stock-info d-block mt-1 text-muted" style="display: none;"></small>
                                                 </td>
                                                 <td>{{ form_detail.qty_pinjam }}</td>
                                                 <td>{{ form_detail.kondisi_pinjam }}</td>
@@ -367,6 +369,28 @@ document.addEventListener('DOMContentLoaded', function() {
                         
                         if (!found) {
                             console.error('❌ Could not find matching tool option for:', selectedText);
+                        } else {
+                            // Fetch & display stock info
+                            const toolId = toolSelect.value;
+                            const stockInfoEl = input.closest('td').querySelector('.tool-stock-info');
+                            
+                            fetch(`/toolkeeper/api/tool-stock/${toolId}/`)
+                                .then(r => r.json())
+                                .then(data => {
+                                    if (data.success) {
+                                        stockInfoEl.textContent = `📦 ${data.message}`;
+                                        stockInfoEl.style.display = 'block';
+                                        
+                                        // Warn if stok habis
+                                        if (data.jumlah_tersedia === 0) {
+                                            stockInfoEl.classList.add('text-danger');
+                                            stockInfoEl.textContent += ' ⚠️ STOK HABIS!';
+                                        } else {
+                                            stockInfoEl.classList.remove('text-danger');
+                                        }
+                                    }
+                                })
+                                .catch(err => console.warn('Could not fetch stock info:', err));
                         }
                         
                         dropdown.style.display = 'none';
