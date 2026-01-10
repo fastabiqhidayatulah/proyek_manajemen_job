@@ -296,6 +296,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (!search) {
                     dropdown.style.display = 'none';
                     toolSelect.value = '';
+                    const stockInfoEl = input.closest('td').querySelector('.tool-stock-info');
+                    const qtyInput = input.closest('tr').querySelector('input[id$="-qty_pinjam"]');
+                    if (stockInfoEl) stockInfoEl.style.display = 'none';
+                    if (qtyInput) qtyInput.disabled = false;
                     return;
                 }
                 
@@ -373,21 +377,35 @@ document.addEventListener('DOMContentLoaded', function() {
                             // Fetch & display stock info
                             const toolId = toolSelect.value;
                             const stockInfoEl = input.closest('td').querySelector('.tool-stock-info');
+                            const qtyInput = input.closest('tr').querySelector('input[id$="-qty_pinjam"]');
                             
                             fetch(`/toolkeeper/api/tool-stock/${toolId}/`)
                                 .then(r => r.json())
                                 .then(data => {
                                     if (data.success) {
-                                        stockInfoEl.textContent = `📦 ${data.message}`;
-                                        stockInfoEl.style.display = 'block';
+                                        const tersedia = data.jumlah_tersedia;
                                         
-                                        // Warn if stok habis
-                                        if (data.jumlah_tersedia === 0) {
-                                            stockInfoEl.classList.add('text-danger');
-                                            stockInfoEl.textContent += ' ⚠️ STOK HABIS!';
+                                        if (tersedia === 0) {
+                                            // Stok habis
+                                            stockInfoEl.innerHTML = `<span class="text-danger fw-bold">❌ STOK HABIS! Tidak bisa dipinjam</span>`;
+                                            if (qtyInput) {
+                                                qtyInput.disabled = true;
+                                                qtyInput.value = '';
+                                            }
+                                        } else if (tersedia < 0) {
+                                            // Over-borrowed (shouldn't happen)
+                                            stockInfoEl.innerHTML = `<span class="text-danger fw-bold">❌ Stok Negatif!</span>`;
+                                            if (qtyInput) qtyInput.disabled = true;
                                         } else {
-                                            stockInfoEl.classList.remove('text-danger');
+                                            // Stok tersedia
+                                            stockInfoEl.innerHTML = `<span class="text-success">📦 ${data.message}</span>`;
+                                            if (qtyInput) {
+                                                qtyInput.disabled = false;
+                                                qtyInput.max = tersedia;
+                                            }
                                         }
+                                        
+                                        stockInfoEl.style.display = 'block';
                                     }
                                 })
                                 .catch(err => console.warn('Could not fetch stock info:', err));
@@ -473,10 +491,13 @@ document.addEventListener('DOMContentLoaded', function() {
             // FALLBACK: Populate hidden selects dari visible inputs jika belum ter-set
             const toolInputs = document.querySelectorAll('.tool-search-input');
             let hasAlat = false;
+            let invalidQty = false;
+            let errorMsg = '';
             
             toolInputs.forEach(input => {
                 const value = input.value.trim();
                 const toolSelect = input.closest('td').querySelector('select');
+                const qtyInput = input.closest('tr').querySelector('input[id$="-qty_pinjam"]');
                 
                 if (value && value !== '') {
                     hasAlat = true;
@@ -493,12 +514,32 @@ document.addEventListener('DOMContentLoaded', function() {
                             }
                         }
                     }
+                    
+                    // Cek qty vs stok
+                    if (qtyInput && qtyInput.disabled) {
+                        // Input disabled berarti stok habis
+                        errorMsg = `❌ "${value}" - STOK HABIS! Tidak bisa dipinjam`;
+                        invalidQty = true;
+                    } else if (qtyInput && qtyInput.value) {
+                        const qty = parseInt(qtyInput.value);
+                        const maxQty = parseInt(qtyInput.max || 999999);
+                        if (qty > maxQty) {
+                            errorMsg = `❌ "${value}" - Qty ${qty} melebihi stok tersedia (${maxQty})`;
+                            invalidQty = true;
+                        }
+                    }
                 }
             });
             
             if (!hasAlat) {
                 e.preventDefault();
                 alert('❌ Tambahkan minimal 1 alat yang dipinjam!');
+                return false;
+            }
+            
+            if (invalidQty) {
+                e.preventDefault();
+                alert(errorMsg);
                 return false;
             }
         });
