@@ -25,7 +25,31 @@
         </div>
     </div>
 
-    <!-- Table -->
+    <!-- Search & Filter Section -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label"><i class="bi bi-search"></i> Cari Alat</label>
+                    <input type="text" id="searchInput" class="form-control" placeholder="Ketik nama alat...">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label"><i class="bi bi-funnel"></i> Filter Stok</label>
+                    <select id="stockFilter" class="form-select">
+                        <option value="">-- Semua Stok --</option>
+                        <option value="habis">Stok Habis (0)</option>
+                        <option value="sedikit">Stok Sedikit (1-2)</option>
+                        <option value="tersedia">Stok Tersedia (>2)</option>
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button id="resetBtn" class="btn btn-secondary w-100">
+                        <i class="bi bi-arrow-clockwise"></i> Reset
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
     <div class="card">
         <div class="table-responsive">
             <table class="table table-hover mb-0">
@@ -126,4 +150,72 @@
     </nav>
     {% endif %}
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('searchInput');
+    const stockFilter = document.getElementById('stockFilter');
+    const resetBtn = document.getElementById('resetBtn');
+    const tableRows = document.querySelectorAll('tbody tr');
+    
+    // Combine search & filter
+    function filterTable() {
+        const searchValue = searchInput.value.toLowerCase().trim();
+        const filterValue = stockFilter.value;
+        let visibleCount = 0;
+        
+        tableRows.forEach(row => {
+            const toolName = row.querySelector('td:first-child').textContent.toLowerCase();
+            const stokBadge = row.querySelector('td:nth-child(4) span');
+            const stokValue = parseInt(stokBadge?.textContent || 0);
+            
+            // Search filter
+            const matchesSearch = !searchValue || toolName.includes(searchValue);
+            
+            // Stock filter
+            let matchesStock = true;
+            if (filterValue === 'habis') {
+                matchesStock = stokValue === 0;
+            } else if (filterValue === 'sedikit') {
+                matchesStock = stokValue > 0 && stokValue <= 2;
+            } else if (filterValue === 'tersedia') {
+                matchesStock = stokValue > 2;
+            }
+            
+            // Show/hide row
+            const shouldShow = matchesSearch && matchesStock;
+            row.style.display = shouldShow ? '' : 'none';
+            if (shouldShow) visibleCount++;
+        });
+        
+        // Show "no results" message jika perlu
+        const noResultsRow = document.getElementById('noResults');
+        if (visibleCount === 0) {
+            if (!noResultsRow) {
+                const tbody = document.querySelector('tbody');
+                const emptyRow = document.createElement('tr');
+                emptyRow.id = 'noResults';
+                emptyRow.innerHTML = '<td colspan="5" class="text-center text-muted py-4"><i class="bi bi-inbox"></i> Tidak ada alat yang sesuai</td>';
+                tbody.appendChild(emptyRow);
+            }
+        } else {
+            if (noResultsRow) {
+                noResultsRow.remove();
+            }
+        }
+    }
+    
+    // Event listeners
+    searchInput.addEventListener('input', filterTable);
+    stockFilter.addEventListener('change', filterTable);
+    
+    // Reset button
+    resetBtn.addEventListener('click', function() {
+        searchInput.value = '';
+        stockFilter.value = '';
+        filterTable();
+        searchInput.focus();
+    });
+});
+</script>
 {% endblock %}
