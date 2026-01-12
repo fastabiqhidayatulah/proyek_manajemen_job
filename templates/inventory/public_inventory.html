@@ -54,14 +54,24 @@
         .search-form {
             display: flex;
             gap: 6px;
+            flex-wrap: wrap;
         }
         
         .search-form input {
             flex: 1;
+            min-width: 150px;
             padding: 8px 10px;
             border: 1px solid #d1d5db;
             border-radius: 6px;
             font-size: 13px;
+        }
+
+        .search-form .form-select {
+            padding: 8px 10px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 13px;
+            background-color: white;
         }
         
         .search-form button {
@@ -73,10 +83,22 @@
             font-size: 13px;
             font-weight: 600;
             cursor: pointer;
+            white-space: nowrap;
         }
         
         .search-form button:active {
             background: #1e3a8a;
+        }
+
+        .clear-filters-link {
+            display: inline-block;
+            font-size: 13px;
+            color: #1e40af;
+            text-decoration: none;
+        }
+
+        .clear-filters-link:hover {
+            text-decoration: underline;
         }
         
         /* Content */
@@ -274,12 +296,22 @@
     <div class="container-fluid">
         <form method="GET" class="search-form">
             <input type="text" name="search" placeholder="Cari kode atau nama barang..." value="{{ current_search }}">
+            <select name="kategori" class="form-select" style="flex: 0 1 180px; font-size: 13px;">
+                <option value="">-- Semua Kategori --</option>
+                <option value="electrical" {% if current_kategori == 'electrical' %}selected{% endif %}>Electrical</option>
+                <option value="mechanical" {% if current_kategori == 'mechanical' %}selected{% endif %}>Mechanical</option>
+                <option value="hydraulic" {% if current_kategori == 'hydraulic' %}selected{% endif %}>Hydraulic</option>
+                <option value="seals" {% if current_kategori == 'seals' %}selected{% endif %}>Seals</option>
+                <option value="fasteners" {% if current_kategori == 'fasteners' %}selected{% endif %}>Fasteners</option>
+                <option value="lubricants" {% if current_kategori == 'lubricants' %}selected{% endif %}>Lubricants</option>
+                <option value="consumables" {% if current_kategori == 'consumables' %}selected{% endif %}>Consumables</option>
+            </select>
             <button type="submit"><i class="bi bi-search"></i> Cari</button>
         </form>
-        {% if current_search %}
+        {% if current_search or current_kategori %}
         <div style="margin-top: 10px;">
-            <a href="{% url 'inventory:public-list' %}" style="font-size: 13px; color: #1e40af; text-decoration: none;">
-                <i class="bi bi-x-circle"></i> Hapus filter
+            <a href="{% url 'inventory:public-list' %}" class="clear-filters-link">
+                <i class="bi bi-x-circle"></i> Hapus semua filter
             </a>
         </div>
         {% endif %}

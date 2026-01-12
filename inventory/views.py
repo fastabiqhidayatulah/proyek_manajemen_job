@@ -224,11 +224,17 @@ class PublicInventoryView(ListView):
                 models.Q(nama__icontains=search)
             )
         
+        # Filter by kategori
+        kategori = self.request.GET.get('kategori')
+        if kategori:
+            queryset = queryset.filter(kategori=kategori)
+        
         return queryset.order_by('kode')
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['current_search'] = self.request.GET.get('search', '')
+        context['current_kategori'] = self.request.GET.get('kategori', '')
         return context
 
 
