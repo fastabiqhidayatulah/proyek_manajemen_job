@@ -103,11 +103,12 @@
             text-align: center;
         }
 
-        .col-kode { width: 12%; }
-        .col-nama { width: 28%; }
-        .col-spek { width: 30%; }
-        .col-stok { width: 12%; }
-        .col-lokasi { width: 18%; }
+        .col-kode { width: 10%; }
+        .col-nama { width: 25%; }
+        .col-spek { width: 25%; }
+        .col-stok { width: 10%; }
+        .col-tanggal { width: 15%; }
+        .col-lokasi { width: 15%; }
     </style>
 </head>
 <body>
@@ -127,6 +128,7 @@
                 <th class="col-nama">NAMA BARANG</th>
                 <th class="col-spek">SPESIFIKASI</th>
                 <th class="col-stok text-center">STOK</th>
+                <th class="col-tanggal text-center">TGL PEMBARUAN</th>
                 <th class="col-lokasi">LOKASI</th>
             </tr>
         </thead>
@@ -140,6 +142,9 @@
                 </td>
                 <td class="text-center">
                     <strong>{{ barang.stock_level.qty|default:"0" }}</strong>
+                </td>
+                <td class="text-center">
+                    <small>{% if barang.stock_level.updated_at %}{{ barang.stock_level.updated_at|date:"d-m-Y H:i" }}{% else %}-{% endif %}</small>
                 </td>
                 <td>
                     <small>{{ barang.lokasi_penyimpanan|default:"-" }}</small>
