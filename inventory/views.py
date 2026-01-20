@@ -20,6 +20,7 @@ import json
 def send_pdf_to_fontte(group_id, pdf_file_path, token=None, api_url=None):
     """
     Send PDF file ke grup WA via Fontte API
+    Format API Fontte: POST https://api.fontte.com/v1/send
     Returns: (success: bool, message: str, log_id: str or None)
     """
     try:
@@ -35,23 +36,24 @@ def send_pdf_to_fontte(group_id, pdf_file_path, token=None, api_url=None):
         # Open & read file
         with open(pdf_file_path, 'rb') as f:
             files = {'file': f}
+            data = {
+                'target': group_id,  # Format: nomor_wa atau group_id
+                'caption': 'Stock Export Report'  # Caption untuk file
+            }
             headers = {
                 'Authorization': f'Bearer {token}'
             }
             
-            # Send ke Fontte API (endpoint untuk send file)
-            url = f"{api_url}/send-file"
-            data = {
-                'chat_id': group_id,
-                'type': 'file'
-            }
-            
+            # Send ke Fontte API endpoint /send
+            url = f"{api_url}/send"
             response = requests.post(url, headers=headers, data=data, files=files, timeout=30)
         
+        response_data = response.json() if response.text else {}
+        
         if response.status_code in [200, 201]:
-            return True, "✓ PDF berhasil dikirim ke Fontte", None
+            return True, "✓ PDF berhasil dikirim ke WA", None
         else:
-            error_msg = response.text
+            error_msg = response_data.get('message', response.text)
             return False, f"✗ Error: HTTP {response.status_code} - {error_msg}", None
     
     except FileNotFoundError:
@@ -690,7 +692,7 @@ def api_test_send_pdf(request):
         }, status=500)
 
 
-
+class StockExportLogView(LoginRequiredMixin, UserPassesTestMixin, ListView):
     """Lihat history export PDF ke WA"""
     model = StockExportLog
     template_name = 'inventory/stock_export_log.html'

@@ -1,0 +1,124 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}History Export PDF ke WA - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2 class="mb-3">
+                <i class="bi bi-clock-history me-2"></i> History Export PDF ke WA
+            </h2>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{% url 'inventory:export-setting' %}" class="btn btn-primary">
+                <i class="bi bi-gear me-2"></i> Kembali ke Setting
+            </a>
+        </div>
+    </div>
+
+    {% if logs %}
+    <div class="table-responsive">
+        <table class="table table-hover table-sm">
+            <thead class="table-light">
+                <tr>
+                    <th style="width: 15%">Waktu</th>
+                    <th style="width: 20%">Group WA</th>
+                    <th style="width: 10%">Status</th>
+                    <th style="width: 40%">Pesan</th>
+                    <th style="width: 15%">File</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs %}
+                <tr>
+                    <td>
+                        <small class="text-muted">
+                            {{ log.created_at|date:"d/m/Y H:i" }}
+                        </small>
+                    </td>
+                    <td>
+                        <code>{{ log.wa_group_id }}</code>
+                        <br>
+                        <small class="text-muted">{{ log.wa_group_name }}</small>
+                    </td>
+                    <td>
+                        {% if log.status == 'sent' %}
+                            <span class="badge bg-success">Terkirim</span>
+                        {% elif log.status == 'pending' %}
+                            <span class="badge bg-warning">Pending</span>
+                        {% elif log.status == 'failed' %}
+                            <span class="badge bg-danger">Gagal</span>
+                        {% else %}
+                            <span class="badge bg-secondary">{{ log.status }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if log.error_message %}
+                            <small class="text-danger">{{ log.error_message|truncatewords:10 }}</small>
+                        {% else %}
+                            <small class="text-success">OK</small>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if log.pdf_file %}
+                            <small>
+                                <i class="bi bi-file-pdf me-1"></i>
+                                {{ log.pdf_file|truncatechars:20 }}
+                            </small>
+                        {% else %}
+                            <small class="text-muted">-</small>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if is_paginated %}
+    <nav aria-label="Page navigation" class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page=1">Pertama</a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Sebelumnya</a>
+            </li>
+            {% endif %}
+
+            <li class="page-item active">
+                <span class="page-link">
+                    Halaman {{ page_obj.number }} dari {{ page_obj.paginator.num_pages }}
+                </span>
+            </li>
+
+            {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}">Berikutnya</a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">Terakhir</a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+
+    {% else %}
+    <div class="alert alert-info" role="alert">
+        <i class="bi bi-info-circle me-2"></i>
+        Belum ada history export PDF. Mulai buat export pertama kamu sekarang!
+    </div>
+    {% endif %}
+</div>
+
+<style>
+    .table-hover tbody tr:hover {
+        background-color: rgba(0, 123, 255, 0.05);
+    }
+</style>
+{% endblock %}

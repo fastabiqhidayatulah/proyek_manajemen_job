@@ -150,29 +150,32 @@
                                     </div>
                                 {% endif %}
 
-                                <!-- Manual Add Group -->
-                                <div class="card bg-light mb-3">
-                                    <div class="card-header bg-info bg-opacity-10">
-                                        <h6 class="mb-0 text-info"><i class="bi bi-plus-circle"></i> Tambah Grup Manual</h6>
-                                    </div>
-                                    <div class="card-body">
-                                        <div class="row">
-                                            <div class="col-md-6">
-                                                <label class="form-label"><small>Group ID</small></label>
-                                                <input type="text" id="manual_group_id" class="form-control" 
-                                                    placeholder="Masukkan ID grup WA (dari Fontte)">
-                                            </div>
-                                            <div class="col-md-6">
-                                                <label class="form-label"><small>Nama Grup</small></label>
-                                                <input type="text" id="manual_group_name" class="form-control" 
-                                                    placeholder="Masukkan nama grup WA">
-                                            </div>
+                                    <div class="card bg-light mb-3">
+                                        <div class="card-header bg-info bg-opacity-10">
+                                            <h6 class="mb-0 text-info"><i class="bi bi-plus-circle"></i> Tambah Grup Manual</h6>
                                         </div>
-                                        <button type="button" class="btn btn-sm btn-info mt-2" id="add_manual_group_btn">
-                                            <i class="bi bi-plus"></i> Tambah Grup
-                                        </button>
+                                        <div class="card-body">
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <label class="form-label"><small>Group ID / Nomor WA</small></label>
+                                                    <input type="text" id="manual_group_id" class="form-control" 
+                                                        placeholder="Contoh: 62812345678-1234567890@g.us">
+                                                    <small class="text-muted d-block mt-1">
+                                                        Format: nomor_wa + tarikh + @g.us (dari Fontte)<br>
+                                                        Atau masukkan nomor WhatsApp: 628xxx-xxx@g.us
+                                                    </small>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label"><small>Nama Grup</small></label>
+                                                    <input type="text" id="manual_group_name" class="form-control" 
+                                                        placeholder="Masukkan nama grup WA">
+                                                </div>
+                                            </div>
+                                            <button type="button" class="btn btn-sm btn-info mt-2" id="add_manual_group_btn">
+                                                <i class="bi bi-plus"></i> Tambah Grup
+                                            </button>
+                                        </div>
                                     </div>
-                                </div>
                             {% else %}
                                 <div class="alert alert-danger mb-3">
                                     <i class="bi bi-x-circle"></i> <strong>WA Fontte tidak diaktifkan.</strong>
@@ -214,15 +217,27 @@
             <!-- Info Card -->
             <div class="card border-info mb-4">
                 <div class="card-header bg-info bg-opacity-10 border-info">
-                    <h6 class="mb-0 text-info"><i class="bi bi-lightbulb"></i> Informasi</h6>
+                    <h6 class="mb-0 text-info"><i class="bi bi-lightbulb"></i> Informasi & Cara Penggunaan</h6>
                 </div>
                 <div class="card-body small">
+                    <h6 class="mb-2"><i class="bi bi-question-circle"></i> Bagaimana mendapatkan Group ID?</h6>
+                    <ul class="mb-3">
+                        <li>Login ke dashboard Fontte Anda</li>
+                        <li>Buka menu "Chats" atau daftar percakapan</li>
+                        <li>Klik pada grup WA yang ingin dituju</li>
+                        <li>Copy "Chat ID" atau "Group ID" yang ditampilkan (format: 628xxx-1234567890@g.us)</li>
+                        <li>Paste di form "Group ID / Nomor WA" di atas</li>
+                    </ul>
+                    
+                    <hr>
+                    
+                    <h6 class="mb-2"><i class="bi bi-gear-fill"></i> Informasi Jadwal</h6>
                     <ul class="mb-0">
-                        <li><strong>Jadwal Harian:</strong> PDF akan dikirim setiap hari pada jam yang ditentukan</li>
-                        <li><strong>Jadwal Mingguan:</strong> PDF akan dikirim setiap minggu pada hari & jam yang ditentukan</li>
-                        <li><strong>Jadwal Bulanan:</strong> PDF akan dikirim setiap bulan pada tanggal & jam yang ditentukan</li>
+                        <li><strong>Harian:</strong> Dikirim setiap hari pada jam yang ditentukan</li>
+                        <li><strong>Mingguan:</strong> Dikirim setiap minggu pada hari & jam yang ditentukan</li>
+                        <li><strong>Bulanan:</strong> Dikirim setiap bulan pada tanggal & jam yang ditentukan</li>
                         <li><strong>Grup WA:</strong> Akan dikirim ke semua grup yang dipilih</li>
-                        <li><strong>Kolom PDF:</strong> Kode | Nama Barang | Spesifikasi | Stok | Tanggal Pembaruan | Lokasi</li>
+                        <li><strong>Format PDF:</strong> Kode | Nama Barang | Spesifikasi | Stok | Tanggal Update | Lokasi</li>
                     </ul>
                 </div>
             </div>
@@ -303,43 +318,54 @@
     // Initialize on load
     updateFrequencyOptions();
 
-    // Handle group checkbox changes
+    // Handle group checkbox changes & update display
     function updateSelectedGroups() {
-        const checkboxes = document.querySelectorAll('.group-checkbox:checked');
-        const selectedGroups = [];
+        const input = document.getElementById('wa_groups_input');
         const displayContainer = document.getElementById('selected_groups_display');
+        const testSection = document.getElementById('test_send_section');
         
-        checkboxes.forEach(checkbox => {
-            selectedGroups.push({
-                group_id: checkbox.value,
-                group_name: checkbox.dataset.groupName
-            });
-        });
-        
-        // Update hidden input
-        document.getElementById('wa_groups_input').value = JSON.stringify(selectedGroups);
+        let selectedGroups = [];
+        try {
+            const value = input.value.trim();
+            if (value) {
+                selectedGroups = JSON.parse(value);
+            }
+        } catch (e) {
+            selectedGroups = [];
+        }
         
         // Update display & test button visibility
-        const testSection = document.getElementById('test_send_section');
         if (selectedGroups.length > 0) {
-            displayContainer.innerHTML = selectedGroups.map(g => 
+            displayContainer.innerHTML = selectedGroups.map((g, idx) => 
                 `<span class="badge bg-success me-2 mb-2" style="padding: 8px 12px; font-size: 12px;">
                     <i class="bi bi-whatsapp"></i> ${g.group_name}
+                    <button type="button" class="btn-close btn-close-white ms-2 remove-group" data-index="${idx}" style="font-size: 0.7rem;"></button>
                 </span>`
             ).join('');
-            testSection.style.display = 'block';
+            
+            // Add remove handlers
+            document.querySelectorAll('.remove-group').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const idx = parseInt(this.dataset.index);
+                    selectedGroups.splice(idx, 1);
+                    input.value = JSON.stringify(selectedGroups);
+                    updateSelectedGroups();
+                });
+            });
             
             // Store first group ID for test
             window.firstGroupId = selectedGroups[0].group_id;
+            testSection.style.display = 'block';
         } else {
             displayContainer.innerHTML = '<small class="text-muted">Tidak ada grup yang dipilih</small>';
             testSection.style.display = 'none';
+            window.firstGroupId = null;
         }
     }
 
-    // Add event listeners to all checkboxes
-    document.querySelectorAll('.group-checkbox').forEach(checkbox => {
-        checkbox.addEventListener('change', updateSelectedGroups);
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        updateSelectedGroups();
     });
 
     // Manual add group button
