@@ -351,3 +351,94 @@ class BarangImportView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
             'has_result': False
         }
         return render(request, self.template_name, context)
+
+
+# ==============================================================================
+# 8. STOCK EXPORT SETTING VIEW
+# ==============================================================================
+class StockExportSettingView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
+    """Halaman setting untuk export PDF ke WA otomatis"""
+    model = StockExportSetting
+    template_name = 'inventory/stock_export_setting.html'
+    login_url = 'login'
+    
+    def test_func(self):
+        """Hanya admin yang bisa akses"""
+        return self.request.user.is_staff or self.request.user.is_superuser
+    
+    def handle_no_permission(self):
+        messages.error(self.request, 'Anda tidak memiliki akses ke halaman ini!')
+        return redirect('inventory:barang-list')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Get or create setting
+        setting, created = StockExportSetting.objects.get_or_create(pk=1)
+        
+        context['setting'] = setting
+        context['logs'] = StockExportLog.objects.filter(setting=setting).order_by('-created_at')[:20]
+        context['frequency_choices'] = StockExportSetting.FREQUENCY_CHOICES
+        context['day_choices'] = [
+            (0, 'Senin'),
+            (1, 'Selasa'),
+            (2, 'Rabu'),
+            (3, 'Kamis'),
+            (4, 'Jumat'),
+            (5, 'Sabtu'),
+            (6, 'Minggu'),
+        ]
+        
+        return context
+    
+    def post(self, request, *args, **kwargs):
+        """Update setting"""
+        try:
+            setting = StockExportSetting.objects.get(pk=1)
+        except StockExportSetting.DoesNotExist:
+            setting = StockExportSetting.objects.create(pk=1)
+        
+        # Update fields
+        setting.is_active = request.POST.get('is_active') == 'on'
+        setting.frequency = request.POST.get('frequency', 'daily')
+        setting.send_time = request.POST.get('send_time', '08:00:00')
+        setting.day_of_week = int(request.POST.get('day_of_week', 0))
+        setting.day_of_month = int(request.POST.get('day_of_month', 1))
+        
+        # Parse WA groups dari JSON form
+        wa_groups_json = request.POST.get('wa_groups', '[]')
+        try:
+            import json
+            setting.wa_groups = json.loads(wa_groups_json)
+        except:
+            setting.wa_groups = []
+        
+        setting.updated_by = request.user
+        setting.save()
+        
+        messages.success(request, 'Setting export PDF berhasil disimpan!')
+        return redirect('inventory:export-setting')
+
+
+class StockExportLogView(LoginRequiredMixin, UserPassesTestMixin, ListView):
+    """Lihat history export PDF ke WA"""
+    model = StockExportLog
+    template_name = 'inventory/stock_export_log.html'
+    context_object_name = 'logs'
+    paginate_by = 50
+    login_url = 'login'
+    
+    def test_func(self):
+        """Hanya admin yang bisa akses"""
+        return self.request.user.is_staff or self.request.user.is_superuser
+    
+    def handle_no_permission(self):
+        messages.error(self.request, 'Anda tidak memiliki akses ke halaman ini!')
+        return redirect('inventory:barang-list')
+    
+    def get_queryset(self):
+        try:
+            setting = StockExportSetting.objects.get(pk=1)
+            return setting.logs.all().order_by('-created_at')
+        except:
+            return StockExportLog.objects.none()

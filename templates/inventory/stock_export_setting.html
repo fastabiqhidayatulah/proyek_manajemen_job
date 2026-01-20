@@ -1,0 +1,240 @@
+{% extends 'base.html' %}
+
+{% block title %}Setting Export PDF Stok ke WA{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="row">
+        <div class="col-lg-10 mx-auto">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2><i class="bi bi-whatsapp text-success"></i> Setting Export PDF ke WA</h2>
+                    <p class="text-muted">Atur jadwal dan grup WA untuk pengiriman laporan stok otomatis</p>
+                </div>
+                <a href="{% url 'inventory:export-log' %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-clock-history"></i> Lihat History
+                </a>
+            </div>
+
+            <!-- Alert Status -->
+            {% if setting.is_active %}
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="bi bi-check-circle"></i> <strong>Aktif!</strong> Export PDF akan dikirim sesuai jadwal.
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% else %}
+                <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                    <i class="bi bi-exclamation-triangle"></i> <strong>Nonaktif.</strong> Export PDF belum diaktifkan.
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endif %}
+
+            <!-- Main Form Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-gear"></i> Pengaturan Jadwal</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        {% csrf_token %}
+
+                        <!-- Status Aktif -->
+                        <div class="mb-4">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="is_active" name="is_active" 
+                                    {% if setting.is_active %}checked{% endif %}>
+                                <label class="form-check-label" for="is_active">
+                                    <strong>Aktifkan Export Otomatis</strong>
+                                </label>
+                            </div>
+                            <small class="text-muted d-block mt-2">
+                                Pastikan server/task scheduler sudah berjalan untuk mengirim PDF otomatis
+                            </small>
+                        </div>
+
+                        <hr>
+
+                        <!-- Frequency Selection -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label"><strong>Frekuensi Pengiriman</strong></label>
+                                <select name="frequency" class="form-select" id="frequency_select">
+                                    {% for value, label in frequency_choices %}
+                                        <option value="{{ value }}" {% if setting.frequency == value %}selected{% endif %}>
+                                            {{ label }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label"><strong>Jam Pengiriman</strong></label>
+                                <input type="time" name="send_time" class="form-control" 
+                                    value="{% if setting.send_time %}{{ setting.send_time|time:'H:i' }}{% else %}08:00{% endif %}">
+                            </div>
+                        </div>
+
+                        <!-- Weekly Options (Hidden by default) -->
+                        <div id="weekly_options" class="row mb-4" style="display: none;">
+                            <div class="col-md-6">
+                                <label class="form-label"><strong>Hari Pengiriman</strong></label>
+                                <select name="day_of_week" class="form-select">
+                                    {% for value, label in day_choices %}
+                                        <option value="{{ value }}" {% if setting.day_of_week == value %}selected{% endif %}>
+                                            {{ label }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Monthly Options (Hidden by default) -->
+                        <div id="monthly_options" class="row mb-4" style="display: none;">
+                            <div class="col-md-6">
+                                <label class="form-label"><strong>Tanggal Pengiriman</strong></label>
+                                <input type="number" name="day_of_month" class="form-control" 
+                                    min="1" max="31" value="{{ setting.day_of_month }}">
+                                <small class="text-muted">Hari ke-berapa dalam sebulan (1-31)</small>
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <!-- WA Groups Selection -->
+                        <div class="mb-4">
+                            <label class="form-label"><strong>Pilih Grup WA untuk Menerima PDF</strong></label>
+                            <div id="wa_groups_container" class="border rounded p-3" style="min-height: 120px; background-color: #f8f9fa;">
+                                {% if setting.wa_groups %}
+                                    {% for group in setting.wa_groups %}
+                                        <div class="badge bg-success me-2 mb-2" style="padding: 8px 12px; font-size: 12px;">
+                                            {{ group.group_name }}
+                                            <i class="bi bi-x-circle cursor-pointer remove-group" 
+                                               onclick="removeGroup('{{ group.group_id }}')" 
+                                               style="cursor: pointer; margin-left: 5px;"></i>
+                                        </div>
+                                    {% endfor %}
+                                {% else %}
+                                    <p class="text-muted mb-0">Belum ada grup WA yang dipilih. Hubungkan WA Fontte dulu.</p>
+                                {% endif %}
+                            </div>
+                            <small class="text-muted d-block mt-2">
+                                <i class="bi bi-info-circle"></i> Hubungkan akun WA Fontte Anda terlebih dahulu untuk melihat daftar grup WA yang tersedia.
+                            </small>
+                            <input type="hidden" name="wa_groups" id="wa_groups_input" value='{{ setting.wa_groups|safe }}'>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle"></i> Simpan Setting
+                            </button>
+                            <a href="{% url 'inventory:barang-list' %}" class="btn btn-secondary">
+                                <i class="bi bi-x-circle"></i> Batal
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Info Card -->
+            <div class="card border-info mb-4">
+                <div class="card-header bg-info bg-opacity-10 border-info">
+                    <h6 class="mb-0 text-info"><i class="bi bi-lightbulb"></i> Informasi</h6>
+                </div>
+                <div class="card-body small">
+                    <ul class="mb-0">
+                        <li><strong>Jadwal Harian:</strong> PDF akan dikirim setiap hari pada jam yang ditentukan</li>
+                        <li><strong>Jadwal Mingguan:</strong> PDF akan dikirim setiap minggu pada hari & jam yang ditentukan</li>
+                        <li><strong>Jadwal Bulanan:</strong> PDF akan dikirim setiap bulan pada tanggal & jam yang ditentukan</li>
+                        <li><strong>Grup WA:</strong> Akan dikirim ke semua grup yang dipilih</li>
+                        <li><strong>Kolom PDF:</strong> Kode | Nama Barang | Spesifikasi | Stok | Tanggal Pembaruan | Lokasi</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Recent Logs -->
+            {% if logs %}
+            <div class="card shadow-sm">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0"><i class="bi bi-clock-history"></i> History Pengiriman (10 Terbaru)</h5>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Grup WA</th>
+                                <th>Status</th>
+                                <th>File PDF</th>
+                                <th>Waktu</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for log in logs %}
+                            <tr>
+                                <td>
+                                    <strong>{{ log.wa_group_name }}</strong>
+                                </td>
+                                <td>
+                                    {% if log.status == 'sent' %}
+                                        <span class="badge bg-success"><i class="bi bi-check"></i> Terkirim</span>
+                                    {% elif log.status == 'failed' %}
+                                        <span class="badge bg-danger"><i class="bi bi-x"></i> Gagal</span>
+                                    {% else %}
+                                        <span class="badge bg-warning"><i class="bi bi-hourglass"></i> Pending</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <small>{{ log.pdf_file|default:"-" }}</small>
+                                </td>
+                                <td>
+                                    <small class="text-muted">{{ log.created_at|date:"d-m-Y H:i" }}</small>
+                                </td>
+                            </tr>
+                            {% if log.status == 'failed' and log.error_message %}
+                            <tr class="table-danger">
+                                <td colspan="4">
+                                    <small><i class="bi bi-exclamation-circle"></i> <strong>Error:</strong> {{ log.error_message }}</small>
+                                </td>
+                            </tr>
+                            {% endif %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+
+        </div>
+    </div>
+</div>
+
+<style>
+    .remove-group:hover {
+        transform: scale(1.2);
+        transition: all 0.2s ease;
+    }
+</style>
+
+<script>
+    // Show/hide options berdasarkan frekuensi
+    function updateFrequencyOptions() {
+        const frequency = document.getElementById('frequency_select').value;
+        document.getElementById('weekly_options').style.display = frequency === 'weekly' ? 'block' : 'none';
+        document.getElementById('monthly_options').style.display = frequency === 'monthly' ? 'block' : 'none';
+    }
+
+    document.getElementById('frequency_select').addEventListener('change', updateFrequencyOptions);
+    
+    // Initialize on load
+    updateFrequencyOptions();
+
+    // Remove group function
+    function removeGroup(groupId) {
+        const input = document.getElementById('wa_groups_input');
+        let groups = JSON.parse(input.value || '[]');
+        groups = groups.filter(g => g.group_id !== groupId);
+        input.value = JSON.stringify(groups);
+        location.reload(); // Refresh halaman
+    }
+</script>
+{% endblock %}

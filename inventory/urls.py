@@ -21,4 +21,8 @@ urlpatterns = [
     
     # Export
     path('export-pdf/', views.StockExportPDFView.as_view(), name='export-pdf'),
+    
+    # Export Setting & Log
+    path('export-setting/', views.StockExportSettingView.as_view(), name='export-setting'),
+    path('export-log/', views.StockExportLogView.as_view(), name='export-log'),
 ]
