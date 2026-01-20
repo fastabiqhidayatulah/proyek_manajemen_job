@@ -103,23 +103,46 @@
                         <!-- WA Groups Selection -->
                         <div class="mb-4">
                             <label class="form-label"><strong>Pilih Grup WA untuk Menerima PDF</strong></label>
-                            <div id="wa_groups_container" class="border rounded p-3" style="min-height: 120px; background-color: #f8f9fa;">
-                                {% if setting.wa_groups %}
-                                    {% for group in setting.wa_groups %}
-                                        <div class="badge bg-success me-2 mb-2" style="padding: 8px 12px; font-size: 12px;">
-                                            {{ group.group_name }}
-                                            <i class="bi bi-x-circle cursor-pointer remove-group" 
-                                               onclick="removeGroup('{{ group.group_id }}')" 
-                                               style="cursor: pointer; margin-left: 5px;"></i>
+                            
+                            {% if fontte_enabled %}
+                                {% if available_groups %}
+                                    <div class="card bg-light mb-3">
+                                        <div class="card-body">
+                                            <div class="row">
+                                                {% for group in available_groups %}
+                                                    <div class="col-md-6 mb-2">
+                                                        <div class="form-check">
+                                                            <input class="form-check-input group-checkbox" type="checkbox" 
+                                                                value="{{ group.group_id }}" 
+                                                                data-group-name="{{ group.group_name }}"
+                                                                id="group_{{ group.group_id }}">
+                                                            <label class="form-check-label" for="group_{{ group.group_id }}">
+                                                                <i class="bi bi-whatsapp text-success"></i> {{ group.group_name }}
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                {% endfor %}
+                                            </div>
                                         </div>
-                                    {% endfor %}
+                                    </div>
                                 {% else %}
-                                    <p class="text-muted mb-0">Belum ada grup WA yang dipilih. Hubungkan WA Fontte dulu.</p>
+                                    <div class="alert alert-warning mb-3">
+                                        <i class="bi bi-exclamation-triangle"></i> <strong>Tidak ada grup WA ditemukan.</strong>
+                                        <br><small>Pastikan akun WA Fontte sudah terkoneksi dan memiliki grup aktif.</small>
+                                    </div>
                                 {% endif %}
+                            {% else %}
+                                <div class="alert alert-danger mb-3">
+                                    <i class="bi bi-x-circle"></i> <strong>WA Fontte tidak diaktifkan.</strong>
+                                    <br><small>Hubungi admin untuk mengaktifkan integrasi WA Fontte.</small>
+                                </div>
+                            {% endif %}
+
+                            <!-- Selected Groups Display -->
+                            <div id="selected_groups_display" class="border rounded p-3 mb-3" style="min-height: 60px; background-color: #f8f9fa;">
+                                <small class="text-muted">Grup yang dipilih akan muncul di sini</small>
                             </div>
-                            <small class="text-muted d-block mt-2">
-                                <i class="bi bi-info-circle"></i> Hubungkan akun WA Fontte Anda terlebih dahulu untuk melihat daftar grup WA yang tersedia.
-                            </small>
+
                             <input type="hidden" name="wa_groups" id="wa_groups_input" value='{{ setting.wa_groups|safe }}'>
                         </div>
 
@@ -228,13 +251,49 @@
     // Initialize on load
     updateFrequencyOptions();
 
-    // Remove group function
-    function removeGroup(groupId) {
-        const input = document.getElementById('wa_groups_input');
-        let groups = JSON.parse(input.value || '[]');
-        groups = groups.filter(g => g.group_id !== groupId);
-        input.value = JSON.stringify(groups);
-        location.reload(); // Refresh halaman
+    // Handle group checkbox changes
+    function updateSelectedGroups() {
+        const checkboxes = document.querySelectorAll('.group-checkbox:checked');
+        const selectedGroups = [];
+        const displayContainer = document.getElementById('selected_groups_display');
+        
+        checkboxes.forEach(checkbox => {
+            selectedGroups.push({
+                group_id: checkbox.value,
+                group_name: checkbox.dataset.groupName
+            });
+        });
+        
+        // Update hidden input
+        document.getElementById('wa_groups_input').value = JSON.stringify(selectedGroups);
+        
+        // Update display
+        if (selectedGroups.length > 0) {
+            displayContainer.innerHTML = selectedGroups.map(g => 
+                `<span class="badge bg-success me-2 mb-2" style="padding: 8px 12px; font-size: 12px;">
+                    <i class="bi bi-whatsapp"></i> ${g.group_name}
+                </span>`
+            ).join('');
+        } else {
+            displayContainer.innerHTML = '<small class="text-muted">Tidak ada grup yang dipilih</small>';
+        }
     }
+
+    // Add event listeners to all checkboxes
+    document.querySelectorAll('.group-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', updateSelectedGroups);
+    });
+
+    // Initialize with existing selections on page load
+    document.addEventListener('DOMContentLoaded', () => {
+        const existingGroups = JSON.parse(document.getElementById('wa_groups_input').value || '[]');
+        existingGroups.forEach(group => {
+            const checkbox = document.querySelector(`input[value="${group.group_id}"]`);
+            if (checkbox) {
+                checkbox.checked = true;
+            }
+        });
+        updateSelectedGroups();
+    });
 </script>
 {% endblock %}

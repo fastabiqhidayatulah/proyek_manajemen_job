@@ -6,8 +6,54 @@ from django.http import JsonResponse, HttpResponse
 from django.urls import reverse_lazy
 from django.template.loader import render_to_string
 from django.db import models
+from django.conf import settings
 from weasyprint import HTML
 from datetime import datetime
+from .models import Barang, StockLevel, StockExportSetting, StockExportLog
+import requests
+import json
+
+
+# ==============================================================================
+# FONTTE WA HELPER FUNCTIONS
+# ==============================================================================
+def get_fontte_groups():
+    """
+    Fetch daftar grup WA dari Fontte API
+    Returns: list of {'group_id': 'xxx', 'group_name': 'Nama Grup'}
+    """
+    try:
+        if not settings.FONTTE_API_ENABLED:
+            return []
+        
+        headers = {
+            'Authorization': f'Bearer {settings.FONTTE_API_TOKEN}',
+            'Content-Type': 'application/json'
+        }
+        
+        url = f"{settings.FONTTE_API_BASE_URL}/chats"
+        response = requests.get(url, headers=headers, timeout=10)
+        
+        if response.status_code == 200:
+            data = response.json()
+            groups = []
+            
+            # Extract groups dari response
+            if 'data' in data:
+                for item in data['data']:
+                    # Filter hanya grup (bukan personal chat)
+                    if item.get('is_group') or 'group' in item.get('name', '').lower():
+                        groups.append({
+                            'group_id': item.get('id') or item.get('chat_id'),
+                            'group_name': item.get('name') or item.get('title')
+                        })
+            
+            return groups
+        else:
+            return []
+    except Exception as e:
+        print(f"Error fetching Fontte groups: {str(e)}")
+        return []
 
 
 # ==============================================================================
@@ -388,6 +434,10 @@ class StockExportSettingView(LoginRequiredMixin, UserPassesTestMixin, TemplateVi
             (5, 'Sabtu'),
             (6, 'Minggu'),
         ]
+        
+        # Fetch available WA groups dari Fontte
+        context['available_groups'] = get_fontte_groups()
+        context['fontte_enabled'] = settings.FONTTE_API_ENABLED
         
         return context
     
