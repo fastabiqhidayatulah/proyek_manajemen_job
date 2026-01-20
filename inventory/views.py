@@ -45,7 +45,7 @@ def send_pdf_to_fontte(group_id, pdf_file_path, token=None, api_url=None):
                 'caption': 'Stock Export Report'  # Caption untuk file
             }
             headers = {
-                'Authorization': f'Bearer {token}'
+                'Authorization': token  # Format: Token langsung (tanpa "Bearer")
             }
             
             # Send ke Fontte API endpoint /send
@@ -86,8 +86,7 @@ def test_fontte_connection(token=None, api_url=None):
             return False, "Token API tidak dikonfigurasi"
         
         headers = {
-            'Authorization': f'Bearer {token}',
-            'Content-Type': 'application/json'
+            'Authorization': token  # Format: Token langsung (tanpa "Bearer")
         }
         
         url = f"{api_url}/chats"
