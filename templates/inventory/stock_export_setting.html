@@ -175,9 +175,33 @@
                                 {% else %}
                                     <div class="alert alert-warning mb-3">
                                         <i class="bi bi-exclamation-triangle"></i> <strong>Tidak ada grup WA ditemukan.</strong>
-                                        <br><small>Pastikan akun WA Fontte sudah terkoneksi dan memiliki grup aktif.</small>
+                                        <br><small>Gunakan form "Tambah Grup Manual" di bawah untuk menambahkan grup secara manual.</small>
                                     </div>
                                 {% endif %}
+
+                                <!-- Manual Add Group -->
+                                <div class="card bg-light mb-3">
+                                    <div class="card-header bg-info bg-opacity-10">
+                                        <h6 class="mb-0 text-info"><i class="bi bi-plus-circle"></i> Tambah Grup Manual</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <label class="form-label"><small>Group ID</small></label>
+                                                <input type="text" id="manual_group_id" class="form-control" 
+                                                    placeholder="Masukkan ID grup WA (dari Fontte)">
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label"><small>Nama Grup</small></label>
+                                                <input type="text" id="manual_group_name" class="form-control" 
+                                                    placeholder="Masukkan nama grup WA">
+                                            </div>
+                                        </div>
+                                        <button type="button" class="btn btn-sm btn-info mt-2" id="add_manual_group_btn">
+                                            <i class="bi bi-plus"></i> Tambah Grup
+                                        </button>
+                                    </div>
+                                </div>
                             {% else %}
                                 <div class="alert alert-danger mb-3">
                                     <i class="bi bi-x-circle"></i> <strong>WA Fontte tidak diaktifkan.</strong>
@@ -379,6 +403,43 @@
     // Add event listeners to all checkboxes
     document.querySelectorAll('.group-checkbox').forEach(checkbox => {
         checkbox.addEventListener('change', updateSelectedGroups);
+    });
+
+    // Manual add group button
+    document.getElementById('add_manual_group_btn').addEventListener('click', function() {
+        const groupId = document.getElementById('manual_group_id').value.trim();
+        const groupName = document.getElementById('manual_group_name').value.trim();
+        
+        if (!groupId || !groupName) {
+            alert('Mohon isi Group ID dan Nama Grup');
+            return;
+        }
+        
+        // Get current groups
+        const input = document.getElementById('wa_groups_input');
+        let groups = JSON.parse(input.value || '[]');
+        
+        // Check if already exists
+        if (groups.some(g => g.group_id === groupId)) {
+            alert('Grup dengan ID ini sudah ditambahkan');
+            return;
+        }
+        
+        // Add new group
+        groups.push({
+            group_id: groupId,
+            group_name: groupName
+        });
+        
+        // Update input and display
+        input.value = JSON.stringify(groups);
+        updateSelectedGroups();
+        
+        // Clear inputs
+        document.getElementById('manual_group_id').value = '';
+        document.getElementById('manual_group_name').value = '';
+        
+        alert('✓ Grup berhasil ditambahkan!');
     });
 
     // Initialize with existing selections on page load
