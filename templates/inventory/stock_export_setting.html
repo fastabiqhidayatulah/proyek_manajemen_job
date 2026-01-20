@@ -308,7 +308,9 @@
         btn.innerHTML = '<i class="bi bi-spinner spinner-border"></i> Testing...';
         
         try {
-            const response = await fetch('{% url "inventory:api-test-fontte" %}', {
+            // Use dynamic URL construction
+            const apiUrl = '/inventory/api/test-fontte/';
+            const response = await fetch(apiUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
