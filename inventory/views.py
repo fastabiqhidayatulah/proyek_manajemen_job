@@ -541,25 +541,35 @@ class StockExportSettingView(LoginRequiredMixin, UserPassesTestMixin, TemplateVi
 # ==============================================================================
 def api_test_fontte_connection(request):
     """AJAX endpoint untuk test Fontte connection"""
-    if not request.user.is_staff:
-        return JsonResponse({'success': False, 'message': 'Unauthorized'}, status=403)
+    try:
+        if request.method != 'POST':
+            return JsonResponse({'success': False, 'message': 'Method not allowed'}, status=405)
+        
+        if not request.user.is_staff:
+            return JsonResponse({'success': False, 'message': 'Unauthorized'}, status=403)
+        
+        token = request.POST.get('token', '').strip()
+        
+        if not token:
+            # Use default
+            try:
+                setting = StockExportSetting.objects.get(pk=1)
+                token = setting.fontte_token or settings.FONTTE_API_TOKEN
+            except:
+                token = settings.FONTTE_API_TOKEN
+        
+        is_connected, message = test_fontte_connection(token)
+        
+        return JsonResponse({
+            'success': is_connected,
+            'message': message
+        })
     
-    token = request.POST.get('token', '').strip()
-    
-    if not token:
-        # Use default
-        try:
-            setting = StockExportSetting.objects.get(pk=1)
-            token = setting.fontte_token or settings.FONTTE_API_TOKEN
-        except:
-            token = settings.FONTTE_API_TOKEN
-    
-    is_connected, message = test_fontte_connection(token)
-    
-    return JsonResponse({
-        'success': is_connected,
-        'message': message
-    })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': f'Error: {str(e)}'
+        }, status=500)
 class StockExportLogView(LoginRequiredMixin, UserPassesTestMixin, ListView):
     """Lihat history export PDF ke WA"""
     model = StockExportLog
