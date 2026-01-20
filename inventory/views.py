@@ -12,6 +12,10 @@ from datetime import datetime
 from .models import Barang, StockLevel, StockExportSetting, StockExportLog
 import requests
 import json
+import urllib3
+
+# Disable SSL warning untuk Fontte API
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
 # ==============================================================================
@@ -20,7 +24,7 @@ import json
 def send_pdf_to_fontte(group_id, pdf_file_path, token=None, api_url=None):
     """
     Send PDF file ke grup WA via Fontte API
-    Format API Fontte: POST https://api.fontte.com/v1/send
+    Format API Fontte: POST https://api.fontte.com/send (tanpa /v1)
     Returns: (success: bool, message: str, log_id: str or None)
     """
     try:
@@ -46,7 +50,7 @@ def send_pdf_to_fontte(group_id, pdf_file_path, token=None, api_url=None):
             
             # Send ke Fontte API endpoint /send
             url = f"{api_url}/send"
-            response = requests.post(url, headers=headers, data=data, files=files, timeout=30)
+            response = requests.post(url, headers=headers, data=data, files=files, timeout=30, verify=False)
         
         response_data = response.json() if response.text else {}
         
@@ -87,7 +91,7 @@ def test_fontte_connection(token=None, api_url=None):
         }
         
         url = f"{api_url}/chats"
-        response = requests.get(url, headers=headers, timeout=10)
+        response = requests.get(url, headers=headers, timeout=10, verify=False)
         
         if response.status_code == 200:
             return True, "✓ Terhubung ke Fontte"

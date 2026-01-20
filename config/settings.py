@@ -192,7 +192,8 @@ LOGIN_URL = 'core:login'
 # PENGATURAN WHATSAPP INTEGRATION (FONTTE atau Custom WABot)
 # ==============================================================================
 FONTTE_API_TOKEN = 'E6CwLwwzuP8Db6Dud5mn'
-FONTTE_API_BASE_URL = 'https://api.fontte.com/v1'
+# Endpoint API Fontte yang benar: https://api.fontte.com/send
+FONTTE_API_BASE_URL = 'https://api.fontte.com'
 
 # Custom WABot API Configuration (Preferred jika tersedia)
 # Uncomment untuk menggunakan WABot API lokal
