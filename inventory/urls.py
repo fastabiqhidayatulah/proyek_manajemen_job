@@ -28,4 +28,5 @@ urlpatterns = [
     
     # API
     path('api/test-fontte/', views.api_test_fontte_connection, name='api-test-fontte'),
+    path('api/test-send-pdf/', views.api_test_send_pdf, name='api-test-send-pdf'),
 ]

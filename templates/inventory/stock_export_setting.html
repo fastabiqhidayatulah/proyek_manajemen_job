@@ -185,6 +185,16 @@
                                 <small class="text-muted">Grup yang dipilih akan muncul di sini</small>
                             </div>
 
+                            <!-- Test Send Button -->
+                            <div id="test_send_section" style="display: none;" class="mb-3">
+                                <button type="button" class="btn btn-warning btn-sm" id="test_send_pdf_btn">
+                                    <i class="bi bi-arrow-right-circle"></i> Test Kirim PDF ke Grup Pertama
+                                </button>
+                                <small class="text-muted d-block mt-2">
+                                    Kirim PDF stok test ke salah satu grup untuk memverifikasi koneksi Fontte
+                                </small>
+                            </div>
+
                             <input type="hidden" name="wa_groups" id="wa_groups_input" value='{{ setting.wa_groups|safe }}'>
                         </div>
 
@@ -309,15 +319,21 @@
         // Update hidden input
         document.getElementById('wa_groups_input').value = JSON.stringify(selectedGroups);
         
-        // Update display
+        // Update display & test button visibility
+        const testSection = document.getElementById('test_send_section');
         if (selectedGroups.length > 0) {
             displayContainer.innerHTML = selectedGroups.map(g => 
                 `<span class="badge bg-success me-2 mb-2" style="padding: 8px 12px; font-size: 12px;">
                     <i class="bi bi-whatsapp"></i> ${g.group_name}
                 </span>`
             ).join('');
+            testSection.style.display = 'block';
+            
+            // Store first group ID for test
+            window.firstGroupId = selectedGroups[0].group_id;
         } else {
             displayContainer.innerHTML = '<small class="text-muted">Tidak ada grup yang dipilih</small>';
+            testSection.style.display = 'none';
         }
     }
 
@@ -361,6 +377,48 @@
         document.getElementById('manual_group_name').value = '';
         
         alert('✓ Grup berhasil ditambahkan!');
+    });
+
+    // Test Send PDF button
+    document.getElementById('test_send_pdf_btn').addEventListener('click', async function() {
+        if (!window.firstGroupId) {
+            alert('Mohon pilih minimal satu grup terlebih dahulu');
+            return;
+        }
+        
+        const btn = this;
+        const originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="bi bi-spinner spinner-border"></i> Mengirim...';
+        
+        try {
+            const response = await fetch('/inventory/api/test-send-pdf/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || ''
+                },
+                body: 'group_id=' + encodeURIComponent(window.firstGroupId)
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                alert('✓ ' + data.message + '\n\nCek grup WA Anda untuk verifikasi PDF sudah terkirim.');
+            } else {
+                alert('✗ ' + data.message);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error: ' + error.message);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
     });
 
     // Initialize with existing selections on page load

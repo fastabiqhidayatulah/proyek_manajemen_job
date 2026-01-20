@@ -17,6 +17,53 @@ import json
 # ==============================================================================
 # FONTTE WA HELPER FUNCTIONS
 # ==============================================================================
+def send_pdf_to_fontte(group_id, pdf_file_path, token=None, api_url=None):
+    """
+    Send PDF file ke grup WA via Fontte API
+    Returns: (success: bool, message: str, log_id: str or None)
+    """
+    try:
+        # Use provided token or default
+        if not token:
+            token = settings.FONTTE_API_TOKEN
+        if not api_url:
+            api_url = settings.FONTTE_API_BASE_URL
+        
+        if not token:
+            return False, "Token API tidak dikonfigurasi", None
+        
+        # Open & read file
+        with open(pdf_file_path, 'rb') as f:
+            files = {'file': f}
+            headers = {
+                'Authorization': f'Bearer {token}'
+            }
+            
+            # Send ke Fontte API (endpoint untuk send file)
+            url = f"{api_url}/send-file"
+            data = {
+                'chat_id': group_id,
+                'type': 'file'
+            }
+            
+            response = requests.post(url, headers=headers, data=data, files=files, timeout=30)
+        
+        if response.status_code in [200, 201]:
+            return True, "✓ PDF berhasil dikirim ke Fontte", None
+        else:
+            error_msg = response.text
+            return False, f"✗ Error: HTTP {response.status_code} - {error_msg}", None
+    
+    except FileNotFoundError:
+        return False, "✗ File PDF tidak ditemukan", None
+    except requests.exceptions.Timeout:
+        return False, "✗ Request timeout - server Fontte tidak merespons", None
+    except requests.exceptions.ConnectionError:
+        return False, "✗ Tidak bisa terhubung ke server Fontte", None
+    except Exception as e:
+        return False, f"✗ Error: {str(e)}", None
+
+
 def test_fontte_connection(token=None, api_url=None):
     """
     Test koneksi ke Fontte API
@@ -570,7 +617,80 @@ def api_test_fontte_connection(request):
             'success': False,
             'message': f'Error: {str(e)}'
         }, status=500)
-class StockExportLogView(LoginRequiredMixin, UserPassesTestMixin, ListView):
+
+
+# ==============================================================================
+# API: Test Send PDF to Fontte
+# ==============================================================================
+def api_test_send_pdf(request):
+    """AJAX endpoint untuk test send PDF ke Fontte"""
+    try:
+        if request.method != 'POST':
+            return JsonResponse({'success': False, 'message': 'Method not allowed'}, status=405)
+        
+        if not request.user.is_staff:
+            return JsonResponse({'success': False, 'message': 'Unauthorized'}, status=403)
+        
+        # Get group_id dari POST
+        group_id = request.POST.get('group_id', '').strip()
+        if not group_id:
+            return JsonResponse({'success': False, 'message': 'Group ID tidak boleh kosong'})
+        
+        # Generate test PDF
+        try:
+            setting = StockExportSetting.objects.get(pk=1)
+            token = setting.fontte_token or settings.FONTTE_API_TOKEN
+            api_url = setting.fontte_api_url or settings.FONTTE_API_BASE_URL
+        except:
+            token = settings.FONTTE_API_TOKEN
+            api_url = settings.FONTTE_API_BASE_URL
+        
+        # Get all active barang untuk PDF
+        barang_list = Barang.objects.filter(status='active').select_related('stock_level').order_by('kode')
+        
+        # Generate PDF
+        context = {
+            'barang_list': barang_list,
+            'tanggal_cetak': datetime.now().strftime('%d-%m-%Y %H:%M:%S'),
+            'user_cetak': request.user.get_full_name() or request.user.username,
+        }
+        
+        html_string = render_to_string('inventory/stock_export_pdf.html', context, request=request)
+        html = HTML(string=html_string)
+        pdf = html.write_pdf()
+        
+        # Save to temp file
+        import tempfile
+        import os
+        temp_dir = tempfile.gettempdir()
+        pdf_filename = f"Stock_Test_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+        pdf_path = os.path.join(temp_dir, pdf_filename)
+        
+        with open(pdf_path, 'wb') as f:
+            f.write(pdf)
+        
+        # Send ke Fontte
+        success, message, _ = send_pdf_to_fontte(group_id, pdf_path, token, api_url)
+        
+        # Cleanup
+        try:
+            os.unlink(pdf_path)
+        except:
+            pass
+        
+        return JsonResponse({
+            'success': success,
+            'message': message
+        })
+    
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': f'Error: {str(e)}'
+        }, status=500)
+
+
+
     """Lihat history export PDF ke WA"""
     model = StockExportLog
     template_name = 'inventory/stock_export_log.html'
