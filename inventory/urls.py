@@ -25,4 +25,7 @@ urlpatterns = [
     # Export Setting & Log
     path('export-setting/', views.StockExportSettingView.as_view(), name='export-setting'),
     path('export-log/', views.StockExportLogView.as_view(), name='export-log'),
+    
+    # API
+    path('api/test-fontte/', views.api_test_fontte_connection, name='api-test-fontte'),
 ]

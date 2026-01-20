@@ -17,21 +17,65 @@ import json
 # ==============================================================================
 # FONTTE WA HELPER FUNCTIONS
 # ==============================================================================
-def get_fontte_groups():
+def test_fontte_connection(token=None, api_url=None):
+    """
+    Test koneksi ke Fontte API
+    Returns: (success: bool, message: str)
+    """
+    try:
+        # Use provided token or default
+        if not token:
+            token = settings.FONTTE_API_TOKEN
+        if not api_url:
+            api_url = settings.FONTTE_API_BASE_URL
+        
+        if not token:
+            return False, "Token API tidak dikonfigurasi"
+        
+        headers = {
+            'Authorization': f'Bearer {token}',
+            'Content-Type': 'application/json'
+        }
+        
+        url = f"{api_url}/chats"
+        response = requests.get(url, headers=headers, timeout=10)
+        
+        if response.status_code == 200:
+            return True, "✓ Terhubung ke Fontte"
+        elif response.status_code == 401:
+            return False, "✗ Token tidak valid atau kadaluarsa"
+        else:
+            return False, f"✗ Error: HTTP {response.status_code}"
+    
+    except requests.exceptions.Timeout:
+        return False, "✗ Request timeout - server Fontte tidak merespons"
+    except requests.exceptions.ConnectionError:
+        return False, "✗ Tidak bisa terhubung ke server Fontte"
+    except Exception as e:
+        return False, f"✗ Error: {str(e)}"
+
+
+def get_fontte_groups(token=None, api_url=None):
     """
     Fetch daftar grup WA dari Fontte API
     Returns: list of {'group_id': 'xxx', 'group_name': 'Nama Grup'}
     """
     try:
-        if not settings.FONTTE_API_ENABLED:
+        # Use provided token or default
+        if not token:
+            token = settings.FONTTE_API_TOKEN
+        if not api_url:
+            api_url = settings.FONTTE_API_BASE_URL
+        
+        if not token or not settings.FONTTE_API_ENABLED:
             return []
         
         headers = {
-            'Authorization': f'Bearer {settings.FONTTE_API_TOKEN}',
+            'Authorization': f'Bearer {token}',
             'Content-Type': 'application/json'
         }
         
-        url = f"{settings.FONTTE_API_BASE_URL}/chats"
+        url = f"{api_url}/chats"
         response = requests.get(url, headers=headers, timeout=10)
         
         if response.status_code == 200:
@@ -422,6 +466,10 @@ class StockExportSettingView(LoginRequiredMixin, UserPassesTestMixin, TemplateVi
         # Get or create setting
         setting, created = StockExportSetting.objects.get_or_create(pk=1)
         
+        # Determine which token to use
+        active_token = setting.fontte_token or settings.FONTTE_API_TOKEN
+        active_url = setting.fontte_api_url or settings.FONTTE_API_BASE_URL
+        
         context['setting'] = setting
         context['logs'] = StockExportLog.objects.filter(setting=setting).order_by('-created_at')[:20]
         context['frequency_choices'] = StockExportSetting.FREQUENCY_CHOICES
@@ -435,8 +483,15 @@ class StockExportSettingView(LoginRequiredMixin, UserPassesTestMixin, TemplateVi
             (6, 'Minggu'),
         ]
         
-        # Fetch available WA groups dari Fontte
-        context['available_groups'] = get_fontte_groups()
+        # Test connection dan fetch available WA groups
+        is_connected, connection_msg = test_fontte_connection(active_token, active_url)
+        setting.fontte_connected = is_connected
+        setting.fontte_last_check = datetime.now()
+        setting.save(update_fields=['fontte_connected', 'fontte_last_check'])
+        
+        context['fontte_connected'] = is_connected
+        context['connection_message'] = connection_msg
+        context['available_groups'] = get_fontte_groups(active_token, active_url) if is_connected else []
         context['fontte_enabled'] = settings.FONTTE_API_ENABLED
         
         return context
@@ -447,6 +502,17 @@ class StockExportSettingView(LoginRequiredMixin, UserPassesTestMixin, TemplateVi
             setting = StockExportSetting.objects.get(pk=1)
         except StockExportSetting.DoesNotExist:
             setting = StockExportSetting.objects.create(pk=1)
+        
+        # Handle Fontte token update
+        new_token = request.POST.get('fontte_token', '').strip()
+        if new_token and new_token != setting.fontte_token:
+            setting.fontte_token = new_token
+            # Test new token
+            is_connected, msg = test_fontte_connection(new_token, setting.fontte_api_url)
+            if is_connected:
+                messages.success(request, f"Token Fontte valid! {msg}")
+            else:
+                messages.warning(request, f"Token Fontte tidak valid: {msg}")
         
         # Update fields
         setting.is_active = request.POST.get('is_active') == 'on'
@@ -470,6 +536,30 @@ class StockExportSettingView(LoginRequiredMixin, UserPassesTestMixin, TemplateVi
         return redirect('inventory:export-setting')
 
 
+# ==============================================================================
+# API: Test Fontte Connection
+# ==============================================================================
+def api_test_fontte_connection(request):
+    """AJAX endpoint untuk test Fontte connection"""
+    if not request.user.is_staff:
+        return JsonResponse({'success': False, 'message': 'Unauthorized'}, status=403)
+    
+    token = request.POST.get('token', '').strip()
+    
+    if not token:
+        # Use default
+        try:
+            setting = StockExportSetting.objects.get(pk=1)
+            token = setting.fontte_token or settings.FONTTE_API_TOKEN
+        except:
+            token = settings.FONTTE_API_TOKEN
+    
+    is_connected, message = test_fontte_connection(token)
+    
+    return JsonResponse({
+        'success': is_connected,
+        'message': message
+    })
 class StockExportLogView(LoginRequiredMixin, UserPassesTestMixin, ListView):
     """Lihat history export PDF ke WA"""
     model = StockExportLog

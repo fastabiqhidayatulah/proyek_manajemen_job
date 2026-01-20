@@ -185,6 +185,29 @@ class StockExportSetting(models.Model):
         help_text="Tanggal untuk pengiriman bulanan (1-31)"
     )
     
+    # Fontte Configuration
+    fontte_token = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text="Token API WA Fontte (opsional, jika kosong menggunakan default dari settings)"
+    )
+    
+    fontte_api_url = models.URLField(
+        default='https://api.fontte.com/v1',
+        help_text="Base URL untuk Fontte API"
+    )
+    
+    fontte_connected = models.BooleanField(
+        default=False,
+        help_text="Status koneksi ke Fontte"
+    )
+    
+    fontte_last_check = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Waktu pengecekan koneksi terakhir"
+    )
+    
     # Daftar Grup WA
     wa_groups = models.JSONField(
         default=list,
