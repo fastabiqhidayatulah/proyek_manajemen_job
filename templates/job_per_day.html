@@ -306,6 +306,61 @@ function filterTable() {
     updateSelectedCount();
 }
 
+// Update selected count (di header dan bottom bar)
+function updateSelectedCount() {
+    const checkedCount = document.querySelectorAll('.job-checkbox:checked').length;
+    document.getElementById('selected-count').textContent = `${checkedCount} dipilih`;
+    const bottomCounter = document.getElementById('selected-count-bottom');
+    if (bottomCounter) {
+        bottomCounter.textContent = `${checkedCount} dipilih`;
+    }
+}
+
+// Select all checkbox
+function toggleSelectAll() {
+    const selectAll = document.getElementById('select-all').checked;
+    document.querySelectorAll('.job-checkbox').forEach(checkbox => {
+        // Hanya checkbox yang tidak di-hide
+        if (checkbox.closest('.job-row').style.display !== 'none') {
+            checkbox.checked = selectAll;
+        }
+    });
+    updateSelectedCount();
+}
+
+// Track selected jobs - RESPECT CURRENT SORT ORDER
+function getSelectedJobIds() {
+    const checkboxes = document.querySelectorAll('.job-checkbox:checked');
+    // Get rows in their current DOM order (which reflects current sort)
+    const selectedRows = [];
+    document.querySelectorAll('.job-row').forEach(row => {
+        if (row.style.display !== 'none') {  // Only visible rows
+            const checkbox = row.querySelector('.job-checkbox');
+            if (checkbox && checkbox.checked) {
+                selectedRows.push({
+                    id: parseInt(checkbox.dataset.jobId),
+                    element: row
+                });
+            }
+        }
+    });
+    // Return IDs in sorted order
+    return selectedRows.map(item => item.id);
+}
+
+// Update row styling saat checkbox berubah
+document.querySelectorAll('.job-checkbox').forEach(checkbox => {
+    checkbox.addEventListener('change', function() {
+        const row = this.closest('.job-row');
+        if (this.checked) {
+            row.classList.add('selected');
+        } else {
+            row.classList.remove('selected');
+        }
+        updateSelectedCount();
+    });
+});
+
 // Update selected count
 function updateSelectedCount() {
     const checkedCount = document.querySelectorAll('.job-checkbox:checked').length;

@@ -27,8 +27,8 @@ from .forms import (
     PreventiveJobAttachmentForm,
     PreventiveJobAttachmentFormSet,
 )
-from core.models import AsetMesin, CustomUser
-from core.export_handlers import send_to_google_apps_script
+from core.models import AsetMesin, CustomUser, Job
+from core.export_handlers import send_to_google_apps_script, prepare_unified_job_data_for_export
 
 logger = logging.getLogger(__name__)
 
@@ -2571,14 +2571,14 @@ def export_unified_jobs_to_gas(request, export_type=None):
     """
     Export unified jobs (Daily + Project + Preventive) ke Google Apps Script
     Supports: Preventif dan Evaluasi forms
+    Format SAMA dengan halaman "Export Jobs" yang sudah berjalan
     
     Args:
         export_type: Optional, dapat pass via URL parameter atau di request body
                     ("preventif" atau "evaluasi")
     """
     import json
-    from core.export_handlers import prepare_job_data_for_export, send_to_google_apps_script
-    from core.models import Job
+    from core.export_handlers import prepare_unified_job_data_for_export, send_to_google_apps_script
     
     try:
         body = json.loads(request.body)
@@ -2594,108 +2594,15 @@ def export_unified_jobs_to_gas(request, export_type=None):
                 'message': 'Invalid parameters'
             }, status=400)
         
-        # Parse job IDs dari format "id_type"
-        daily_job_ids = []
-        project_job_ids = []
-        preventive_job_ids = []
-        
-        for job_id_str in job_ids_str:
-            try:
-                job_id, job_type = job_id_str.rsplit('_', 1)
-                job_id = int(job_id)
-                
-                if job_type == 'daily' or job_type == 'project':
-                    daily_job_ids.append(job_id)  # Both are Job model
-                elif job_type == 'preventive':
-                    preventive_job_ids.append(job_id)
-            except (ValueError, AttributeError):
-                continue
-        
-        # === PREPARE DATA ===
-        job_data_list = []
-        
-        # 1. Process Daily/Project jobs
-        if daily_job_ids:
-            jobs = Job.objects.filter(id__in=daily_job_ids).select_related(
-                'aset', 'aset__parent', 'aset__parent__parent', 'pic', 'assigned_to'
-            ).prefetch_related('personil_ditugaskan', 'tanggal_pelaksanaan')
-            
-            for job in jobs:
-                personil_names = ", ".join([p.nama_lengkap for p in job.personil_ditugaskan.all()])
-                mesin_name = job.aset.parent.nama if job.aset and job.aset.level == 2 and job.aset.parent else (job.aset.nama if job.aset else "")
-                sub_mesin_name = job.aset.nama if job.aset and job.aset.level == 2 else ""
-                
-                if export_type == "preventif":
-                    job_data_list.append([
-                        personil_names,
-                        mesin_name,
-                        sub_mesin_name,
-                        job.nama_pekerjaan
-                    ])
-                elif export_type == "evaluasi":
-                    job_data_list.append([
-                        personil_names,
-                        mesin_name,
-                        sub_mesin_name,
-                        job.nama_pekerjaan,
-                        ""  # Kolom kesimpulan/status kosong
-                    ])
-        
-        # 2. Process Preventive jobs
-        if preventive_job_ids:
-            executions = PreventiveJobExecution.objects.filter(id__in=preventive_job_ids).select_related(
-                'template', 'template__pic', 'aset', 'aset__parent', 'aset__parent__parent', 'assigned_to'
-            ).prefetch_related('assigned_to_personil')
-            
-            for execution in executions:
-                personil_names = ", ".join([p.nama_lengkap for p in execution.assigned_to_personil.all()])
-                mesin_name = execution.aset.parent.nama if execution.aset and execution.aset.parent else ""
-                sub_mesin_name = execution.aset.nama if execution.aset else ""
-                
-                if export_type == "preventif":
-                    job_data_list.append([
-                        personil_names,
-                        mesin_name,
-                        sub_mesin_name,
-                        execution.template.nama_pekerjaan
-                    ])
-                elif export_type == "evaluasi":
-                    job_data_list.append([
-                        personil_names,
-                        mesin_name,
-                        sub_mesin_name,
-                        execution.template.nama_pekerjaan,
-                        ""  # Kolom kesimpulan/status kosong
-                    ])
-        
-        if not job_data_list:
+        # === PREPARE DATA DENGAN HANDLER BARU (SAME FORMAT SEBAGAI EXPORT JOBS) ===
+        payload = prepare_unified_job_data_for_export(job_ids_str, export_type)
+        if not payload:
             return JsonResponse({
                 'status': 'error',
                 'message': 'No valid jobs to export'
             }, status=400)
         
-        # === BUILD PAYLOAD ===
-        mesin_set = set()
-        sub_mesin_set = set()
-        prioritas_set = set()
-        
-        for row in job_data_list:
-            if row[1]:  # Mesin
-                mesin_set.add(row[1])
-            if row[2]:  # Sub Mesin
-                sub_mesin_set.add(row[2])
-        
-        payload = {
-            "exportType": export_type,
-            "tanggal": str(timezone.now().date()),
-            "allMesin": ", ".join(sorted(mesin_set)) if mesin_set else "",
-            "allSubMesin": ", ".join(sorted(sub_mesin_set)) if sub_mesin_set else "",
-            "allPrioritas": "",
-            "teknisiBertugas": "PIC/Teknisi",
-            "jobData": job_data_list
-        }
-        
-        # === SEND TO GOOGLE APPS SCRIPT ===
+        # === SEND TO GOOGLE APPS SCRIPT (SAMA DENGAN EXPORT JOBS) ===
         result = send_to_google_apps_script(payload, export_type)
         
         return JsonResponse(result)

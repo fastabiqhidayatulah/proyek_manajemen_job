@@ -5,37 +5,60 @@
 
 {% block content %}
 <style>
+    /* Kompact export section */
     .export-section {
         position: sticky;
         bottom: 0;
-        background-color: white;
-        padding: 15px;
-        border-top: 2px solid #ff9800;
-        box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
-        margin-top: 20px;
+        background-color: #f8f9fa;
+        padding: 8px 12px;
+        border-top: 1px solid #dee2e6;
+        box-shadow: 0 -2px 5px rgba(0,0,0,0.05);
+        margin-top: 10px;
+        z-index: 999;
     }
     
     .export-buttons {
         display: flex;
-        gap: 10px;
+        gap: 8px;
         justify-content: center;
         flex-wrap: wrap;
+        align-items: center;
+    }
+    
+    .export-buttons .btn {
+        padding: 6px 14px;
+        font-size: 13px;
+        border-radius: 4px;
+        white-space: nowrap;
+    }
+    
+    .export-buttons .btn-success {
+        background-color: #28a745;
+        border-color: #28a745;
+    }
+    
+    .export-buttons .btn-warning {
+        background-color: #ffc107;
+        border-color: #ffc107;
     }
     
     .loading {
         display: none;
         text-align: center;
-        padding: 10px;
+        padding: 5px;
+        font-size: 12px;
     }
     
     .spinner {
         display: inline-block;
-        width: 20px;
-        height: 20px;
-        border: 3px solid #f3f3f3;
-        border-top: 3px solid #ff9800;
+        width: 16px;
+        height: 16px;
+        border: 2px solid #f3f3f3;
+        border-top: 2px solid #ff9800;
         border-radius: 50%;
-        animation: spin 1s linear infinite;
+        animation: spin 0.8s linear infinite;
+        margin-right: 5px;
+        vertical-align: middle;
     }
     
     @keyframes spin {
@@ -43,8 +66,9 @@
         100% { transform: rotate(360deg); }
     }
     
+    /* Compact table & notification */
     .table-responsive {
-        max-height: 600px;
+        max-height: calc(100vh - 300px);
         overflow-y: auto;
     }
     
@@ -63,8 +87,44 @@
         background-color: #fff3e0;
     }
     
-    .progress-bar-custom {
-        transition: width 0.6s ease;
+    #export-message {
+        position: fixed;
+        top: 100px;
+        right: 20px;
+        max-width: 350px;
+        z-index: 1050;
+        animation: slideInRight 0.3s ease-out;
+    }
+    
+    #export-message .alert {
+        margin: 0;
+        padding: 10px 15px;
+        border-radius: 4px;
+        font-size: 13px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    
+    #export-message .alert small {
+        display: block;
+        margin-top: 5px;
+        opacity: 0.8;
+    }
+    
+    #export-message .btn-sm {
+        padding: 4px 10px;
+        font-size: 12px;
+        margin-top: 8px;
+    }
+    
+    @keyframes slideInRight {
+        from {
+            transform: translateX(400px);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
     }
     
     .trial-badge {
@@ -73,11 +133,15 @@
         right: 20px;
         background-color: #ff9800;
         color: white;
-        padding: 8px 16px;
+        padding: 6px 12px;
         border-radius: 20px;
-        font-size: 12px;
+        font-size: 11px;
         font-weight: bold;
         z-index: 1000;
+    }
+    
+    .progress-bar-custom {
+        transition: width 0.6s ease;
     }
 </style>
 
@@ -256,23 +320,26 @@
 </div>
 
 <!-- ============================================ -->
-<!-- EXPORT SECTION (STICKY BOTTOM) -->
+<!-- EXPORT SECTION (STICKY BOTTOM - COMPACT) -->
 <!-- ============================================ -->
 <div class="export-section">
     <div class="export-buttons">
-        <button class="btn btn-lg btn-success" onclick="exportJobs('preventif')" id="btn-preventif">
-            <i class="bi bi-file-pdf"></i> Export ke Form Preventif
+        <span class="badge bg-secondary" id="selected-count-bottom">0 dipilih</span>
+        <button class="btn btn-success" onclick="exportJobs('preventif')" id="btn-preventif">
+            <i class="bi bi-download"></i> Preventif
         </button>
-        <button class="btn btn-lg btn-warning text-dark" onclick="exportJobs('evaluasi')" id="btn-evaluasi">
-            <i class="bi bi-file-pdf"></i> Export ke Form Evaluasi
+        <button class="btn btn-warning text-dark" onclick="exportJobs('evaluasi')" id="btn-evaluasi">
+            <i class="bi bi-download"></i> Evaluasi
         </button>
+        <span class="loading" id="loading">
+            <div class="spinner"></div>
+            <span>Proses...</span>
+        </span>
     </div>
-    <div class="loading" id="loading">
-        <div class="spinner"></div>
-        <p class="mt-2">Mengirim data ke Google Apps Script...</p>
-    </div>
-    <div id="export-message"></div>
 </div>
+
+<!-- Notification Area (Top Right) -->
+<div id="export-message"></div>
 
 <script>
 // Ambil selected date dari input
@@ -310,10 +377,11 @@ function filterTable() {
     updateSelectedCount();
 }
 
-// Update selected count
+// Update selected count (di header dan bottom bar)
 function updateSelectedCount() {
     const checkedCount = document.querySelectorAll('.job-checkbox:checked').length;
     document.getElementById('selected-count').textContent = `${checkedCount} dipilih`;
+    document.getElementById('selected-count-bottom').textContent = `${checkedCount} dipilih`;
 }
 
 // Select all checkbox
@@ -347,19 +415,40 @@ document.querySelectorAll('.job-checkbox').forEach(checkbox => {
     });
 });
 
-// Export jobs ke Google Apps Script dengan auto-download
+// Show notification (auto-dismiss after 5 seconds)
+function showNotification(message, type = 'success') {
+    const messageDiv = document.getElementById('export-message');
+    const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+    const icon = type === 'success' ? 'bi-check-circle' : 'bi-exclamation-circle';
+    
+    messageDiv.innerHTML = `
+        <div class="alert ${alertClass}">
+            <button type="button" class="btn-close" onclick="this.parentElement.style.display='none';"></button>
+            <i class="bi ${icon}"></i> ${message}
+        </div>
+    `;
+    
+    // Auto dismiss after 5 seconds
+    setTimeout(() => {
+        if (messageDiv.firstChild) {
+            messageDiv.firstChild.style.display = 'none';
+        }
+    }, 5000);
+}
+
+// Export jobs ke Google Apps Script
 function exportJobs(exportType) {
     const selectedJobIds = getSelectedJobIds();
     
     if (selectedJobIds.length === 0) {
-        alert('Silakan pilih minimal 1 job untuk di-export');
+        showNotification('❌ Pilih minimal 1 job untuk di-export', 'error');
         return;
     }
     
     // Disable buttons & show loading
     document.getElementById('btn-preventif').disabled = true;
     document.getElementById('btn-evaluasi').disabled = true;
-    document.getElementById('loading').style.display = 'block';
+    document.getElementById('loading').style.display = 'inline-flex';
     document.getElementById('export-message').innerHTML = '';
     
     // Send request ke backend
@@ -383,48 +472,22 @@ function exportJobs(exportType) {
         document.getElementById('loading').style.display = 'none';
         
         if (data.status === 'success') {
-            // Show success message dengan download link
+            // Show success notification
             const pdfUrl = data.data && data.data.pdfDownloadUrl ? data.data.pdfDownloadUrl : null;
-            let messageHtml = `
-                <div class="alert alert-success mt-3">
-                    <i class="bi bi-check-circle"></i> <strong>Export berhasil!</strong>
-                    <br>${data.message || 'Data berhasil dikirim ke Google Apps Script'}
-                    <br><small>${selectedJobIds.length} jobs berhasil di-export</small>
-            `;
-            
+            let message = `✅ Export berhasil! (${selectedJobIds.length} jobs)`;
             if (pdfUrl) {
-                messageHtml += `
-                    <br><br>
-                    <a href="${pdfUrl}" class="btn btn-sm btn-success" target="_blank">
-                        <i class="bi bi-download"></i> Download PDF
-                    </a>
-                    <br><small class="text-muted mt-2">Jika tidak otomatis download, klik tombol di atas</small>
-                `;
+                message += ` - <a href="${pdfUrl}" class="alert-link" target="_blank">Download PDF</a>`;
             }
-            
-            messageHtml += `</div>`;
-            document.getElementById('export-message').innerHTML = messageHtml;
+            showNotification(message, 'success');
         } else {
-            // Show error message
-            const messageHtml = `
-                <div class="alert alert-danger mt-3">
-                    <i class="bi bi-exclamation-circle"></i> <strong>Export gagal!</strong>
-                    <br>${data.message || 'Terjadi kesalahan yang tidak diketahui'}
-                </div>
-            `;
-            document.getElementById('export-message').innerHTML = messageHtml;
+            // Show error notification
+            showNotification(`❌ Export gagal! ${data.message || 'Terjadi kesalahan'}`, 'error');
         }
     })
     .catch(error => {
         console.error('Error:', error);
         document.getElementById('loading').style.display = 'none';
-        const messageHtml = `
-            <div class="alert alert-danger mt-3">
-                <i class="bi bi-exclamation-circle"></i> <strong>Koneksi error!</strong>
-                <br>${error.message}
-            </div>
-        `;
-        document.getElementById('export-message').innerHTML = messageHtml;
+        showNotification(`❌ Koneksi error! ${error.message}`, 'error');
     })
     .finally(() => {
         // Re-enable buttons
@@ -437,7 +500,7 @@ function exportJobs(exportType) {
 document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.job-checkbox').forEach(checkbox => {
         if (checkbox.checked) {
-            checkbox.closest('.execution-row').classList.add('selected');
+            checkbox.closest('.job-row').classList.add('selected');
         }
     });
     updateSelectedCount();

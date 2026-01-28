@@ -96,7 +96,135 @@ def prepare_job_data_for_export(job_ids, export_type="preventif"):
         "allMesin": ", ".join(sorted(mesin_set)) if mesin_set else "",
         "allSubMesin": ", ".join(sorted(sub_mesin_set)) if sub_mesin_set else "",
         "allPrioritas": ", ".join(sorted(prioritas_set)) if prioritas_set else "",
-        "teknisiBertugas": "PIC/Teknisi",  # Can be customized later
+        "jobData": job_data_list
+    }
+    
+    return payload
+
+
+def prepare_unified_job_data_for_export(job_ids_with_type, export_type="preventif"):
+    """
+    Prepare unified job data (Daily + Project + Preventive) untuk export ke Google Apps Script
+    Format disesuaikan dengan template Google Apps Script
+    
+    job_ids_with_type: list of strings dalam format "id_type" (e.g., ["1_daily", "2_project", "3_preventive"])
+    export_type: "preventif" atau "evaluasi"
+    Returns: dict dengan structured data sesuai Google Apps Script template
+    """
+    from preventive_jobs.models import PreventiveJobExecution
+    from django.utils import timezone
+    
+    # Parse job IDs dengan tipe mereka
+    daily_job_ids = []
+    project_job_ids = []
+    preventive_job_ids = []
+    id_order_map = {}  # Track original order
+    
+    for idx, job_id_str in enumerate(job_ids_with_type):
+        try:
+            job_id, job_type = job_id_str.rsplit('_', 1)
+            job_id = int(job_id)
+            id_order_map[(job_id, job_type)] = idx
+            
+            if job_type == 'daily' or job_type == 'project':
+                daily_job_ids.append(job_id)
+            elif job_type == 'preventive':
+                preventive_job_ids.append(job_id)
+        except (ValueError, AttributeError):
+            continue
+    
+    # Kumpulkan unique values
+    mesin_set = set()
+    sub_mesin_set = set()
+    prioritas_set = set()
+    job_data_list = []
+    all_jobs_with_order = []  # Track jobs dengan order mereka
+    
+    # 1. Process Daily/Project jobs
+    if daily_job_ids:
+        jobs = Job.objects.filter(id__in=daily_job_ids).select_related(
+            'aset', 'aset__parent', 'aset__parent__parent', 'pic', 'assigned_to'
+        ).prefetch_related('personil_ditugaskan', 'tanggal_pelaksanaan')
+        
+        for job in jobs:
+            job_type = 'project' if job.tipe_job == 'Project' else 'daily'
+            order_idx = id_order_map.get((job.id, job_type), 999)
+            
+            # Collect unique mesin/sub mesin
+            if job.aset:
+                if job.aset.level == 2:
+                    sub_mesin_set.add(job.aset.nama)
+                    if job.aset.parent:
+                        mesin_set.add(job.aset.parent.nama)
+                elif job.aset.level == 1:
+                    mesin_set.add(job.aset.nama)
+            
+            if job.prioritas:
+                prioritas_set.add(job.get_prioritas_display())
+            
+            # Prepare job data row
+            personil_names = ", ".join([p.nama_lengkap for p in job.personil_ditugaskan.all()])
+            mesin_name = job.aset.parent.nama if job.aset and job.aset.level == 2 and job.aset.parent else (job.aset.nama if job.aset else "")
+            sub_mesin_name = job.aset.nama if job.aset and job.aset.level == 2 else ""
+            
+            if export_type == "preventif":
+                row = [personil_names, mesin_name, sub_mesin_name, job.nama_pekerjaan]
+            elif export_type == "evaluasi":
+                row = [personil_names, mesin_name, sub_mesin_name, job.nama_pekerjaan, ""]
+            else:
+                row = [personil_names, mesin_name, sub_mesin_name, job.nama_pekerjaan]
+            
+            all_jobs_with_order.append((order_idx, row))
+    
+    # 2. Process Preventive jobs
+    if preventive_job_ids:
+        executions = PreventiveJobExecution.objects.filter(id__in=preventive_job_ids).select_related(
+            'template', 'template__pic', 'aset', 'aset__parent', 'aset__parent__parent', 'assigned_to'
+        ).prefetch_related('assigned_to_personil')
+        
+        for execution in executions:
+            order_idx = id_order_map.get((execution.id, 'preventive'), 999)
+            
+            # Collect unique mesin/sub mesin
+            if execution.aset:
+                if execution.aset.level == 2:
+                    sub_mesin_set.add(execution.aset.nama)
+                    if execution.aset.parent:
+                        mesin_set.add(execution.aset.parent.nama)
+                elif execution.aset.level == 1:
+                    mesin_set.add(execution.aset.nama)
+            
+            if execution.template and execution.template.prioritas:
+                prioritas_set.add(execution.template.get_prioritas_display())
+            
+            # Prepare job data row
+            personil_names = ", ".join([p.nama_lengkap for p in execution.assigned_to_personil.all()])
+            mesin_name = execution.aset.parent.nama if execution.aset and execution.aset.parent else ""
+            sub_mesin_name = execution.aset.nama if execution.aset else ""
+            
+            if export_type == "preventif":
+                row = [personil_names, mesin_name, sub_mesin_name, execution.template.nama_pekerjaan]
+            elif export_type == "evaluasi":
+                row = [personil_names, mesin_name, sub_mesin_name, execution.template.nama_pekerjaan, ""]
+            else:
+                row = [personil_names, mesin_name, sub_mesin_name, execution.template.nama_pekerjaan]
+            
+            all_jobs_with_order.append((order_idx, row))
+    
+    if not all_jobs_with_order:
+        return None
+    
+    # Sort berdasarkan original order dari frontend
+    all_jobs_with_order.sort(key=lambda x: x[0])
+    job_data_list = [row for _, row in all_jobs_with_order]
+    
+    # Format payload sesuai Google Apps Script template (SAMA seperti prepare_job_data_for_export)
+    payload = {
+        "exportType": export_type,
+        "tanggal": str(timezone.now().date()),
+        "allMesin": ", ".join(sorted(mesin_set)) if mesin_set else "",
+        "allSubMesin": ", ".join(sorted(sub_mesin_set)) if sub_mesin_set else "",
+        "allPrioritas": ", ".join(sorted(prioritas_set)) if prioritas_set else "",
         "jobData": job_data_list
     }
     
