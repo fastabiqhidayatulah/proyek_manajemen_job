@@ -216,42 +216,82 @@
             </div>
 
             
-            <!-- === FILTER ASET (BARU - CASCADING) === -->
-            <div class="col-lg-auto col-md-2">
-                <label for="line-filter" class="form-label">Line</label>
-                <select name="line" id="line-filter" class="form-select form-select-sm">
-                    <option value="">Semua Line</option>
-                    {% for line in line_list %}
-                    <option value="{{ line.id }}" {% if line.id|stringformat:"s" == selected_line_id %}selected{% endif %}>
-                        {{ line.nama }}
-                    </option>
-                    {% endfor %}
-                </select>
-            </div>
+            <!-- === CONDITIONAL ASSET FILTERS: Teknik vs Operasional === -->
+            {% if is_teknik %}
+                <!-- TEKNIK: Line/Mesin/Sub Mesin Filters -->
+                <div class="col-lg-auto col-md-2">
+                    <label for="line-filter" class="form-label">Line</label>
+                    <select name="line" id="line-filter" class="form-select form-select-sm">
+                        <option value="">Semua Line</option>
+                        {% for line in line_list %}
+                        <option value="{{ line.id }}" {% if line.id|stringformat:"s" == selected_line_id %}selected{% endif %}>
+                            {{ line.nama }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
 
-            <div class="col-lg-auto col-md-2">
-                <label for="mesin-filter" class="form-label">Mesin</label>
-                <select name="mesin" id="mesin-filter" class="form-select form-select-sm">
-                    <option value="">Semua Mesin</option>
-                    {% for mesin in mesin_list %}
-                    <option value="{{ mesin.id }}" {% if mesin.id|stringformat:"s" == selected_mesin_id %}selected{% endif %}>
-                        {{ mesin.nama }}
-                    </option>
-                    {% endfor %}
-                </select>
-            </div>
+                <div class="col-lg-auto col-md-2">
+                    <label for="mesin-filter" class="form-label">Mesin</label>
+                    <select name="mesin" id="mesin-filter" class="form-select form-select-sm">
+                        <option value="">Semua Mesin</option>
+                        {% for mesin in mesin_list %}
+                        <option value="{{ mesin.id }}" {% if mesin.id|stringformat:"s" == selected_mesin_id %}selected{% endif %}>
+                            {{ mesin.nama }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
 
-            <div class="col-lg-auto col-md-2">
-                <label for="sub-mesin-filter" class="form-label">Sub Mesin</label>
-                <select name="sub_mesin" id="sub-mesin-filter" class="form-select form-select-sm">
-                    <option value="">Semua Sub</option>
-                    {% for sub in sub_mesin_list %}
-                    <option value="{{ sub.id }}" {% if sub.id|stringformat:"s" == selected_sub_mesin_id %}selected{% endif %}>
-                        {{ sub.nama }}
-                    </option>
-                    {% endfor %}
-                </select>
-            </div>
+                <div class="col-lg-auto col-md-2">
+                    <label for="sub-mesin-filter" class="form-label">Sub Mesin</label>
+                    <select name="sub_mesin" id="sub-mesin-filter" class="form-select form-select-sm">
+                        <option value="">Semua Sub</option>
+                        {% for sub in sub_mesin_list %}
+                        <option value="{{ sub.id }}" {% if sub.id|stringformat:"s" == selected_sub_mesin_id %}selected{% endif %}>
+                            {{ sub.nama }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            {% else %}
+                <!-- OPERASIONAL & OTHER: Departemen/Bagian/Sub Bagian Filters -->
+                <div class="col-lg-auto col-md-2">
+                    <label for="departemen-filter" class="form-label">Departemen</label>
+                    <select name="departemen" id="departemen-filter" class="form-select form-select-sm">
+                        <option value="">Semua Departemen</option>
+                        {% for dept in departemen_list %}
+                        <option value="{{ dept.id }}" {% if dept.id|stringformat:"s" == selected_departemen_id %}selected{% endif %}>
+                            {{ dept.nama }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-lg-auto col-md-2">
+                    <label for="bagian-filter" class="form-label">Bagian</label>
+                    <select name="bagian" id="bagian-filter" class="form-select form-select-sm">
+                        <option value="">Semua Bagian</option>
+                        {% for bagian in bagian_list %}
+                        <option value="{{ bagian.id }}" {% if bagian.id|stringformat:"s" == selected_bagian_id %}selected{% endif %}>
+                            {{ bagian.nama }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-lg-auto col-md-2">
+                    <label for="sub-bagian-filter" class="form-label">Sub Bagian</label>
+                    <select name="sub_bagian" id="sub-bagian-filter" class="form-select form-select-sm">
+                        <option value="">Semua Sub Bagian</option>
+                        {% for sub in sub_bagian_list %}
+                        <option value="{{ sub.id }}" {% if sub.id|stringformat:"s" == selected_sub_bagian_id %}selected{% endif %}>
+                            {{ sub.nama }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            {% endif %}
 
             <!-- Hidden fields untuk sort (untuk persistence) -->
             <input type="hidden" name="sort" id="sort-filter" value="{{ sort_by }}">

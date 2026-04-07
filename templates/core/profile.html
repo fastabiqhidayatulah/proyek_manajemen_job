@@ -129,6 +129,56 @@
                         </div>
                     </div>
 
+                    <!-- Departemen -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <strong>Departemen:</strong>
+                        </div>
+                        <div class="col-md-9">
+                            <p class="text-muted mb-0">
+                                {% if user.departemen %}
+                                    <span class="badge bg-primary">
+                                        <i class="bi bi-building"></i> {{ user.departemen.nama_departemen }}
+                                    </span>
+                                    {% if user.departemen.kepala_departemen.id == user.id %}
+                                        <small class="text-success ms-2">
+                                            <i class="bi bi-star-fill"></i> Anda adalah Kepala Departemen
+                                        </small>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="text-secondary">Belum ditentukan</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Bagian (Sub-section of Departemen) -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <strong>Bagian:</strong>
+                        </div>
+                        <div class="col-md-9">
+                            <p class="text-muted mb-0">
+                                {% if user.bagian %}
+                                    <span class="badge bg-warning text-dark">
+                                        <i class="bi bi-diagram-3"></i> {{ user.bagian.nama_bagian }}
+                                    </span>
+                                    <br>
+                                    <small class="text-muted mt-2 d-block">
+                                        Bagian dari Departemen: <strong>{{ user.bagian.departemen.nama_departemen }}</strong>
+                                    </small>
+                                    {% if user.bagian.kepala_bagian.id == user.id %}
+                                        <small class="text-success">
+                                            <i class="bi bi-star-fill"></i> Anda adalah Kepala Bagian
+                                        </small>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="text-secondary">Belum ditentukan</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+
                     <!-- Tanggal Bergabung -->
                     <div class="row mb-4">
                         <div class="col-md-3">

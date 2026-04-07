@@ -75,6 +75,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'core.context_processors.overdue_jobs_context',  # Custom context processor for overdue jobs
+                'core.context_processors.departemen_context',    # Custom context processor for departemen & bagian
             ],
         },
     },
@@ -189,11 +190,10 @@ LOGIN_URL = 'core:login'
 
 
 # ==============================================================================
-# PENGATURAN WHATSAPP INTEGRATION (FONTTE atau Custom WABot)
+# PENGATURAN WHATSAPP INTEGRATION (FONNTE atau Custom WABot)
 # ==============================================================================
 FONTTE_API_TOKEN = 'E6CwLwwzuP8Db6Dud5mn'
-# Endpoint API Fontte yang benar: https://api.fontte.com/send
-FONTTE_API_BASE_URL = 'https://api.fontte.com'
+FONTTE_API_BASE_URL = 'https://api.fontte.com/v1'
 
 # Custom WABot API Configuration (Preferred jika tersedia)
 # Uncomment untuk menggunakan WABot API lokal
@@ -236,3 +236,22 @@ CSRF_COOKIE_HTTPONLY = False  # Perlu False agar JS bisa akses CSRF token
 # ==============================================================================
 GOOGLE_CALENDAR_CREDENTIALS_FILE = os.path.join(BASE_DIR, 'config/credentials/google-calendar-sa.json')
 GOOGLE_CALENDAR_ID = 'ges3ra8851qk05jqlsfgjct3h4@group.calendar.google.com'  # Calendar ID Anda
+
+
+# ==============================================================================
+# CELERY CONFIGURATION (Async Task Queue & Scheduling)
+# ==============================================================================
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+
+# Celery settings
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'Asia/Jakarta'
+CELERY_ENABLE_UTC = False
+
+# Task configuration
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 minutes hard limit
+CELERY_TASK_SOFT_TIME_LIMIT = 25 * 60  # 25 minutes soft limit

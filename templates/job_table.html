@@ -1,6 +1,6 @@
 {% load core_filters %}
 
-<!-- DEBUG: job_type={{ job_type }} -->
+<!-- DEBUG: job_type={{ job_type }}, is_teknik={{ is_teknik }} -->
 <div class="table-responsive">
     <table class="table table-bordered table-striped table-hover mb-0 table-job-list {% if job_type == 'daily' %}job-table-daily{% elif job_type == 'project' %}job-table-project{% endif %}">
         <thead class="text-center align-middle">
@@ -9,9 +9,20 @@
                 <th><a href="?{% if request.GET.month %}month={{ request.GET.month }}&{% endif %}{% if request.GET.year %}year={{ request.GET.year }}&{% endif %}{% if request.GET.pic %}pic={{ request.GET.pic }}&{% endif %}{% if request.GET.line %}line={{ request.GET.line }}&{% endif %}{% if request.GET.mesin %}mesin={{ request.GET.mesin }}&{% endif %}{% if request.GET.sub_mesin %}sub_mesin={{ request.GET.sub_mesin }}&{% endif %}sort=nama_pekerjaan&order={% if sort_by == 'nama_pekerjaan' and sort_order == 'asc' %}desc{% else %}asc{% endif %}" class="text-white text-decoration-none">Nama Pekerjaan {% if sort_by == 'nama_pekerjaan' %}{% if sort_order == 'asc' %}▲{% else %}▼{% endif %}{% endif %}</a></th>
                 <th><a href="?{% if request.GET.month %}month={{ request.GET.month }}&{% endif %}{% if request.GET.year %}year={{ request.GET.year }}&{% endif %}{% if request.GET.pic %}pic={{ request.GET.pic }}&{% endif %}{% if request.GET.line %}line={{ request.GET.line }}&{% endif %}{% if request.GET.mesin %}mesin={{ request.GET.mesin }}&{% endif %}{% if request.GET.sub_mesin %}sub_mesin={{ request.GET.sub_mesin }}&{% endif %}sort=pic&order={% if sort_by == 'pic' and sort_order == 'asc' %}desc{% else %}asc{% endif %}" class="text-white text-decoration-none">PIC {% if sort_by == 'pic' %}{% if sort_order == 'asc' %}▲{% else %}▼{% endif %}{% endif %}</a></th>
                 <th>Personil</th>
-                <th><a href="?{% if request.GET.month %}month={{ request.GET.month }}&{% endif %}{% if request.GET.year %}year={{ request.GET.year }}&{% endif %}{% if request.GET.pic %}pic={{ request.GET.pic }}&{% endif %}{% if request.GET.line %}line={{ request.GET.line }}&{% endif %}{% if request.GET.mesin %}mesin={{ request.GET.mesin }}&{% endif %}{% if request.GET.sub_mesin %}sub_mesin={{ request.GET.sub_mesin }}&{% endif %}sort=line&order={% if sort_by == 'line' and sort_order == 'asc' %}desc{% else %}asc{% endif %}" class="text-white text-decoration-none">Line {% if sort_by == 'line' %}{% if sort_order == 'asc' %}▲{% else %}▼{% endif %}{% endif %}</a></th>
-                <th><a href="?{% if request.GET.month %}month={{ request.GET.month }}&{% endif %}{% if request.GET.year %}year={{ request.GET.year }}&{% endif %}{% if request.GET.pic %}pic={{ request.GET.pic }}&{% endif %}{% if request.GET.line %}line={{ request.GET.line }}&{% endif %}{% if request.GET.mesin %}mesin={{ request.GET.mesin }}&{% endif %}{% if request.GET.sub_mesin %}sub_mesin={{ request.GET.sub_mesin }}&{% endif %}sort=mesin&order={% if sort_by == 'mesin' and sort_order == 'asc' %}desc{% else %}asc{% endif %}" class="text-white text-decoration-none">Mesin {% if sort_by == 'mesin' %}{% if sort_order == 'asc' %}▲{% else %}▼{% endif %}{% endif %}</a></th>
-                <th><a href="?{% if request.GET.month %}month={{ request.GET.month }}&{% endif %}{% if request.GET.year %}year={{ request.GET.year }}&{% endif %}{% if request.GET.pic %}pic={{ request.GET.pic }}&{% endif %}{% if request.GET.line %}line={{ request.GET.line }}&{% endif %}{% if request.GET.mesin %}mesin={{ request.GET.mesin }}&{% endif %}{% if request.GET.sub_mesin %}sub_mesin={{ request.GET.sub_mesin }}&{% endif %}sort=sub_mesin&order={% if sort_by == 'sub_mesin' and sort_order == 'asc' %}desc{% else %}asc{% endif %}" class="text-white text-decoration-none">Sub Mesin {% if sort_by == 'sub_mesin' %}{% if sort_order == 'asc' %}▲{% else %}▼{% endif %}{% endif %}</a></th>
+                
+                <!-- CONDITIONAL COLUMNS: Teknik (Line/Mesin/SubMesin) vs Operasional (Departemen/Bagian/SubBagian) -->
+                {% if is_teknik %}
+                    <!-- TEKNIK COLUMNS -->
+                    <th><a href="?{% if request.GET.month %}month={{ request.GET.month }}&{% endif %}{% if request.GET.year %}year={{ request.GET.year }}&{% endif %}{% if request.GET.pic %}pic={{ request.GET.pic }}&{% endif %}{% if request.GET.line %}line={{ request.GET.line }}&{% endif %}{% if request.GET.mesin %}mesin={{ request.GET.mesin }}&{% endif %}{% if request.GET.sub_mesin %}sub_mesin={{ request.GET.sub_mesin }}&{% endif %}sort=line&order={% if sort_by == 'line' and sort_order == 'asc' %}desc{% else %}asc{% endif %}" class="text-white text-decoration-none">Line {% if sort_by == 'line' %}{% if sort_order == 'asc' %}▲{% else %}▼{% endif %}{% endif %}</a></th>
+                    <th><a href="?{% if request.GET.month %}month={{ request.GET.month }}&{% endif %}{% if request.GET.year %}year={{ request.GET.year }}&{% endif %}{% if request.GET.pic %}pic={{ request.GET.pic }}&{% endif %}{% if request.GET.line %}line={{ request.GET.line }}&{% endif %}{% if request.GET.mesin %}mesin={{ request.GET.mesin }}&{% endif %}{% if request.GET.sub_mesin %}sub_mesin={{ request.GET.sub_mesin }}&{% endif %}sort=mesin&order={% if sort_by == 'mesin' and sort_order == 'asc' %}desc{% else %}asc{% endif %}" class="text-white text-decoration-none">Mesin {% if sort_by == 'mesin' %}{% if sort_order == 'asc' %}▲{% else %}▼{% endif %}{% endif %}</a></th>
+                    <th><a href="?{% if request.GET.month %}month={{ request.GET.month }}&{% endif %}{% if request.GET.year %}year={{ request.GET.year }}&{% endif %}{% if request.GET.pic %}pic={{ request.GET.pic }}&{% endif %}{% if request.GET.line %}line={{ request.GET.line }}&{% endif %}{% if request.GET.mesin %}mesin={{ request.GET.mesin }}&{% endif %}{% if request.GET.sub_mesin %}sub_mesin={{ request.GET.sub_mesin }}&{% endif %}sort=sub_mesin&order={% if sort_by == 'sub_mesin' and sort_order == 'asc' %}desc{% else %}asc{% endif %}" class="text-white text-decoration-none">Sub Mesin {% if sort_by == 'sub_mesin' %}{% if sort_order == 'asc' %}▲{% else %}▼{% endif %}{% endif %}</a></th>
+                {% else %}
+                    <!-- OPERASIONAL & OTHER DEPARTMENTS COLUMNS -->
+                    <th><a href="?{% if request.GET.month %}month={{ request.GET.month }}&{% endif %}{% if request.GET.year %}year={{ request.GET.year }}&{% endif %}{% if request.GET.pic %}pic={{ request.GET.pic }}&{% endif %}sort=departemen&order={% if sort_by == 'departemen' and sort_order == 'asc' %}desc{% else %}asc{% endif %}" class="text-white text-decoration-none">Departemen {% if sort_by == 'departemen' %}{% if sort_order == 'asc' %}▲{% else %}▼{% endif %}{% endif %}</a></th>
+                    <th><a href="?{% if request.GET.month %}month={{ request.GET.month }}&{% endif %}{% if request.GET.year %}year={{ request.GET.year }}&{% endif %}{% if request.GET.pic %}pic={{ request.GET.pic }}&{% endif %}sort=bagian&order={% if sort_by == 'bagian' and sort_order == 'asc' %}desc{% else %}asc{% endif %}" class="text-white text-decoration-none">Bagian {% if sort_by == 'bagian' %}{% if sort_order == 'asc' %}▲{% else %}▼{% endif %}{% endif %}</a></th>
+                    <th><a href="?{% if request.GET.month %}month={{ request.GET.month }}&{% endif %}{% if request.GET.year %}year={{ request.GET.year }}&{% endif %}{% if request.GET.pic %}pic={{ request.GET.pic }}&{% endif %}sort=sub_bagian&order={% if sort_by == 'sub_bagian' and sort_order == 'asc' %}desc{% else %}asc{% endif %}" class="text-white text-decoration-none">Sub Bagian {% if sort_by == 'sub_bagian' %}{% if sort_order == 'asc' %}▲{% else %}▼{% endif %}{% endif %}</a></th>
+                {% endif %}
+                
                 <th><a href="?{% if request.GET.month %}month={{ request.GET.month }}&{% endif %}{% if request.GET.year %}year={{ request.GET.year }}&{% endif %}{% if request.GET.pic %}pic={{ request.GET.pic }}&{% endif %}{% if request.GET.line %}line={{ request.GET.line }}&{% endif %}{% if request.GET.mesin %}mesin={{ request.GET.mesin }}&{% endif %}{% if request.GET.sub_mesin %}sub_mesin={{ request.GET.sub_mesin }}&{% endif %}sort=fokus&order={% if sort_by == 'fokus' and sort_order == 'asc' %}desc{% else %}asc{% endif %}" class="text-white text-decoration-none">Fokus {% if sort_by == 'fokus' %}{% if sort_order == 'asc' %}▲{% else %}▼{% endif %}{% endif %}</a></th>
                 <th><a href="?{% if request.GET.month %}month={{ request.GET.month }}&{% endif %}{% if request.GET.year %}year={{ request.GET.year }}&{% endif %}{% if request.GET.pic %}pic={{ request.GET.pic }}&{% endif %}{% if request.GET.line %}line={{ request.GET.line }}&{% endif %}{% if request.GET.mesin %}mesin={{ request.GET.mesin }}&{% endif %}{% if request.GET.sub_mesin %}sub_mesin={{ request.GET.sub_mesin }}&{% endif %}sort=prioritas&order={% if sort_by == 'prioritas' and sort_order == 'asc' %}desc{% else %}asc{% endif %}" class="text-white text-decoration-none">Prioritas {% if sort_by == 'prioritas' %}{% if sort_order == 'asc' %}▲{% else %}▼{% endif %}{% endif %}</a></th>
                 <th>Jadwal Rencana</th>
@@ -29,24 +40,67 @@
 {% else %}<strong>{{ data.nama_pekerjaan }}</strong>{% if data.assigned_to %}{% if data.pic == request.user %}<br><span class="badge text-bg-warning"><i class="bi bi-arrow-right-circle"></i> Assign To: {{ data.assigned_to.username }}</span>{% else %}<br><span class="badge text-bg-secondary"><i class="bi bi-arrow-left-circle"></i> Assign From: {{ data.pic.username }}</span>{% endif %}{% endif %}{% endif %}</td>
 <td class="text-center">{{ data.pic.username }}</td>
 <td class="p-1"><div class="d-flex flex-wrap">{% for personil in data.personil_ditugaskan.all %}<span class="badge badge-personil">{{ personil.nama_lengkap }}</span>{% empty %}<span class="text-muted small"><em>(Belum ada)</em></span>{% endfor %}</div></td>
-<!-- Display aset based on actual level (0=Line, 1=Mesin, 2=Sub Mesin) -->
-{% if data.aset.level == 0 %}
-    <!-- Asset is Line level -->
-    <td><strong>{{ data.aset.nama }}</strong></td>
-    <td class="text-muted">-</td>
-    <td class="text-muted">-</td>
-{% elif data.aset.level == 1 %}
-    <!-- Asset is Mesin level -->
-    <td>{{ data.aset.parent.nama|default:'-' }}</td>
-    <td><strong>{{ data.aset.nama }}</strong></td>
-    <td class="text-muted">-</td>
+
+<!-- CONDITIONAL ASSET DISPLAY: Teknik vs Operasional -->
+{% if is_teknik %}
+    <!-- TEKNIK: Display AsetMesin (Line/Mesin/SubMesin) hierarchy -->
+    {% if data.aset %}
+        {% if data.aset.level == 0 %}
+            <!-- Asset is Line level -->
+            <td><strong>{{ data.aset.nama }}</strong></td>
+            <td class="text-muted">-</td>
+            <td class="text-muted">-</td>
+        {% elif data.aset.level == 1 %}
+            <!-- Asset is Mesin level -->
+            <td>{{ data.aset.parent.nama|default:'-' }}</td>
+            <td><strong>{{ data.aset.nama }}</strong></td>
+            <td class="text-muted">-</td>
+        {% elif data.aset.level == 2 %}
+            <!-- Asset is Sub Mesin level -->
+            <td>{{ data.aset.parent.parent.nama|default:'-' }}</td>
+            <td>{{ data.aset.parent.nama|default:'-' }}</td>
+            <td><strong>{{ data.aset.nama }}</strong></td>
+        {% else %}
+            <td class="text-muted">-</td>
+            <td class="text-muted">-</td>
+            <td class="text-muted">-</td>
+        {% endif %}
+    {% else %}
+        <td class="text-muted">-</td>
+        <td class="text-muted">-</td>
+        <td class="text-muted">-</td>
+    {% endif %}
 {% else %}
-    <!-- Asset is Sub Mesin level (default) -->
-    <td>{{ data.aset.parent.parent.nama|default:'-' }}</td>
-    <td>{{ data.aset.parent.nama|default:'-' }}</td>
-    <td><strong>{{ data.aset.nama }}</strong></td>
+    <!-- OPERASIONAL & OTHER: Display AsetDepartemen (Departemen/Bagian/SubBagian) hierarchy -->
+    {% if data.aset_departemen %}
+        {% if data.aset_departemen.level == 0 %}
+            <!-- Asset is Departemen level (Level 0) -->
+            <td><strong>{{ data.aset_departemen.nama }}</strong></td>
+            <td class="text-muted">-</td>
+            <td class="text-muted">-</td>
+        {% elif data.aset_departemen.level == 1 %}
+            <!-- Asset is Bagian level (Level 1) -->
+            <td>{{ data.aset_departemen.parent.nama|default:'-' }}</td>
+            <td><strong>{{ data.aset_departemen.nama }}</strong></td>
+            <td class="text-muted">-</td>
+        {% elif data.aset_departemen.level == 2 %}
+            <!-- Asset is SubBagian level (Level 2) -->
+            <td>{{ data.aset_departemen.parent.parent.nama|default:'-' }}</td>
+            <td>{{ data.aset_departemen.parent.nama|default:'-' }}</td>
+            <td><strong>{{ data.aset_departemen.nama }}</strong></td>
+        {% else %}
+            <td class="text-muted">-</td>
+            <td class="text-muted">-</td>
+            <td class="text-muted">-</td>
+        {% endif %}
+    {% else %}
+        <td class="text-muted">-</td>
+        <td class="text-muted">-</td>
+        <td class="text-muted">-</td>
+    {% endif %}
 {% endif %}
-<td class="text-center">{{ data.get_fokus_display }}</td>
+
+<td class="text-center">{{ data.fokus|default:'-' }}</td>
 <td class="text-center"><span class="badge {% if data.prioritas == 'P1' %}badge-p1{% elif data.prioritas == 'P2' %}badge-p2{% elif data.prioritas == 'P3' %}badge-p3{% else %}badge-p4{% endif %}">{{ data.get_prioritas_display }}</span></td>
 <td class="p-1">
 <div class="jadwal-container">
@@ -135,7 +189,7 @@ window.jobAttachments[{{ data.id }}] = [
 ];
 </script>
 <td class="text-center">
-    <a href="{% if data.tipe_job == 'Project' %}{% url 'core:project_job_detail' data.id %}{% else %}{% url 'core:daily_job_detail' data.id %}{% endif %}" class="btn btn-sm btn-outline-primary py-0 px-1" title="Lihat Detail Job"><i class="bi bi-eye"></i></a>
+    <a href="{% if data.tipe_job == 'Project' %}{% url 'core:project_detail' data.id %}{% else %}{% url 'core:daily_job_detail' data.id %}{% endif %}" class="btn btn-sm btn-outline-primary py-0 px-1" title="Lihat Detail Job"><i class="bi bi-eye"></i></a>
     {% if data|can_edit_job:request.user %}
     <a href="{% url 'core:job_edit' data.id %}" class="btn btn-sm btn-outline-warning py-0 px-1" title="Edit Job"><i class="bi bi-pencil"></i></a>
     <a href="{% url 'core:job_delete' data.id %}" class="btn btn-sm btn-outline-danger py-0 px-1" title="Hapus Job" onclick="return confirm('Anda yakin ingin menghapus job: {{ data.nama_pekerjaan }}?')"><i class="bi bi-trash"></i></a>

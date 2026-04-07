@@ -11,15 +11,21 @@ from import_export.widgets import ForeignKeyWidget
 from .models import (
     CustomUser, 
     Jabatan, 
+    Departemen,
+    Bagian,
+    DepartemenFeature,
     Personil, 
-    AsetMesin, 
+    AsetMesin,
+    AsetDepartemen,
+    FokusPekerjaan,
     Project, 
     Job, 
     JobDate, 
     Attachment,
     Karyawan,
     LeaveEvent,
-    MaintenanceMode
+    MaintenanceMode,
+    FonnteSettings
 )
 
 # ============================================================
@@ -69,7 +75,11 @@ class CustomUserAdmin(UserAdmin):
             'description': 'Groups: "Workshop" = edit stok barang, "Warehouse" = full access + import'
         }),
         ('Important dates', {'fields': ('last_login', 'date_joined')}),
-        ('Informasi Tambahan', {'fields': ('jabatan', 'atasan')}),
+        ('Informasi Organisasi', {
+            'fields': ('jabatan', 'atasan', 'departemen', 'bagian'),
+            'description': 'Konfigurasi jabatan, atasan, departemen, dan bagian user'
+        }),
+        ('Kontak', {'fields': ('nomor_telepon',)}),
     )
     add_fieldsets = (
         (None, {
@@ -81,14 +91,34 @@ class CustomUserAdmin(UserAdmin):
             'fields': ('is_active', 'is_staff', 'is_superuser', 'groups'),
             'description': 'Groups: "Workshop" = edit stok barang, "Warehouse" = full access + import'
         }),
-        ('Informasi Tambahan', {'fields': ('jabatan', 'atasan')}),
+        ('Informasi Organisasi', {
+            'fields': ('jabatan', 'atasan', 'departemen', 'bagian'),
+            'description': 'Konfigurasi jabatan, atasan, departemen, dan bagian user'
+        }),
+        ('Kontak', {'fields': ('nomor_telepon',)}),
     )
     
-    list_display = ['username', 'email', 'first_name', 'last_name', 'get_groups', 'jabatan', 'atasan', 'is_staff']
-    list_filter = UserAdmin.list_filter + ('groups', 'jabatan', 'atasan',)
+    list_display = ['username', 'email', 'first_name', 'last_name', 'jabatan', 'get_departemen_bagian', 'atasan', 'is_staff']
+    list_filter = UserAdmin.list_filter + ('groups', 'jabatan', 'departemen', 'bagian', 'atasan',)
     
     # Penting untuk autocomplete_fields 'pic' di JobAdmin
-    search_fields = ('username', 'first_name', 'last_name')
+    search_fields = ('username', 'first_name', 'last_name', 'departemen__nama_departemen', 'bagian__nama_bagian')
+    
+    def get_departemen_bagian(self, obj):
+        """Tampilkan departemen dan bagian user di list view"""
+        if obj.bagian:
+            return format_html(
+                '<span style="background: #dbeafe; color: #1e40af; padding: 3px 8px; border-radius: 3px; font-size: 11px;"><strong>{}</strong></span> / <span style="background: #fef3c7; color: #92400e; padding: 3px 8px; border-radius: 3px; font-size: 11px;">{}</span>',
+                obj.departemen.nama_departemen if obj.departemen else '-',
+                obj.bagian.nama_bagian
+            )
+        elif obj.departemen:
+            return format_html(
+                '<span style="background: #dbeafe; color: #1e40af; padding: 3px 8px; border-radius: 3px; font-size: 11px;"><strong>{}</strong></span>',
+                obj.departemen.nama_departemen
+            )
+        return '-'
+    get_departemen_bagian.short_description = 'Departemen / Bagian'
     
     def get_groups(self, obj):
         """Tampilkan groups user di list view"""
@@ -99,8 +129,126 @@ class CustomUserAdmin(UserAdmin):
         return format_html(group_names)
     get_groups.short_description = 'Groups'
 
+# ============================================================# SETUP DEPARTEMEN FEATURE PERMISSION (INLINE)
 # ============================================================
-# 4. SETUP PROJECT & PERSONIL
+class DepartemenFeatureInline(admin.TabularInline):
+    """Inline untuk manage feature permission di dalam Departemen form"""
+    model = DepartemenFeature
+    extra = 0
+    fields = ('feature_key', 'is_enabled')
+    can_delete = True
+
+# ============================================================# SETUP DEPARTEMEN & BAGIAN
+# ============================================================
+class BagianInline(admin.TabularInline):
+    """Inline Bagian dalam Departemen"""
+    model = Bagian
+    extra = 1
+    fields = ('nama_bagian', 'kepala_bagian', 'deskripsi')
+
+@admin.register(Departemen)
+class DepartemenAdmin(admin.ModelAdmin):
+    list_display = ('nama_departemen', 'kepala_departemen', 'get_jumlah_bagian', 'get_jumlah_anggota', 'created_at')
+    list_filter = ('created_at',)
+    search_fields = ('nama_departemen', 'kepala_departemen__username')
+    readonly_fields = ('created_at', 'updated_at')
+    
+    fieldsets = (
+        ('Informasi Departemen', {
+            'fields': ('nama_departemen', 'deskripsi')
+        }),
+        ('Kepemimpinan', {
+            'fields': ('kepala_departemen',)
+        }),
+        ('Google Calendar Integration', {
+            'fields': ('google_calendar_id',),
+            'description': 'Masukkan Google Calendar ID untuk departemen ini (cth: abc123@group.calendar.google.com). Digunakan untuk sinkronisasi ijin/cuti.'
+        }),
+        ('Metadata', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    inlines = [BagianInline, DepartemenFeatureInline]
+    
+    def get_jumlah_bagian(self, obj):
+        """Hitung jumlah bagian dalam departemen"""
+        count = obj.daftar_bagian.count()
+        return format_html(
+            '<span style="background: #d1d5db; color: #1f2937; padding: 2px 6px; border-radius: 3px; font-size: 11px;"><strong>{}</strong> Bagian</span>',
+            count
+        )
+    get_jumlah_bagian.short_description = 'Bagian'
+    
+    def get_jumlah_anggota(self, obj):
+        """Hitung jumlah anggota departemen"""
+        count = obj.anggota_departemen.count()
+        return format_html(
+            '<span style="background: #dbeafe; color: #1e40af; padding: 2px 6px; border-radius: 3px; font-size: 11px;"><strong>{}</strong> User</span>',
+            count
+        )
+    get_jumlah_anggota.short_description = 'Total User'
+
+@admin.register(Bagian)
+class BagianAdmin(admin.ModelAdmin):
+    list_display = ('nama_bagian', 'departemen', 'kepala_bagian', 'get_jumlah_anggota', 'created_at')
+    list_filter = ('departemen', 'created_at')
+    search_fields = ('nama_bagian', 'departemen__nama_departemen', 'kepala_bagian__username')
+    readonly_fields = ('created_at', 'updated_at')
+    
+    fieldsets = (
+        ('Informasi Bagian', {
+            'fields': ('nama_bagian', 'departemen', 'deskripsi')
+        }),
+        ('Kepemimpinan', {
+            'fields': ('kepala_bagian',)
+        }),
+        ('Metadata', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def get_jumlah_anggota(self, obj):
+        """Hitung jumlah anggota bagian"""
+        count = obj.anggota_bagian.count()
+        return format_html(
+            '<span style="background: #dbeafe; color: #1e40af; padding: 2px 6px; border-radius: 3px; font-size: 11px;"><strong>{}</strong> User</span>',
+            count
+        )
+    get_jumlah_anggota.short_description = 'Total User'
+
+# ============================================================
+# SETUP DEPARTEMEN FEATURE PERMISSION
+# ============================================================
+@admin.register(DepartemenFeature)
+class DepartemenFeatureAdmin(admin.ModelAdmin):
+    """Admin untuk manage feature permission per departemen"""
+    list_display = ('departemen', 'get_feature_name', 'is_enabled', 'created_at')
+    list_filter = ('departemen', 'is_enabled', 'created_at')
+    search_fields = ('departemen__nama_departemen', 'feature_key')
+    readonly_fields = ('created_at', 'updated_at')
+    
+    fieldsets = (
+        ('Feature Permission', {
+            'fields': ('departemen', 'feature_key', 'is_enabled')
+        }),
+        ('Metadata', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def get_feature_name(self, obj):
+        """Display feature name yang lebih readable"""
+        return format_html(
+            '<span style="background: #dbeafe; color: #1e40af; padding: 3px 8px; border-radius: 3px; font-size: 11px;"><strong>{}</strong></span>',
+            obj.get_feature_key_display()
+        )
+    get_feature_name.short_description = 'Feature'
+
+# ============================================================# 4. SETUP PROJECT & PERSONIL
 # ============================================================
 @admin.register(Project)
 class ProjectAdmin(admin.ModelAdmin):
@@ -264,3 +412,140 @@ class MaintenanceModeAdmin(admin.ModelAdmin):
                 '<span style="color: green; font-weight: bold;">🟢 NORMAL</span>'
             )
     get_status.short_description = 'Status'
+
+
+# ============================================================
+# FONNTE SETTINGS ADMIN - WA API Configuration
+# ============================================================
+@admin.register(FonnteSettings)
+class FonnteSettingsAdmin(admin.ModelAdmin):
+    """Admin untuk manage Fonnte API settings per departemen"""
+    list_display = ('departemen', 'is_active', 'connexion_status', 'created_at')
+    list_filter = ('is_active', 'departemen', 'created_at')
+    search_fields = ('departemen__nama_departemen',)
+    readonly_fields = ('created_at', 'updated_at', 'created_by', 'connexion_test_result')
+    
+    fieldsets = (
+        ('Departemen', {
+            'fields': ('departemen',)
+        }),
+        ('Fonnte API', {
+            'fields': ('token', 'country_code'),
+            'description': '📱 Dapatkan token dari Fonnte dashboard'
+        }),
+        ('Status', {
+            'fields': ('is_active', 'connexion_test_result'),
+        }),
+        ('Metadata', {
+            'fields': ('created_by', 'created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def connexion_test_result(self, obj):
+        """Test koneksi ke Fonnte API"""
+        if obj.test_connection():
+            return format_html(
+                '<span style="color: green; font-weight: bold;">✅ CONNECTED</span>'
+            )
+        else:
+            return format_html(
+                '<span style="color: red; font-weight: bold;">❌ FAILED</span>'
+            )
+    connexion_test_result.short_description = 'Connection Status'
+    
+    def connexion_status(self, obj):
+        """Tampilkan status koneksi di list view"""
+        if obj.is_active and obj.test_connection():
+            return format_html('<span style="color: green;">✅ Aktif & Connected</span>')
+        elif obj.is_active:
+            return format_html('<span style="color: orange;">⚠️ Aktif tapi Error</span>')
+        else:
+            return format_html('<span style="color: gray;">⏸️ Inactive</span>')
+    connexion_status.short_description = 'Status'
+    
+    def save_model(self, request, obj, form, change):
+        """Set created_by saat create"""
+        if not change:
+            obj.created_by = request.user
+        super().save_model(request, obj, form, change)
+    
+    def has_delete_permission(self, request, obj=None):
+        """Hanya superuser yang bisa delete"""
+        return request.user.is_superuser
+    
+    def has_add_permission(self, request):
+        """Hanya admin yang bisa add"""
+        return request.user.is_staff and request.user.is_superuser
+    
+    def has_change_permission(self, request, obj=None):
+        """Hanya admin yang bisa change"""
+        return request.user.is_staff and request.user.is_superuser
+
+
+# ============================================================
+# ADMIN UNTUK ASET DEPARTEMEN (Tree untuk non-Teknik)
+# ============================================================
+@admin.register(AsetDepartemen)
+class AsetDepartemenAdmin(DraggableMPTTAdmin):
+    """Admin untuk AsetDepartemen dengan tree view"""
+    list_display = ('indented_title', 'departemen', 'get_full_path')
+    list_filter = ('departemen__nama_departemen', 'level')
+    search_fields = ('nama', 'departemen__nama_departemen')
+    ordering = ('departemen', 'tree_id', 'lft')
+    
+    fieldsets = (
+        ('Info Aset', {
+            'fields': ('nama', 'departemen', 'parent')
+        }),
+        ('Tree Fields (Auto)', {
+            'fields': ('level', 'lft', 'rght', 'tree_id'),
+            'classes': ('collapse',),
+            'description': 'Diisi otomatis oleh MPPT library'
+        }),
+    )
+    
+    readonly_fields = ('level', 'lft', 'rght', 'tree_id')
+    
+    def get_full_path(self, obj):
+        """Tampilkan full path (parent > child > grandchild)"""
+        return str(obj)
+    get_full_path.short_description = 'Full Path'
+
+
+# ============================================================
+# ADMIN UNTUK FOKUS PEKERJAAN (per Departemen)
+# ============================================================
+@admin.register(FokusPekerjaan)
+class FokusPekerjaanAdmin(admin.ModelAdmin):
+    """Admin untuk FokusPekerjaan dengan grouping per departemen"""
+    list_display = ('nama', 'departemen', 'urutan', 'is_active', 'get_created_date')
+    list_filter = ('departemen__nama_departemen', 'is_active', 'created_at')
+    search_fields = ('nama', 'departemen__nama_departemen')
+    ordering = ('departemen__nama_departemen', 'urutan', 'nama')
+    
+    fieldsets = (
+        ('Info Fokus', {
+            'fields': ('nama', 'departemen', 'urutan', 'is_active')
+        }),
+        ('Metadata', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',),
+        }),
+    )
+    
+    readonly_fields = ('created_at', 'updated_at')
+    
+    def get_created_date(self, obj):
+        """Tampilkan tanggal created"""
+        return obj.created_at.strftime('%d/%m/%Y %H:%M')
+    get_created_date.short_description = 'Dibuat Pada'
+    
+    def has_delete_permission(self, request, obj=None):
+        """Batasi delete untuk fokus yang sudah digunakan"""
+        if obj:
+            # Check if fokus ini sudah digunakan di Job
+            from .models import Job
+            if Job.objects.filter(fokus=obj.nama).exists():
+                return False
+        return request.user.is_superuser

@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db import transaction 
-from .models import Job, Project, Personil, AsetMesin, JobDate, CustomUser, LeaveEvent, Karyawan
+from .models import Job, Project, Personil, AsetMesin, AsetDepartemen, JobDate, CustomUser, LeaveEvent, Karyawan
 from .cache_utils import get_user_accessible_projects
 from django.http import JsonResponse, HttpResponseRedirect, HttpResponse
 from django.views.decorators.http import require_http_methods
@@ -118,17 +118,30 @@ def dashboard_view(request):
     selected_mesin_id = request.GET.get('mesin', '')
     selected_sub_mesin_id = request.GET.get('sub_mesin', '')
     
+    # === 3b. LOGIKA FILTER ASET DEPARTEMEN (UNTUK OPERASIONAL & OTHER) ===
+    selected_departemen_id = request.GET.get('departemen', '')
+    selected_bagian_id = request.GET.get('bagian', '')
+    selected_sub_bagian_id = request.GET.get('sub_bagian', '')
+    
     # === 4. LOGIKA DATA TABEL (QUERY OPTIMASI BARU) ===
     # Filter Job berdasarkan TIM + PROJECT ACCESSIBLE, TAPI JANGAN filter tanggal dulu
     all_jobs_team_base = Job.objects.filter(team_query, project_filter).distinct()
     
-    # Apply asset filters
+    # Apply asset filters for AsetMesin (Teknik)
     if selected_sub_mesin_id:
         all_jobs_team_base = all_jobs_team_base.filter(aset_id=selected_sub_mesin_id)
     elif selected_mesin_id:
         all_jobs_team_base = all_jobs_team_base.filter(aset__parent_id=selected_mesin_id)
     elif selected_line_id:
         all_jobs_team_base = all_jobs_team_base.filter(aset__parent__parent_id=selected_line_id)
+    
+    # Apply asset filters for AsetDepartemen (Operasional & others)
+    if selected_sub_bagian_id:
+        all_jobs_team_base = all_jobs_team_base.filter(aset_departemen_id=selected_sub_bagian_id)
+    elif selected_bagian_id:
+        all_jobs_team_base = all_jobs_team_base.filter(aset_departemen__parent_id=selected_bagian_id)
+    elif selected_departemen_id:
+        all_jobs_team_base = all_jobs_team_base.filter(aset_departemen__parent__parent_id=selected_departemen_id)
     
     # Sekarang filter job yang punya tanggal di bulan/tahun terpilih
     # PRIORITY: Jika ada date_range, IGNORE bulan/tahun filter (lebih spesifik)
@@ -139,7 +152,8 @@ def dashboard_view(request):
             'pic', 
             'assigned_to',
             'project',
-            'aset__parent__parent' 
+            'aset__parent__parent',
+            'aset_departemen__parent__parent'
         ).prefetch_related(
             'personil_ditugaskan', 
             'tanggal_pelaksanaan',
@@ -194,6 +208,9 @@ def dashboard_view(request):
         'line': 'aset__parent__parent__nama',
         'mesin': 'aset__parent__nama',
         'sub_mesin': 'aset__nama',
+        'departemen': 'aset_departemen__parent__parent__nama',
+        'bagian': 'aset_departemen__parent__nama',
+        'sub_bagian': 'aset_departemen__nama',
         'fokus': 'fokus',
         'prioritas': 'prioritas',
         'updated_at': 'updated_at',
@@ -240,6 +257,24 @@ def dashboard_view(request):
     if selected_mesin_id:
         sub_mesin_list = AsetMesin.objects.filter(
             parent_id=selected_mesin_id, level=2
+        ).order_by('nama').prefetch_related('parent')
+    
+    # === 5b. LOGIKA DROPDOWN DATA ASET DEPARTEMEN (UNTUK OPERASIONAL & OTHER) ===
+    # Get all Departemen (level=0) - untuk semua user yang bukan Teknik
+    departemen_list = AsetDepartemen.objects.filter(level=0).order_by('nama')
+    
+    # Get Bagian based on selected Departemen (level=1) - with prefetch
+    bagian_list = AsetDepartemen.objects.none()
+    if selected_departemen_id:
+        bagian_list = AsetDepartemen.objects.filter(
+            parent_id=selected_departemen_id, level=1
+        ).order_by('nama').prefetch_related('parent', 'children')
+    
+    # Get Sub Bagian based on selected Bagian (level=2) - with prefetch
+    sub_bagian_list = AsetDepartemen.objects.none()
+    if selected_bagian_id:
+        sub_bagian_list = AsetDepartemen.objects.filter(
+            parent_id=selected_bagian_id, level=2
         ).order_by('nama').prefetch_related('parent')
     
     # === 6. LOGIKA BARU: DASBOR PROGRES MESIN (KONSEP 2 ANDA) ===
@@ -322,9 +357,17 @@ def dashboard_view(request):
     project_page_obj = project_paginator.get_page(project_page)
 
     # ==========================================================
+    # === DETERMINE USER DEPARTEMEN TYPE (TEKNIK vs OPERASIONAL, etc) ===
+    user_departemen = user.departemen
+    is_teknik = (
+        user_departemen is not None and
+        user_departemen.nama_departemen.strip().lower() == 'teknik'
+    )
+    # ===================================================================
 
     context = {
         'user': user,
+        'is_teknik': is_teknik,  # NEW: For conditional column display
         'daily_job_data': daily_page_obj.object_list,
         'daily_page_obj': daily_page_obj,
         'daily_paginator': daily_paginator,
@@ -355,6 +398,14 @@ def dashboard_view(request):
         'selected_line_id': selected_line_id,
         'selected_mesin_id': selected_mesin_id,
         'selected_sub_mesin_id': selected_sub_mesin_id,
+        
+        # Asset Departemen Filter Context (BARU)
+        'departemen_list': departemen_list,
+        'bagian_list': bagian_list,
+        'sub_bagian_list': sub_bagian_list,
+        'selected_departemen_id': selected_departemen_id,
+        'selected_bagian_id': selected_bagian_id,
+        'selected_sub_bagian_id': selected_sub_bagian_id,
         
         # Date Range Filter Context (BARU)
         'selected_date_from': selected_date_from,
@@ -447,6 +498,7 @@ def project_detail_view(request, project_id):
         'job_data': jobs_in_project, 
         'modal_form': modal_form,
         'filter_params': request.GET.urlencode(),
+        'is_teknik_user': user.departemen and user.departemen.nama_departemen.strip().lower() == 'teknik',
     }
     return render(request, 'detail_project.html', context)
 
@@ -745,7 +797,17 @@ def job_form_view(request, job_id=None, project_id=None):
         # Determine which aset_id to use (priority: sub_mesin > mesin > line)
         selected_aset_id = sub_mesin_id or mesin_id or line_id
         
-        if form.is_valid() and attachment_formset.is_valid() and selected_aset_id:
+        # ALSO check for aset_departemen fields (Operasional users)
+        aset_departemen_sub = request.POST.get('aset_departemen_sub')
+        aset_departemen_bagian = request.POST.get('aset_departemen_bagian')
+        aset_departemen_display = request.POST.get('aset_departemen_display')
+        
+        # Determine aset_departemen ID (priority: sub > bagian > display)
+        selected_aset_departemen_id = aset_departemen_sub or aset_departemen_bagian or aset_departemen_display
+        
+        # For form validation, use the form's clean() which consolidates aset fields
+        # Just check that form has an aset_departemen value after clean
+        if form.is_valid() and attachment_formset.is_valid() and (selected_aset_id or selected_aset_departemen_id or form.cleaned_data.get('aset_departemen')):
             try:
                 with transaction.atomic():
                     # === PENTING: Validate project access (BIDIRECTIONAL) ===
@@ -763,7 +825,12 @@ def job_form_view(request, job_id=None, project_id=None):
                     # Hanya set PIC saat create (bukan edit)
                     if not instance:
                         job.pic = user 
-                    job.aset_id = selected_aset_id
+                    
+                    # Set aset_id only for Teknik users (selected_aset_id from line/mesin/sub_mesin)
+                    # For Operasional users, aset_departemen is set by form.clean() consolidating the three fields
+                    if selected_aset_id:
+                        job.aset_id = selected_aset_id
+                    # Else: aset_departemen is already set from form.clean()
                     
                     # === LOGIKA: Kontrol assigned_to ===
                     # Hanya PIC (pembuat) yang bisa ubah assigned_to
@@ -889,6 +956,7 @@ def job_form_view(request, job_id=None, project_id=None):
         'form': form,
         'attachment_formset': attachment_formset,
         'project': project,
+        'is_teknik_user': user.departemen and user.departemen.nama_departemen.strip().lower() == 'teknik',
     }
     return render(request, 'job_form.html', context)
 
@@ -1988,6 +2056,37 @@ def job_per_day_view(request):
 
 
 # ==============================================================================
+# API untuk CASCADING DROPDOWN ASET DEPARTEMEN
+# ==============================================================================
+@require_http_methods(["GET"])
+def api_aset_children(request):
+    """
+    API endpoint untuk get children dari sebuah AsetDepartemen (parent).
+    Query params:
+      - parent_id: ID dari parent node
+      - departemen_id: ID departemen (for filtering)
+    Return: JSON list of children (same format as load_children for consistency)
+    """
+    try:
+        parent_id = request.GET.get('parent_id')
+        departemen_id = request.GET.get('departemen_id')
+        
+        if not parent_id:
+            return JsonResponse({"error": "parent_id required"}, status=400)
+        
+        # Get children dari parent node
+        children = AsetDepartemen.objects.filter(
+            parent_id=parent_id
+        ).order_by('nama').values('id', 'nama', 'level')
+        
+        # ✅ Return format SAMA dengan load_children - array langsung, bukan nested
+        data = list(children)
+        return JsonResponse(data, safe=False)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=400)
+
+
+# ==============================================================================
 # API UNTUK FETCH ATTACHMENTS GALLERY (BARU)
 # ==============================================================================
 @login_required(login_url='core:login')
@@ -2042,21 +2141,25 @@ def api_job_attachments(request, job_id):
 # ==============================================================================
 # VIEW LEAVE EVENT (IJIN/CUTI) - HALAMAN BARU
 # ==============================================================================
-def sync_leave_events_from_google_calendar():
+def sync_leave_events_from_google_calendar(calendar_id=None):
     """
     Sync events dari Google Calendar ke database
     Baca semua events yang nama-nya mengandung "cuti" dan simpan ke DB jika belum ada
+    
+    Args:
+        calendar_id (str): Google Calendar ID. Jika None, gunakan dari settings.GOOGLE_CALENDAR_ID
     """
     try:
         from .google_calendar_service import get_google_calendar_service
         from datetime import datetime
+        from django.conf import settings
         
-        cal_service = get_google_calendar_service()
-        calendar_id = settings.GOOGLE_CALENDAR_ID
+        cal_service = get_google_calendar_service(calendar_id=calendar_id)
+        actual_calendar_id = calendar_id or settings.GOOGLE_CALENDAR_ID
         
         # Query semua events dengan keyword "cuti"
         events_result = cal_service.service.events().list(
-            calendarId=calendar_id,
+            calendarId=actual_calendar_id,
             q='cuti',  # Search untuk events dengan "cuti" di nama
             maxResults=100
         ).execute()
@@ -2088,6 +2191,12 @@ def sync_leave_events_from_google_calendar():
                 start_date = start_date[:10]
                 end_date = end_date[:10]
                 
+                # Cari departemen yang punya calendar_id ini
+                try:
+                    departemen = Departemen.objects.get(google_calendar_id=actual_calendar_id)
+                except Departemen.DoesNotExist:
+                    departemen = None
+                
                 # Cari karyawan dengan nama yang match
                 try:
                     karyawan = Karyawan.objects.get(nama_lengkap__icontains=nama_orang)
@@ -2104,6 +2213,7 @@ def sync_leave_events_from_google_calendar():
                         'tanggal': start_date,  # Atau bisa range jika perlu
                         'deskripsi': event.get('description', ''),
                         'created_by': None,
+                        'departemen': departemen,
                     }
                 )
                 
@@ -2125,8 +2235,17 @@ def leave_event_view(request):
     """
     user = request.user
     
-    # Sync data dari Google Calendar
-    sync_leave_events_from_google_calendar()
+    # Check if user memiliki departemen dengan google_calendar_id
+    if not user.departemen or not user.departemen.google_calendar_id:
+        messages.error(
+            request,
+            "❌ Departemen Anda belum memiliki Google Calendar ID. Hubungi admin untuk setting."
+        )
+        return render(request, 'leave_event.html', {'form': None, 'error': True})
+    
+    # Sync data dari Google Calendar menggunakan calendar_id dari departemen
+    calendar_id = user.departemen.google_calendar_id
+    sync_leave_events_from_google_calendar(calendar_id=calendar_id)
     
     if request.method == 'POST':
         form = LeaveEventForm(request.POST)
@@ -2147,7 +2266,7 @@ def leave_event_view(request):
                 from .google_calendar_service import get_google_calendar_service
                 
                 try:
-                    cal_service = get_google_calendar_service()
+                    cal_service = get_google_calendar_service(calendar_id=calendar_id)
                     event_response = cal_service.create_event(
                         nama_orang=nama_orang,
                         tipe_ijin=tipe_leave,
@@ -2162,6 +2281,7 @@ def leave_event_view(request):
                         leave_event = form.save(commit=False)
                         leave_event.google_event_id = event_id
                         leave_event.created_by = user
+                        leave_event.departemen = user.departemen
                         leave_event.save()
                         
                         messages.success(
@@ -2170,17 +2290,14 @@ def leave_event_view(request):
                         )
                         return redirect('core:leave_event')
                     else:
-                        messages.error(
-                            request,
-                            "❌ Gagal menambahkan event ke Google Calendar. Cek error di server logs."
-                        )
+                        error_msg = f"❌ Gagal menambahkan event ke Google Calendar. Response null/empty."
+                        messages.error(request, error_msg)
+                        print(f"[LEAVE_EVENT] Create event failed - response was None")
                 
                 except Exception as e:
-                    messages.error(
-                        request,
-                        f"❌ Error koneksi Google Calendar: {str(e)}"
-                    )
-                    print(f"Google Calendar Error: {str(e)}")
+                    error_msg = f"❌ Error Google Calendar API: {str(e)}"
+                    messages.error(request, error_msg)
+                    print(f"[LEAVE_EVENT] Google Calendar Error: {str(e)}")
                     import traceback
                     traceback.print_exc()
                     
@@ -2198,7 +2315,7 @@ def leave_event_view(request):
         form = LeaveEventForm()
     
     # Ambil daftar leave events yang pernah dibuat
-    all_leave_events = LeaveEvent.objects.all().order_by('-created_at')
+    all_leave_events = LeaveEvent.objects.filter(departemen=user.departemen).order_by('-created_at')
     
     # Split data ke upcoming vs past (berdasarkan tanggal terakhir)
     from datetime import datetime as dt
@@ -2338,12 +2455,15 @@ def leave_event_delete(request, leave_id):
     Delete Leave Event (juga delete dari Google Calendar)
     """
     leave_event = get_object_or_404(LeaveEvent, id=leave_id)
+    user = request.user
     
     try:
         # Delete dari Google Calendar jika ada event_id
         if leave_event.google_event_id:
             from .google_calendar_service import get_google_calendar_service
-            cal_service = get_google_calendar_service()
+            # Gunakan calendar_id dari user's departemen
+            calendar_id = user.departemen.google_calendar_id if user.departemen else None
+            cal_service = get_google_calendar_service(calendar_id=calendar_id)
             cal_service.delete_event(leave_event.google_event_id)
         
         # Delete dari database
@@ -2793,6 +2913,8 @@ def profile_view(request):
         'profile_user': user,
         'jabatan': user.jabatan,
         'atasan': user.atasan,
+        'departemen': user.departemen,
+        'bagian': user.bagian,
     }
     return render(request, 'core/profile.html', context)
 
@@ -2820,8 +2942,62 @@ def profile_edit_view(request):
         'profile_user': user,
         'jabatan': user.jabatan,
         'atasan': user.atasan,
+        'departemen': user.departemen,
+        'bagian': user.bagian,
     }
     return render(request, 'core/profile_edit.html', context)
+
+
+@login_required(login_url='core:login')
+def save_overdue_job_preferences(request):
+    """
+    API endpoint untuk simpan user's overdue job notification preferences
+    
+    POST data:
+    {
+        'show_daily_jobs': true/false,
+        'show_project_jobs': true/false,
+        'show_preventive_jobs': true/false
+    }
+    """
+    from core.models import UserOverdueJobPreference
+    
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Method not allowed'}, status=405)
+    
+    try:
+        user = request.user
+        
+        # Get or create preference
+        preference, created = UserOverdueJobPreference.objects.get_or_create(user=user)
+        
+        # Update preferences based on POST data
+        preference.show_daily_jobs = request.POST.get('show_daily_jobs', '').lower() == 'true'
+        preference.show_project_jobs = request.POST.get('show_project_jobs', '').lower() == 'true'
+        preference.show_preventive_jobs = request.POST.get('show_preventive_jobs', '').lower() == 'true'
+        
+        preference.save()
+        
+        # Clear cache untuk context processor
+        from django.core.cache import cache
+        cache_key = f'overdue_jobs_{user.id}'
+        cache.delete(cache_key)
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Preferensi berhasil disimpan!',
+            'preference': {
+                'show_daily_jobs': preference.show_daily_jobs,
+                'show_project_jobs': preference.show_project_jobs,
+                'show_preventive_jobs': preference.show_preventive_jobs,
+            }
+        })
+    
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=400)
 
 
 # ==============================================================================

@@ -17,8 +17,13 @@ class GoogleCalendarService:
     Helper class untuk manage Google Calendar operations
     """
     
-    def __init__(self):
-        """Initialize Google Calendar service dengan Service Account"""
+    def __init__(self, calendar_id=None):
+        """
+        Initialize Google Calendar service dengan Service Account
+        
+        Args:
+            calendar_id (str): Google Calendar ID. Jika None, gunakan dari settings.GOOGLE_CALENDAR_ID
+        """
         try:
             # Load credentials dari JSON file
             self.credentials = service_account.Credentials.from_service_account_file(
@@ -28,10 +33,11 @@ class GoogleCalendarService:
             
             # Build Google Calendar API client
             self.service = build('calendar', 'v3', credentials=self.credentials)
-            self.calendar_id = settings.GOOGLE_CALENDAR_ID
+            self.calendar_id = calendar_id or settings.GOOGLE_CALENDAR_ID
+            print(f"[GCS] GoogleCalendarService initialized with calendar_id: {self.calendar_id}")
             
         except Exception as e:
-            print(f"Error initializing Google Calendar Service: {str(e)}")
+            print(f"[GCS] ❌ Error initializing Google Calendar Service: {str(e)}")
             raise
     
     def create_event(self, nama_orang, tipe_ijin, tanggal_list, deskripsi=None):
@@ -83,14 +89,19 @@ class GoogleCalendarService:
                     },
                 }
                 
-                # Create event
-                event = self.service.events().insert(
-                    calendarId=self.calendar_id,
-                    body=event_body
-                ).execute()
-                
-                created_events.append(event)
-                print(f"Event created for {tgl}: {event.get('id')}")
+                try:
+                    # Create event
+                    print(f"[GCS] Creating event on calendar {self.calendar_id} for date {tgl}")
+                    event = self.service.events().insert(
+                        calendarId=self.calendar_id,
+                        body=event_body
+                    ).execute()
+                    
+                    created_events.append(event)
+                    print(f"[GCS] ✅ Event created for {tgl}: {event.get('id')}")
+                except Exception as e:
+                    print(f"[GCS] ❌ Error creating event for {tgl}: {str(e)}")
+                    raise
             
             # Return object dengan semua event IDs (comma-separated)
             if created_events:
@@ -101,12 +112,16 @@ class GoogleCalendarService:
                 response = created_events[0].copy()
                 response['id'] = combined_id  # Override dengan combined ID
                 response['ids'] = event_ids   # Juga simpan list lengkap
+                print(f"[GCS] ✅ All events created successfully: {combined_id}")
                 return response
             
+            print(f"[GCS] ❌ No events were created (created_events is empty)")
             return None
             
         except Exception as e:
-            print(f"Error creating event: {str(e)}")
+            print(f"[GCS] ❌ Error creating event: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return None
     
     def get_event(self, event_id):
@@ -200,11 +215,14 @@ class GoogleCalendarService:
 
 
 # Convenience function untuk quick access
-def get_google_calendar_service():
+def get_google_calendar_service(calendar_id=None):
     """
     Factory function untuk get Google Calendar service
+    
+    Args:
+        calendar_id (str): Google Calendar ID. Jika None, gunakan dari settings.GOOGLE_CALENDAR_ID
     
     Returns:
         GoogleCalendarService: Initialized service instance
     """
-    return GoogleCalendarService()
+    return GoogleCalendarService(calendar_id=calendar_id)

@@ -4,6 +4,10 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     
+    <!-- Favicon -->
+    {% load static %}
+    <link rel="icon" type="image/svg+xml" href="{% static 'favicon.svg' %}">
+    
     <title>{% block title %}Manajemen Job{% endblock %} - {{ user.username }}</title>
     
     <!-- Link ke Bootstrap CSS -->
@@ -149,19 +153,27 @@
                     Manajemen Pekerjaan
                 </button>
                 <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="moduleDropdown">
+                    {% if user_features.dashboard %}
                     <li>
                         <a class="dropdown-item {% if request.resolver_match.namespace == 'core' %}active{% endif %}" 
                            href="{% url 'core:dashboard' %}">
                             <i class="bi bi-calendar-check"></i> Manajemen Pekerjaan
                         </a>
                     </li>
+                    {% endif %}
+                    
+                    {% if user_features.dashboard and user_features.meetings %}
                     <li><hr class="dropdown-divider"></li>
+                    {% endif %}
+                    
+                    {% if user_features.meetings %}
                     <li>
                         <a class="dropdown-item {% if request.resolver_match.namespace == 'meetings' %}active{% endif %}" 
                            href="{% url 'meetings:meeting-list' %}">
                             <i class="bi bi-chat-left-text"></i> Meetings & Notulen
                         </a>
                     </li>
+                    {% endif %}
                 </ul>
             </div>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
@@ -172,30 +184,37 @@
                     
                     {% if user.is_authenticated %}
                         <!-- Menu Jika User Sudah Login -->
+                        {% if user_features.dashboard %}
                         <li class="nav-item">
                             <a class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" 
                                href="{% url 'core:dashboard' %}">
                                 <i class="bi bi-grid-fill"></i> Dashboard
                             </a>
                         </li>
+                        {% endif %}
 
                         <!-- MENU "PREVENTIVE" -->
+                        {% if user_features.preventive_jobs %}
                         <li class="nav-item">
                             <a class="nav-link {% if 'preventive_jobs' in request.resolver_match.namespace %}active{% endif %}" 
                                href="{% url 'preventive_jobs:index' %}">
                                 <i class="bi bi-lightning-charge-fill"></i> Preventive
                             </a>
                         </li>
+                        {% endif %}
 
-                        <!-- MENU "MEETINGS & NOTULEN" (NEW) -->
+                        <!-- MENU "MEETINGS & NOTULEN" (NEW) - WITH FEATURE PERMISSION -->
+                        {% if user_features.meetings %}
                         <li class="nav-item">
                             <a class="nav-link {% if 'meetings' in request.resolver_match.namespace %}active{% endif %}" 
                                href="{% url 'meetings:meeting-list' %}">
                                 <i class="bi bi-chat-left-text"></i> Meetings
                             </a>
                         </li>
+                        {% endif %}
 
                         <!-- MENU "INVENTORY" (with dropdown) -->
+                        {% if user_features.inventory %}
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle {% if 'inventory' in request.resolver_match.namespace %}active{% endif %}" 
                                href="#" id="inventoryDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -222,24 +241,30 @@
                                 {% endif %}
                             </ul>
                         </li>
+                        {% endif %}
                         
                         <!-- MENU "DAFTAR PROJECT" -->
+                        {% if user_features.project %}
                         <li class="nav-item">
                             <a class="nav-link {% if 'manajemen_project' in request.resolver_match.url_name %}active{% endif %}" 
                                href="{% url 'core:manajemen_project' %}">
                                 <i class="bi bi-diagram-3-fill"></i> Daftar Project
                             </a>
                         </li>
+                        {% endif %}
 
-                        <!-- MENU "EXPORT JOBS" -->
+                        <!-- MENU "EXPORT JOBS" (TEKNIK ONLY) -->
+                        {% if user_features.job and user_departemen.nama_departemen|lower == 'teknik' %}
                         <li class="nav-item">
                             <a class="nav-link {% if 'job_per_day' in request.resolver_match.url_name and 'trial' not in request.resolver_match.url_name %}active{% endif %}" 
                                href="{% url 'core:job_per_day' %}">
                                 <i class="bi bi-file-pdf"></i> Export Jobs
                             </a>
                         </li>
+                        {% endif %}
 
-                        <!-- MENU "EXPORT JOBS TRIAL" -->
+                        <!-- MENU "EXPORT JOBS TRIAL" (TEKNIK ONLY) -->
+                        {% if user_features.job and user_departemen.nama_departemen|lower == 'teknik' %}
                         <li class="nav-item">
                             <a class="nav-link {% if 'job_per_day_trial' in request.resolver_match.url_name %}active{% endif %}" 
                                href="{% url 'preventive_jobs:job_per_day_trial' %}">
@@ -247,6 +272,7 @@
                                 <span class="badge bg-warning text-dark ms-1">TRIAL</span>
                             </a>
                         </li>
+                        {% endif %}
 
                         <!-- MENU "IJIN/CUTI" -->
                         <li class="nav-item">
@@ -360,14 +386,6 @@
                                         <i class="bi bi-people-fill"></i> Tim Saya
                                     </a>
                                 </li>
-                                {% if user.is_staff or user.is_superuser %}
-                                <li><hr class="dropdown-divider"></li>
-                                <li>
-                                    <a class="dropdown-item" href="{% url 'inventory:export-setting' %}">
-                                        <i class="bi bi-whatsapp text-success"></i> Setting Export PDF ke WA
-                                    </a>
-                                </li>
-                                {% endif %}
                                 <li><hr class="dropdown-divider"></li>
                                 <li>
                                     <form id="logout-form" action="{% url 'core:logout' %}" method="post">

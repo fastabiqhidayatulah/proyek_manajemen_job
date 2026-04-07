@@ -98,6 +98,9 @@ urlpatterns = [
     # URL API ATTACHMENT GALLERY (BARU)
     path('api/job-attachments/<int:job_id>/', views.api_job_attachments, name='api_job_attachments'),
     
+    # URL API CASCADING ASET DEPARTEMEN (UNTUK MULTI-DEPARTEMEN)
+    path('api/aset-children/', views.api_aset_children, name='api_aset_children'),
+    
     # URL EXPORT KE GOOGLE APPS SCRIPT
     path('api/export-jobs/', views.export_jobs_to_gas, name='export_jobs_to_gas'),
     
@@ -122,6 +125,9 @@ urlpatterns = [
     # PROFILE (USER PROFILE PAGE & EDIT)
     path('profile/', views.profile_view, name='profile'),
     path('profile/edit/', views.profile_edit_view, name='profile_edit'),
+    
+    # API OVERDUE JOB PREFERENCES
+    path('api/overdue-preferences/save/', views.save_overdue_job_preferences, name='save_overdue_preferences'),
     
     # TEMPORARY: Helper untuk run migration
     path('_run_migration/', views.run_migration_helper, name='run_migration_helper'),

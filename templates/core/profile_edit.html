@@ -111,6 +111,102 @@
                             </small>
                         </div>
 
+                        <!-- DIVIDER -->
+                        <hr class="my-4">
+
+                        <!-- OVERDUE JOBS NOTIFICATION PREFERENCES -->
+                        <div class="mb-4">
+                            <h6 class="mb-3">
+                                <i class="bi bi-bell-fill text-danger"></i>
+                                <strong>Pengaturan Notifikasi Overdue Jobs</strong>
+                            </h6>
+                            <p class="text-muted small mb-3">
+                                Pilih jenis pekerjaan mana saja yang ingin ditampilkan dalam notifikasi overdue jobs:
+                            </p>
+
+                            {% if user.overdue_job_preference %}
+                                {% with pref=user.overdue_job_preference %}
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input overdue-pref-checkbox" 
+                                               type="checkbox" 
+                                               id="show_daily_jobs" 
+                                               data-pref="show_daily_jobs"
+                                               {% if pref.show_daily_jobs %}checked{% endif %}>
+                                        <label class="form-check-label" for="show_daily_jobs">
+                                            <strong>Daily Jobs</strong>
+                                            <span class="text-muted small">(Pekerjaan Harian)</span>
+                                        </label>
+                                    </div>
+
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input overdue-pref-checkbox" 
+                                               type="checkbox" 
+                                               id="show_project_jobs" 
+                                               data-pref="show_project_jobs"
+                                               {% if pref.show_project_jobs %}checked{% endif %}>
+                                        <label class="form-check-label" for="show_project_jobs">
+                                            <strong>Project Jobs</strong>
+                                            <span class="text-muted small">(Pekerjaan Project)</span>
+                                        </label>
+                                    </div>
+
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input overdue-pref-checkbox" 
+                                               type="checkbox" 
+                                               id="show_preventive_jobs" 
+                                               data-pref="show_preventive_jobs"
+                                               {% if pref.show_preventive_jobs %}checked{% endif %}>
+                                        <label class="form-check-label" for="show_preventive_jobs">
+                                            <strong>Preventive Jobs</strong>
+                                            <span class="text-muted small">(Pekerjaan Maintenance/Pencegahan)</span>
+                                        </label>
+                                    </div>
+                                {% endwith %}
+                            {% else %}
+                                <!-- Default: All checked -->
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input overdue-pref-checkbox" 
+                                           type="checkbox" 
+                                           id="show_daily_jobs" 
+                                           data-pref="show_daily_jobs"
+                                           checked>
+                                    <label class="form-check-label" for="show_daily_jobs">
+                                        <strong>Daily Jobs</strong>
+                                        <span class="text-muted small">(Pekerjaan Harian)</span>
+                                    </label>
+                                </div>
+
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input overdue-pref-checkbox" 
+                                           type="checkbox" 
+                                           id="show_project_jobs" 
+                                           data-pref="show_project_jobs"
+                                           checked>
+                                    <label class="form-check-label" for="show_project_jobs">
+                                        <strong>Project Jobs</strong>
+                                        <span class="text-muted small">(Pekerjaan Project)</span>
+                                    </label>
+                                </div>
+
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input overdue-pref-checkbox" 
+                                           type="checkbox" 
+                                           id="show_preventive_jobs" 
+                                           data-pref="show_preventive_jobs"
+                                           checked>
+                                    <label class="form-check-label" for="show_preventive_jobs">
+                                        <strong>Preventive Jobs</strong>
+                                        <span class="text-muted small">(Pekerjaan Maintenance/Pencegahan)</span>
+                                    </label>
+                                </div>
+                            {% endif %}
+
+                            <div id="preference-status" class="mt-2"></div>
+                        </div>
+
+                        <!-- DIVIDER -->
+                        <hr class="my-4">
+
                         <!-- Jabatan (Read-only) -->
                         <div class="mb-3">
                             <label for="jabatan" class="form-label">
@@ -137,10 +233,36 @@
                             <small class="text-muted">Struktur organisasi diatur oleh administrator</small>
                         </div>
 
+                        <!-- Departemen (Read-only) -->
+                        <div class="mb-3">
+                            <label for="departemen" class="form-label">
+                                <strong>Departemen</strong>
+                            </label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="departemen" 
+                                   value="{% if user.departemen %}{{ user.departemen.nama_departemen }}{% else %}Belum ditentukan{% endif %}" 
+                                   disabled>
+                            <small class="text-muted">Departemen diatur oleh administrator</small>
+                        </div>
+
+                        <!-- Bagian (Read-only) -->
+                        <div class="mb-3">
+                            <label for="bagian" class="form-label">
+                                <strong>Bagian</strong>
+                            </label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="bagian" 
+                                   value="{% if user.bagian %}{{ user.bagian.nama_bagian }} ({{ user.bagian.departemen.nama_departemen }}){% else %}Belum ditentukan{% endif %}" 
+                                   disabled>
+                            <small class="text-muted">Bagian dan departemen diatur oleh administrator</small>
+                        </div>
+
                         <!-- Info Box -->
                         <div class="alert alert-info alert-sm mb-4">
                             <i class="bi bi-info-circle"></i>
-                            <strong>Catatan:</strong> Untuk mengubah Jabatan dan Atasan, silakan hubungi Administrator sistem.
+                            <strong>Catatan:</strong> Untuk mengubah Jabatan, Atasan, Departemen, dan Bagian, silakan hubungi Administrator sistem.
                         </div>
 
                         <!-- Form Actions -->
@@ -202,4 +324,55 @@
         font-size: 0.95rem;
     }
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle overdue job preference checkboxes
+    const prefCheckboxes = document.querySelectorAll('.overdue-pref-checkbox');
+    const statusDiv = document.getElementById('preference-status');
+    
+    prefCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            savePreferences();
+        });
+    });
+    
+    function savePreferences() {
+        const preferences = {
+            'show_daily_jobs': document.getElementById('show_daily_jobs').checked,
+            'show_project_jobs': document.getElementById('show_project_jobs').checked,
+            'show_preventive_jobs': document.getElementById('show_preventive_jobs').checked
+        };
+        
+        // Show saving message
+        statusDiv.innerHTML = '<small class="text-info"><i class="bi bi-hourglass-split"></i> Menyimpan preferensi...</small>';
+        
+        // Send to server
+        fetch('{% url "core:save_overdue_preferences" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: new URLSearchParams(preferences)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                statusDiv.innerHTML = '<small class="text-success"><i class="bi bi-check-circle-fill"></i> Preferensi berhasil disimpan!</small>';
+                // Clear message after 3 seconds
+                setTimeout(() => {
+                    statusDiv.innerHTML = '';
+                }, 3000);
+            } else {
+                statusDiv.innerHTML = '<small class="text-danger"><i class="bi bi-exclamation-circle-fill"></i> Gagal menyimpan: ' + data.error + '</small>';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            statusDiv.innerHTML = '<small class="text-danger"><i class="bi bi-exclamation-circle-fill"></i> Terjadi kesalahan saat menyimpan</small>';
+        });
+    }
+});
+</script>
 {% endblock %}

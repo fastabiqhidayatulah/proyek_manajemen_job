@@ -308,3 +308,676 @@ Elapsed time:         2.3s
 [2026-01-20 02.23.29] 2026/01/20 02:23:10 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
 
 [2026-01-20 02.23.29] ERROR: Upload to Google Drive failed!
+[2026-01-21 02.00.01] ========== BACKUP STARTED ==========
+[2026-01-21 02.00.01] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-01-21_020001.sql
+[2026-01-21 02.00.01] Step 1: Dumping database...
+[2026-01-21 02.00.02] SUCCESS: Database dumped! Size: 1.76 MB
+[2026-01-21 02.00.02] Step 2: Uploading to Google Drive...
+[2026-01-21 02.00.07] 2026/01/21 02:00:07 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-01-21 02.00.07] 2026/01/21 02:00:07 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-01-21 02.00.07] ERROR: Upload to Google Drive failed!
+[2026-01-22 02.00.05] ========== BACKUP STARTED ==========
+[2026-01-22 02.00.05] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-01-22_020005.sql
+[2026-01-22 02.00.05] Step 1: Dumping database...
+[2026-01-22 02.00.06] SUCCESS: Database dumped! Size: 1.78 MB
+[2026-01-22 02.00.06] Step 2: Uploading to Google Drive...
+[2026-01-22 02.00.09] 2026/01/22 02:00:09 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-01-22 02.00.09] 2026/01/22 02:00:09 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-01-22 02.00.09] ERROR: Upload to Google Drive failed!
+[2026-01-23 02.00.02] ========== BACKUP STARTED ==========
+[2026-01-23 02.00.02] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-01-23_020002.sql
+[2026-01-23 02.00.02] Step 1: Dumping database...
+[2026-01-23 02.00.03] SUCCESS: Database dumped! Size: 1.8 MB
+[2026-01-23 02.00.03] Step 2: Uploading to Google Drive...
+[2026-01-23 02.00.06] 2026/01/23 02:00:06 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-01-23 02.00.06] 2026/01/23 02:00:06 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-01-23 02.00.06] ERROR: Upload to Google Drive failed!
+[2026-01-24 02.00.02] ========== BACKUP STARTED ==========
+[2026-01-24 02.00.02] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-01-24_020002.sql
+[2026-01-24 02.00.02] Step 1: Dumping database...
+[2026-01-24 02.00.03] SUCCESS: Database dumped! Size: 1.82 MB
+[2026-01-24 02.00.03] Step 2: Uploading to Google Drive...
+[2026-01-25 02.00.07] ========== BACKUP STARTED ==========
+[2026-01-25 02.00.07] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-01-25_020007.sql
+[2026-01-25 02.00.07] Step 1: Dumping database...
+[2026-01-26 02.00.01] ========== BACKUP STARTED ==========
+[2026-01-26 02.00.01] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-01-26_020001.sql
+[2026-01-26 02.00.01] Step 1: Dumping database...
+[2026-01-26 02.00.02] SUCCESS: Database dumped! Size: 1.83 MB
+[2026-01-26 02.00.02] Step 2: Uploading to Google Drive...
+[2026-01-27 02.00.02] ========== BACKUP STARTED ==========
+[2026-01-27 02.00.02] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-01-27_020002.sql
+[2026-01-27 02.00.02] Step 1: Dumping database...
+[2026-01-27 02.00.03] SUCCESS: Database dumped! Size: 1.86 MB
+[2026-01-27 02.00.03] Step 2: Uploading to Google Drive...
+[2026-01-27 02.00.05] 2026/01/27 02:00:05 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-01-27 02.00.05] 2026/01/27 02:00:05 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-01-27 02.00.05] ERROR: Upload to Google Drive failed!
+[2026-01-28 02.00.10] ========== BACKUP STARTED ==========
+[2026-01-28 02.00.10] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-01-28_020010.sql
+[2026-01-28 02.00.10] Step 1: Dumping database...
+[2026-01-28 02.00.11] SUCCESS: Database dumped! Size: 1.89 MB
+[2026-01-28 02.00.11] Step 2: Uploading to Google Drive...
+[2026-01-28 02.00.14] 2026/01/28 02:00:14 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-01-28 02.00.14] 2026/01/28 02:00:14 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-01-28 02.00.14] ERROR: Upload to Google Drive failed!
+2026-01-28 14:37:43 - Starting database backup...
+2026-01-28 14:37:43 - ERROR: Database backup failed!
+[2026-01-29 02.00.02] ========== BACKUP STARTED ==========
+[2026-01-29 02.00.02] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-01-29_020002.sql
+[2026-01-29 02.00.02] Step 1: Dumping database...
+[2026-01-29 02.00.03] SUCCESS: Database dumped! Size: 1.9 MB
+[2026-01-29 02.00.03] Step 2: Uploading to Google Drive...
+[2026-01-29 02.00.05] 2026/01/29 02:00:05 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-01-29 02.00.05] 2026/01/29 02:00:05 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-01-29 02.00.05] ERROR: Upload to Google Drive failed!
+[2026-01-30 02.00.03] ========== BACKUP STARTED ==========
+[2026-01-30 02.00.03] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-01-30_020003.sql
+[2026-01-30 02.00.03] Step 1: Dumping database...
+[2026-01-30 02.00.04] SUCCESS: Database dumped! Size: 1.94 MB
+[2026-01-30 02.00.04] Step 2: Uploading to Google Drive...
+[2026-01-30 02.00.06] 2026/01/30 02:00:06 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-01-30 02.00.06] 2026/01/30 02:00:06 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-01-30 02.00.06] ERROR: Upload to Google Drive failed!
+[2026-01-31 02.00.02] ========== BACKUP STARTED ==========
+[2026-01-31 02.00.03] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-01-31_020003.sql
+[2026-01-31 02.00.03] Step 1: Dumping database...
+[2026-01-31 02.00.04] SUCCESS: Database dumped! Size: 1.97 MB
+[2026-01-31 02.00.04] Step 2: Uploading to Google Drive...
+[2026-01-31 02.00.09] 2026/01/31 02:00:09 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-01-31 02.00.09] 2026/01/31 02:00:09 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-01-31 02.00.09] ERROR: Upload to Google Drive failed!
+[2026-02-01 02.00.05] ========== BACKUP STARTED ==========
+[2026-02-01 02.00.05] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-02-01_020005.sql
+[2026-02-01 02.00.05] Step 1: Dumping database...
+[2026-02-01 02.00.06] SUCCESS: Database dumped! Size: 1.99 MB
+[2026-02-01 02.00.06] Step 2: Uploading to Google Drive...
+[2026-02-01 02.00.08] 2026/02/01 02:00:08 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-02-01 02.00.08] 2026/02/01 02:00:08 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-02-01 02.00.08] ERROR: Upload to Google Drive failed!
+[2026-02-02 02.00.02] ========== BACKUP STARTED ==========
+[2026-02-02 02.00.02] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-02-02_020002.sql
+[2026-02-02 02.00.02] Step 1: Dumping database...
+[2026-02-02 02.00.03] SUCCESS: Database dumped! Size: 2 MB
+[2026-02-02 02.00.03] Step 2: Uploading to Google Drive...
+[2026-02-02 02.00.03] 2026/02/02 02:00:03 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-02-02 02.00.03] 2026/02/02 02:00:03 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-02-02 02.00.03] ERROR: Upload to Google Drive failed!
+[2026-02-03 02.00.04] ========== BACKUP STARTED ==========
+[2026-02-03 02.00.04] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-02-03_020004.sql
+[2026-02-03 02.00.04] Step 1: Dumping database...
+[2026-02-03 02.00.06] SUCCESS: Database dumped! Size: 2.04 MB
+[2026-02-03 02.00.06] Step 2: Uploading to Google Drive...
+[2026-02-03 02.00.07] 2026/02/03 02:00:07 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-02-03 02.00.07] 2026/02/03 02:00:07 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-02-03 02.00.08] ERROR: Upload to Google Drive failed!
+[2026-02-04 02.00.02] ========== BACKUP STARTED ==========
+[2026-02-04 02.00.02] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-02-04_020002.sql
+[2026-02-04 02.00.02] Step 1: Dumping database...
+[2026-02-04 02.00.03] SUCCESS: Database dumped! Size: 2.07 MB
+[2026-02-04 02.00.03] Step 2: Uploading to Google Drive...
+[2026-02-04 02.00.05] 2026/02/04 02:00:05 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-02-04 02.00.05] 2026/02/04 02:00:05 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-02-04 02.00.05] ERROR: Upload to Google Drive failed!
+[2026-02-05 02.00.02] ========== BACKUP STARTED ==========
+[2026-02-05 02.00.02] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-02-05_020002.sql
+[2026-02-05 02.00.02] Step 1: Dumping database...
+[2026-02-05 02.00.02] SUCCESS: Database dumped! Size: 2.1 MB
+[2026-02-05 02.00.02] Step 2: Uploading to Google Drive...
+[2026-02-06 02.00.04] ========== BACKUP STARTED ==========
+[2026-02-06 02.00.04] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-02-06_020004.sql
+[2026-02-06 02.00.04] Step 1: Dumping database...
+[2026-02-06 02.00.05] SUCCESS: Database dumped! Size: 2.13 MB
+[2026-02-06 02.00.05] Step 2: Uploading to Google Drive...
+[2026-02-07 02.00.02] ========== BACKUP STARTED ==========
+[2026-02-07 02.00.02] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-02-07_020002.sql
+[2026-02-07 02.00.02] Step 1: Dumping database...
+[2026-02-07 02.00.02] SUCCESS: Database dumped! Size: 2.17 MB
+[2026-02-07 02.00.02] Step 2: Uploading to Google Drive...
+[2026-02-07 02.00.03] 2026/02/07 02:00:03 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-02-07 02.00.03] 2026/02/07 02:00:03 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-02-07 02.00.03] ERROR: Upload to Google Drive failed!
+[2026-02-08 02.00.02] ========== BACKUP STARTED ==========
+[2026-02-08 02.00.02] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-02-08_020002.sql
+[2026-02-08 02.00.02] Step 1: Dumping database...
+[2026-02-08 02.00.03] SUCCESS: Database dumped! Size: 2.19 MB
+[2026-02-08 02.00.03] Step 2: Uploading to Google Drive...
+[2026-02-08 02.00.04] 2026/02/08 02:00:04 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-02-08 02.00.04] 2026/02/08 02:00:04 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-02-08 02.00.04] ERROR: Upload to Google Drive failed!
+[2026-02-09 02.00.11] ========== BACKUP STARTED ==========
+[2026-02-09 02.00.11] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-02-09_020011.sql
+[2026-02-09 02.00.11] Step 1: Dumping database...
+[2026-02-09 02.00.12] SUCCESS: Database dumped! Size: 2.2 MB
+[2026-02-09 02.00.12] Step 2: Uploading to Google Drive...
+[2026-02-09 02.00.16] 2026/02/09 02:00:16 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-02-09 02.00.16] 2026/02/09 02:00:16 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-02-09 02.00.16] ERROR: Upload to Google Drive failed!
+[2026-02-10 02.00.03] ========== BACKUP STARTED ==========
+[2026-02-10 02.00.03] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-02-10_020003.sql
+[2026-02-10 02.00.03] Step 1: Dumping database...
+[2026-02-10 02.00.04] SUCCESS: Database dumped! Size: 2.24 MB
+[2026-02-10 02.00.04] Step 2: Uploading to Google Drive...
+[2026-02-10 02.00.06] 2026/02/10 02:00:06 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-02-10 02.00.06] 2026/02/10 02:00:06 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-02-10 02.00.06] ERROR: Upload to Google Drive failed!
+[2026-02-11 02.00.05] ========== BACKUP STARTED ==========
+[2026-02-11 02.00.05] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-02-11_020005.sql
+[2026-02-11 02.00.05] Step 1: Dumping database...
+[2026-02-11 02.00.06] SUCCESS: Database dumped! Size: 2.27 MB
+[2026-02-11 02.00.06] Step 2: Uploading to Google Drive...
+[2026-02-11 02.00.08] 2026/02/11 02:00:08 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-02-11 02.00.08] 2026/02/11 02:00:08 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-02-11 02.00.08] ERROR: Upload to Google Drive failed!
+[2026-02-12 02.00.05] ========== BACKUP STARTED ==========
+[2026-02-12 02.00.05] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-02-12_020005.sql
+[2026-02-12 02.00.05] Step 1: Dumping database...
+[2026-02-12 02.00.12] SUCCESS: Database dumped! Size: 2.31 MB
+[2026-02-12 02.00.12] Step 2: Uploading to Google Drive...
+[2026-02-12 02.00.15] 2026/02/12 02:00:15 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-02-12 02.00.15] 2026/02/12 02:00:15 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-02-12 02.00.15] ERROR: Upload to Google Drive failed!
+[2026-02-13 02.00.08] ========== BACKUP STARTED ==========
+[2026-02-13 02.00.08] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-02-13_020008.sql
+[2026-02-13 02.00.08] Step 1: Dumping database...
+[2026-02-13 02.00.09] SUCCESS: Database dumped! Size: 2.34 MB
+[2026-02-13 02.00.09] Step 2: Uploading to Google Drive...
+[2026-02-13 02.00.13] 2026/02/13 02:00:13 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-02-13 02.00.13] 2026/02/13 02:00:13 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-02-13 02.00.13] ERROR: Upload to Google Drive failed!
+[2026-02-14 02.00.04] ========== BACKUP STARTED ==========
+[2026-02-14 02.00.04] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-02-14_020004.sql
+[2026-02-14 02.00.04] Step 1: Dumping database...
+[2026-02-14 02.00.05] SUCCESS: Database dumped! Size: 2.36 MB
+[2026-02-14 02.00.05] Step 2: Uploading to Google Drive...
+[2026-02-14 02.00.09] 2026/02/14 02:00:09 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-02-14 02.00.09] 2026/02/14 02:00:09 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-02-14 02.00.09] ERROR: Upload to Google Drive failed!
+[2026-02-15 02.00.25] ========== BACKUP STARTED ==========
+[2026-02-15 02.00.25] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-02-15_020025.sql
+[2026-02-15 02.00.25] Step 1: Dumping database...
+[2026-02-15 02.00.27] SUCCESS: Database dumped! Size: 2.4 MB
+[2026-02-15 02.00.27] Step 2: Uploading to Google Drive...
+[2026-02-15 02.00.32] 2026/02/15 02:00:32 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-02-15 02.00.32] 2026/02/15 02:00:32 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-02-15 02.00.32] ERROR: Upload to Google Drive failed!
+[2026-02-16 02.00.07] ========== BACKUP STARTED ==========
+[2026-02-16 02.00.07] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-02-16_020007.sql
+[2026-02-16 02.00.07] Step 1: Dumping database...
+[2026-02-16 02.00.08] SUCCESS: Database dumped! Size: 2.41 MB
+[2026-02-16 02.00.08] Step 2: Uploading to Google Drive...
+[2026-02-16 02.00.13] 2026/02/16 02:00:12 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-02-16 02.00.13] 2026/02/16 02:00:13 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-02-16 02.00.13] ERROR: Upload to Google Drive failed!
+[2026-02-17 02.00.04] ========== BACKUP STARTED ==========
+[2026-02-17 02.00.04] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-02-17_020004.sql
+[2026-02-17 02.00.04] Step 1: Dumping database...
+[2026-02-17 02.00.05] SUCCESS: Database dumped! Size: 2.43 MB
+[2026-02-17 02.00.05] Step 2: Uploading to Google Drive...
+[2026-02-17 02.00.07] 2026/02/17 02:00:07 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-02-17 02.00.07] 2026/02/17 02:00:07 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-02-17 02.00.07] ERROR: Upload to Google Drive failed!
+[2026-02-18 02.00.04] ========== BACKUP STARTED ==========
+[2026-02-18 02.00.04] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-02-18_020004.sql
+[2026-02-18 02.00.04] Step 1: Dumping database...
+[2026-02-18 02.00.05] SUCCESS: Database dumped! Size: 2.43 MB
+[2026-02-18 02.00.05] Step 2: Uploading to Google Drive...
+[2026-02-18 02.00.08] 2026/02/18 02:00:08 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-02-18 02.00.08] 2026/02/18 02:00:08 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-02-18 02.00.08] ERROR: Upload to Google Drive failed!
+[2026-02-19 02.00.13] ========== BACKUP STARTED ==========
+[2026-02-19 02.00.14] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-02-19_020014.sql
+[2026-02-19 02.00.14] Step 1: Dumping database...
+[2026-02-19 02.00.15] SUCCESS: Database dumped! Size: 2.46 MB
+[2026-02-19 02.00.15] Step 2: Uploading to Google Drive...
+[2026-02-19 02.00.18] 2026/02/19 02:00:18 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-02-19 02.00.18] 2026/02/19 02:00:18 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-02-19 02.00.18] ERROR: Upload to Google Drive failed!
+[2026-02-20 02.00.02] ========== BACKUP STARTED ==========
+[2026-02-20 02.00.02] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-02-20_020002.sql
+[2026-02-20 02.00.02] Step 1: Dumping database...
+[2026-02-20 02.00.04] SUCCESS: Database dumped! Size: 2.49 MB
+[2026-02-20 02.00.04] Step 2: Uploading to Google Drive...
+[2026-02-20 02.00.05] 2026/02/20 02:00:05 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-02-20 02.00.05] 2026/02/20 02:00:05 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-02-20 02.00.05] ERROR: Upload to Google Drive failed!
+[2026-02-21 02.00.05] ========== BACKUP STARTED ==========
+[2026-02-21 02.00.05] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-02-21_020005.sql
+[2026-02-21 02.00.05] Step 1: Dumping database...
+[2026-02-21 02.00.06] SUCCESS: Database dumped! Size: 2.51 MB
+[2026-02-21 02.00.06] Step 2: Uploading to Google Drive...
+[2026-02-21 02.00.09] 2026/02/21 02:00:08 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-02-21 02.00.09] 2026/02/21 02:00:09 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-02-21 02.00.09] ERROR: Upload to Google Drive failed!
+[2026-02-22 02.00.03] ========== BACKUP STARTED ==========
+[2026-02-22 02.00.06] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-02-22_020006.sql
+[2026-02-22 02.00.06] Step 1: Dumping database...
+[2026-02-22 02.00.14] SUCCESS: Database dumped! Size: 2.53 MB
+[2026-02-22 02.00.14] Step 2: Uploading to Google Drive...
+[2026-02-22 02.00.16] 2026/02/22 02:00:16 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-02-22 02.00.16] 2026/02/22 02:00:16 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-02-22 02.00.16] ERROR: Upload to Google Drive failed!
+[2026-02-23 02.00.09] ========== BACKUP STARTED ==========
+[2026-02-23 02.00.09] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-02-23_020009.sql
+[2026-02-23 02.00.09] Step 1: Dumping database...
+[2026-02-23 02.00.10] SUCCESS: Database dumped! Size: 2.53 MB
+[2026-02-23 02.00.10] Step 2: Uploading to Google Drive...
+[2026-02-23 02.00.13] 2026/02/23 02:00:13 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-02-23 02.00.13] 2026/02/23 02:00:13 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-02-23 02.00.13] ERROR: Upload to Google Drive failed!
+[2026-02-24 02.00.04] ========== BACKUP STARTED ==========
+[2026-02-24 02.00.04] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-02-24_020004.sql
+[2026-02-24 02.00.04] Step 1: Dumping database...
+[2026-02-24 02.00.05] SUCCESS: Database dumped! Size: 2.58 MB
+[2026-02-24 02.00.05] Step 2: Uploading to Google Drive...
+[2026-02-24 02.00.08] 2026/02/24 02:00:08 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-02-24 02.00.08] 2026/02/24 02:00:08 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-02-24 02.00.08] ERROR: Upload to Google Drive failed!
+[2026-02-25 02.00.02] ========== BACKUP STARTED ==========
+[2026-02-25 02.00.02] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-02-25_020002.sql
+[2026-02-25 02.00.02] Step 1: Dumping database...
+[2026-02-25 02.00.03] SUCCESS: Database dumped! Size: 2.6 MB
+[2026-02-25 02.00.03] Step 2: Uploading to Google Drive...
+[2026-02-25 02.00.05] 2026/02/25 02:00:05 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-02-25 02.00.05] 2026/02/25 02:00:05 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-02-25 02.00.05] ERROR: Upload to Google Drive failed!
+[2026-02-26 02.00.02] ========== BACKUP STARTED ==========
+[2026-02-26 02.00.02] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-02-26_020002.sql
+[2026-02-26 02.00.02] Step 1: Dumping database...
+[2026-02-26 02.00.03] SUCCESS: Database dumped! Size: 2.62 MB
+[2026-02-26 02.00.03] Step 2: Uploading to Google Drive...
+[2026-02-26 02.00.06] 2026/02/26 02:00:06 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-02-26 02.00.06] 2026/02/26 02:00:06 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-02-26 02.00.07] ERROR: Upload to Google Drive failed!
+[2026-02-27 02.00.03] ========== BACKUP STARTED ==========
+[2026-02-27 02.00.03] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-02-27_020003.sql
+[2026-02-27 02.00.03] Step 1: Dumping database...
+[2026-02-27 02.00.05] SUCCESS: Database dumped! Size: 2.65 MB
+[2026-02-27 02.00.05] Step 2: Uploading to Google Drive...
+[2026-02-27 02.00.08] 2026/02/27 02:00:08 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-02-27 02.00.08] 2026/02/27 02:00:08 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-02-27 02.00.08] ERROR: Upload to Google Drive failed!
+[2026-02-28 02.00.05] ========== BACKUP STARTED ==========
+[2026-02-28 02.00.05] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-02-28_020005.sql
+[2026-02-28 02.00.05] Step 1: Dumping database...
+[2026-02-28 02.00.06] SUCCESS: Database dumped! Size: 2.68 MB
+[2026-02-28 02.00.06] Step 2: Uploading to Google Drive...
+[2026-02-28 02.00.10] 2026/02/28 02:00:10 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-02-28 02.00.10] 2026/02/28 02:00:10 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-02-28 02.00.10] ERROR: Upload to Google Drive failed!
+[2026-03-01 02.00.17] ========== BACKUP STARTED ==========
+[2026-03-01 02.00.17] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-03-01_020017.sql
+[2026-03-01 02.00.17] Step 1: Dumping database...
+[2026-03-01 02.00.19] SUCCESS: Database dumped! Size: 2.7 MB
+[2026-03-01 02.00.19] Step 2: Uploading to Google Drive...
+[2026-03-01 02.00.22] 2026/03/01 02:00:22 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-03-01 02.00.22] 2026/03/01 02:00:22 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-03-01 02.00.22] ERROR: Upload to Google Drive failed!
+[2026-03-02 02.00.06] ========== BACKUP STARTED ==========
+[2026-03-02 02.00.06] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-03-02_020006.sql
+[2026-03-02 02.00.06] Step 1: Dumping database...
+[2026-03-02 02.00.07] SUCCESS: Database dumped! Size: 2.71 MB
+[2026-03-02 02.00.07] Step 2: Uploading to Google Drive...
+[2026-03-02 02.00.12] 2026/03/02 02:00:12 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-03-02 02.00.12] 2026/03/02 02:00:12 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-03-02 02.00.12] ERROR: Upload to Google Drive failed!
+[2026-03-03 02.00.06] ========== BACKUP STARTED ==========
+[2026-03-03 02.00.06] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-03-03_020006.sql
+[2026-03-03 02.00.06] Step 1: Dumping database...
+[2026-03-03 02.00.08] SUCCESS: Database dumped! Size: 2.73 MB
+[2026-03-03 02.00.08] Step 2: Uploading to Google Drive...
+[2026-03-03 02.00.12] 2026/03/03 02:00:12 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-03-03 02.00.13] 2026/03/03 02:00:13 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-03-03 02.00.13] ERROR: Upload to Google Drive failed!
+[2026-03-04 02.00.21] ========== BACKUP STARTED ==========
+[2026-03-04 02.00.21] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-03-04_020021.sql
+[2026-03-04 02.00.21] Step 1: Dumping database...
+[2026-03-04 02.00.23] SUCCESS: Database dumped! Size: 2.76 MB
+[2026-03-04 02.00.23] Step 2: Uploading to Google Drive...
+[2026-03-04 02.00.29] 2026/03/04 02:00:29 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-03-04 02.00.29] 2026/03/04 02:00:29 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-03-04 02.00.29] ERROR: Upload to Google Drive failed!
+[2026-03-05 02.00.24] ========== BACKUP STARTED ==========
+[2026-03-05 02.00.24] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-03-05_020024.sql
+[2026-03-05 02.00.24] Step 1: Dumping database...
+[2026-03-05 02.00.28] SUCCESS: Database dumped! Size: 2.78 MB
+[2026-03-05 02.00.28] Step 2: Uploading to Google Drive...
+[2026-03-05 02.00.45] 2026/03/05 02:00:45 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-03-05 02.00.45] 2026/03/05 02:00:45 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-03-05 02.00.45] ERROR: Upload to Google Drive failed!
+[2026-03-06 02.00.17] ========== BACKUP STARTED ==========
+[2026-03-06 02.00.19] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-03-06_020019.sql
+[2026-03-06 02.00.19] Step 1: Dumping database...
+[2026-03-06 02.00.28] SUCCESS: Database dumped! Size: 2.81 MB
+[2026-03-06 02.00.28] Step 2: Uploading to Google Drive...
+[2026-03-06 02.00.34] 2026/03/06 02:00:34 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-03-06 02.00.34] 2026/03/06 02:00:34 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-03-06 02.00.34] ERROR: Upload to Google Drive failed!
+[2026-03-07 02.00.02] ========== BACKUP STARTED ==========
+[2026-03-07 02.00.03] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-03-07_020003.sql
+[2026-03-07 02.00.03] Step 1: Dumping database...
+[2026-03-07 02.00.04] SUCCESS: Database dumped! Size: 2.83 MB
+[2026-03-07 02.00.04] Step 2: Uploading to Google Drive...
+[2026-03-07 02.00.05] 2026/03/07 02:00:05 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-03-07 02.00.05] 2026/03/07 02:00:05 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-03-07 02.00.05] ERROR: Upload to Google Drive failed!
+[2026-03-08 02.00.11] ========== BACKUP STARTED ==========
+[2026-03-08 02.00.11] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-03-08_020011.sql
+[2026-03-08 02.00.11] Step 1: Dumping database...
+[2026-03-08 02.00.12] SUCCESS: Database dumped! Size: 2.85 MB
+[2026-03-08 02.00.12] Step 2: Uploading to Google Drive...
+[2026-03-08 02.00.15] 2026/03/08 02:00:15 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-03-08 02.00.15] 2026/03/08 02:00:15 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-03-08 02.00.15] ERROR: Upload to Google Drive failed!
+[2026-03-09 02.00.05] ========== BACKUP STARTED ==========
+[2026-03-09 02.00.05] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-03-09_020005.sql
+[2026-03-09 02.00.05] Step 1: Dumping database...
+[2026-03-09 02.00.07] SUCCESS: Database dumped! Size: 2.85 MB
+[2026-03-09 02.00.07] Step 2: Uploading to Google Drive...
+[2026-03-09 02.00.10] 2026/03/09 02:00:10 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-03-09 02.00.10] 2026/03/09 02:00:10 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-03-09 02.00.10] ERROR: Upload to Google Drive failed!
+[2026-03-10 02.00.05] ========== BACKUP STARTED ==========
+[2026-03-10 02.00.05] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-03-10_020005.sql
+[2026-03-10 02.00.05] Step 1: Dumping database...
+[2026-03-10 02.00.07] SUCCESS: Database dumped! Size: 2.88 MB
+[2026-03-10 02.00.07] Step 2: Uploading to Google Drive...
+[2026-03-10 02.00.10] 2026/03/10 02:00:10 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-03-10 02.00.10] 2026/03/10 02:00:10 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-03-10 02.00.10] ERROR: Upload to Google Drive failed!
+[2026-03-11 02.00.16] ========== BACKUP STARTED ==========
+[2026-03-11 02.00.16] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-03-11_020016.sql
+[2026-03-11 02.00.16] Step 1: Dumping database...
+[2026-03-11 02.00.17] SUCCESS: Database dumped! Size: 2.9 MB
+[2026-03-11 02.00.17] Step 2: Uploading to Google Drive...
+[2026-03-11 02.00.21] 2026/03/11 02:00:21 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-03-11 02.00.21] 2026/03/11 02:00:21 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-03-11 02.00.21] ERROR: Upload to Google Drive failed!
+[2026-03-12 02.00.03] ========== BACKUP STARTED ==========
+[2026-03-12 02.00.03] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-03-12_020003.sql
+[2026-03-12 02.00.03] Step 1: Dumping database...
+[2026-03-12 02.00.05] SUCCESS: Database dumped! Size: 2.92 MB
+[2026-03-12 02.00.05] Step 2: Uploading to Google Drive...
+[2026-03-12 02.00.06] 2026/03/12 02:00:06 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-03-12 02.00.06] 2026/03/12 02:00:06 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-03-12 02.00.06] ERROR: Upload to Google Drive failed!
+[2026-03-13 02.00.04] ========== BACKUP STARTED ==========
+[2026-03-13 02.00.04] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-03-13_020004.sql
+[2026-03-13 02.00.04] Step 1: Dumping database...
+[2026-03-13 02.00.05] SUCCESS: Database dumped! Size: 2.95 MB
+[2026-03-13 02.00.05] Step 2: Uploading to Google Drive...
+[2026-03-13 02.00.07] 2026/03/13 02:00:07 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-03-13 02.00.07] 2026/03/13 02:00:07 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-03-13 02.00.07] ERROR: Upload to Google Drive failed!
+[2026-03-14 02.00.03] ========== BACKUP STARTED ==========
+[2026-03-14 02.00.03] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-03-14_020003.sql
+[2026-03-14 02.00.03] Step 1: Dumping database...
+[2026-03-14 02.00.05] SUCCESS: Database dumped! Size: 2.98 MB
+[2026-03-14 02.00.05] Step 2: Uploading to Google Drive...
+[2026-03-14 02.00.15] 2026/03/14 02:00:15 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-03-14 02.00.15] 2026/03/14 02:00:15 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-03-14 02.00.15] ERROR: Upload to Google Drive failed!
+[2026-03-15 02.00.09] ========== BACKUP STARTED ==========
+[2026-03-15 02.00.10] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-03-15_020010.sql
+[2026-03-15 02.00.10] Step 1: Dumping database...
+[2026-03-15 02.00.11] SUCCESS: Database dumped! Size: 3 MB
+[2026-03-15 02.00.11] Step 2: Uploading to Google Drive...
+[2026-03-15 02.00.14] 2026/03/15 02:00:14 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-03-15 02.00.14] 2026/03/15 02:00:14 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-03-15 02.00.14] ERROR: Upload to Google Drive failed!
+[2026-03-16 02.00.04] ========== BACKUP STARTED ==========
+[2026-03-16 02.00.04] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-03-16_020004.sql
+[2026-03-16 02.00.04] Step 1: Dumping database...
+[2026-03-16 02.00.05] SUCCESS: Database dumped! Size: 3 MB
+[2026-03-16 02.00.05] Step 2: Uploading to Google Drive...
+[2026-03-16 02.00.09] 2026/03/16 02:00:09 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-03-16 02.00.09] 2026/03/16 02:00:09 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-03-16 02.00.09] ERROR: Upload to Google Drive failed!
+[2026-03-17 02.00.07] ========== BACKUP STARTED ==========
+[2026-03-17 02.00.07] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-03-17_020007.sql
+[2026-03-17 02.00.07] Step 1: Dumping database...
+[2026-03-17 02.00.08] SUCCESS: Database dumped! Size: 3.03 MB
+[2026-03-17 02.00.08] Step 2: Uploading to Google Drive...
+[2026-03-17 02.00.19] 2026/03/17 02:00:19 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-03-17 02.00.19] 2026/03/17 02:00:19 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-03-17 02.00.19] ERROR: Upload to Google Drive failed!
+[2026-03-18 02.00.16] ========== BACKUP STARTED ==========
+[2026-03-18 02.00.16] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-03-18_020016.sql
+[2026-03-18 02.00.16] Step 1: Dumping database...
+[2026-03-18 02.00.18] SUCCESS: Database dumped! Size: 3.05 MB
+[2026-03-18 02.00.18] Step 2: Uploading to Google Drive...
+[2026-03-18 02.00.22] 2026/03/18 02:00:22 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-03-18 02.00.22] 2026/03/18 02:00:22 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-03-18 02.00.22] ERROR: Upload to Google Drive failed!
+[2026-03-19 02.00.02] ========== BACKUP STARTED ==========
+[2026-03-19 02.00.02] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-03-19_020002.sql
+[2026-03-19 02.00.02] Step 1: Dumping database...
+[2026-03-19 02.00.03] SUCCESS: Database dumped! Size: 3.05 MB
+[2026-03-19 02.00.03] Step 2: Uploading to Google Drive...
+[2026-03-19 02.00.04] 2026/03/19 02:00:04 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-03-19 02.00.04] 2026/03/19 02:00:04 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-03-19 02.00.04] ERROR: Upload to Google Drive failed!
+[2026-03-20 02.00.02] ========== BACKUP STARTED ==========
+[2026-03-20 02.00.02] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-03-20_020002.sql
+[2026-03-20 02.00.02] Step 1: Dumping database...
+[2026-03-20 02.00.03] SUCCESS: Database dumped! Size: 3.05 MB
+[2026-03-20 02.00.03] Step 2: Uploading to Google Drive...
+[2026-03-20 02.00.04] 2026/03/20 02:00:04 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-03-20 02.00.04] 2026/03/20 02:00:04 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-03-20 02.00.04] ERROR: Upload to Google Drive failed!
+[2026-03-21 02.00.01] ========== BACKUP STARTED ==========
+[2026-03-21 02.00.01] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-03-21_020001.sql
+[2026-03-21 02.00.01] Step 1: Dumping database...
+[2026-03-21 02.00.02] SUCCESS: Database dumped! Size: 3.05 MB
+[2026-03-21 02.00.02] Step 2: Uploading to Google Drive...
+[2026-03-21 02.00.03] 2026/03/21 02:00:03 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-03-21 02.00.03] 2026/03/21 02:00:03 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-03-21 02.00.03] ERROR: Upload to Google Drive failed!
+[2026-03-22 02.00.01] ========== BACKUP STARTED ==========
+[2026-03-22 02.00.01] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-03-22_020001.sql
+[2026-03-22 02.00.01] Step 1: Dumping database...
+[2026-03-22 02.00.02] SUCCESS: Database dumped! Size: 3.05 MB
+[2026-03-22 02.00.02] Step 2: Uploading to Google Drive...
+[2026-03-22 02.00.03] 2026/03/22 02:00:03 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-03-22 02.00.03] 2026/03/22 02:00:03 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-03-22 02.00.03] ERROR: Upload to Google Drive failed!
+[2026-03-23 02.00.01] ========== BACKUP STARTED ==========
+[2026-03-23 02.00.01] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-03-23_020001.sql
+[2026-03-23 02.00.01] Step 1: Dumping database...
+[2026-03-23 02.00.02] SUCCESS: Database dumped! Size: 3.05 MB
+[2026-03-23 02.00.02] Step 2: Uploading to Google Drive...
+[2026-03-23 02.00.03] 2026/03/23 02:00:03 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-03-23 02.00.03] 2026/03/23 02:00:03 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-03-23 02.00.03] ERROR: Upload to Google Drive failed!
+[2026-03-24 02.00.01] ========== BACKUP STARTED ==========
+[2026-03-24 02.00.02] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-03-24_020002.sql
+[2026-03-24 02.00.02] Step 1: Dumping database...
+[2026-03-24 02.00.02] SUCCESS: Database dumped! Size: 3.05 MB
+[2026-03-24 02.00.02] Step 2: Uploading to Google Drive...
+[2026-03-24 02.00.03] 2026/03/24 02:00:03 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-03-24 02.00.03] 2026/03/24 02:00:03 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-03-24 02.00.03] ERROR: Upload to Google Drive failed!
+[2026-03-25 02.00.02] ========== BACKUP STARTED ==========
+[2026-03-25 02.00.02] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-03-25_020002.sql
+[2026-03-25 02.00.02] Step 1: Dumping database...
+[2026-03-25 02.00.03] SUCCESS: Database dumped! Size: 3.05 MB
+[2026-03-25 02.00.03] Step 2: Uploading to Google Drive...
+[2026-03-25 02.00.04] 2026/03/25 02:00:04 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-03-25 02.00.04] 2026/03/25 02:00:04 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-03-25 02.00.04] ERROR: Upload to Google Drive failed!
+[2026-03-26 02.00.04] ========== BACKUP STARTED ==========
+[2026-03-26 02.00.04] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-03-26_020004.sql
+[2026-03-26 02.00.04] Step 1: Dumping database...
+[2026-03-26 02.00.05] SUCCESS: Database dumped! Size: 3.06 MB
+[2026-03-26 02.00.05] Step 2: Uploading to Google Drive...
+[2026-03-26 02.00.08] 2026/03/26 02:00:08 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-03-26 02.00.08] 2026/03/26 02:00:08 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-03-26 02.00.08] ERROR: Upload to Google Drive failed!
+[2026-03-27 02.00.16] ========== BACKUP STARTED ==========
+[2026-03-27 02.00.16] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-03-27_020016.sql
+[2026-03-27 02.00.16] Step 1: Dumping database...
+[2026-03-27 02.00.17] SUCCESS: Database dumped! Size: 3.1 MB
+[2026-03-27 02.00.17] Step 2: Uploading to Google Drive...
+[2026-03-27 02.00.20] 2026/03/27 02:00:20 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-03-27 02.00.20] 2026/03/27 02:00:20 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-03-27 02.00.20] ERROR: Upload to Google Drive failed!
+[2026-03-28 02.00.12] ========== BACKUP STARTED ==========
+[2026-03-28 02.00.13] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-03-28_020013.sql
+[2026-03-28 02.00.13] Step 1: Dumping database...
+[2026-03-28 02.00.14] SUCCESS: Database dumped! Size: 3.13 MB
+[2026-03-28 02.00.14] Step 2: Uploading to Google Drive...
+[2026-03-28 02.00.18] 2026/03/28 02:00:18 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-03-28 02.00.18] 2026/03/28 02:00:18 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-03-28 02.00.18] ERROR: Upload to Google Drive failed!
+[2026-03-29 02.00.07] ========== BACKUP STARTED ==========
+[2026-03-29 02.00.07] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-03-29_020007.sql
+[2026-03-29 02.00.07] Step 1: Dumping database...
+[2026-03-29 02.00.08] SUCCESS: Database dumped! Size: 3.15 MB
+[2026-03-29 02.00.08] Step 2: Uploading to Google Drive...
+[2026-03-29 02.00.12] 2026/03/29 02:00:12 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-03-29 02.00.12] 2026/03/29 02:00:12 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-03-29 02.00.12] ERROR: Upload to Google Drive failed!
+[2026-03-30 02.00.12] ========== BACKUP STARTED ==========
+[2026-03-30 02.00.12] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-03-30_020012.sql
+[2026-03-30 02.00.12] Step 1: Dumping database...
+[2026-03-30 02.00.16] SUCCESS: Database dumped! Size: 3.15 MB
+[2026-03-30 02.00.16] Step 2: Uploading to Google Drive...
+[2026-03-30 02.00.31] 2026/03/30 02:00:31 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-03-30 02.00.31] 2026/03/30 02:00:31 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-03-30 02.00.31] ERROR: Upload to Google Drive failed!
+[2026-03-31 02.00.52] ========== BACKUP STARTED ==========
+[2026-03-31 02.00.53] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-03-31_020053.sql
+[2026-03-31 02.00.53] Step 1: Dumping database...
+[2026-03-31 02.00.54] SUCCESS: Database dumped! Size: 3.19 MB
+[2026-03-31 02.00.54] Step 2: Uploading to Google Drive...
+[2026-03-31 02.01.22] 2026/03/31 02:01:22 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-03-31 02.01.22] 2026/03/31 02:01:22 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-03-31 02.01.22] ERROR: Upload to Google Drive failed!
+[2026-04-01 02.00.05] ========== BACKUP STARTED ==========
+[2026-04-01 02.00.05] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-04-01_020005.sql
+[2026-04-01 02.00.05] Step 1: Dumping database...
+[2026-04-01 02.00.06] SUCCESS: Database dumped! Size: 3.22 MB
+[2026-04-01 02.00.06] Step 2: Uploading to Google Drive...
+[2026-04-01 02.00.20] 2026/04/01 02:00:17 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-04-01 02.00.20] 2026/04/01 02:00:20 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-04-01 02.00.20] ERROR: Upload to Google Drive failed!
+[2026-04-02 02.00.21] ========== BACKUP STARTED ==========
+[2026-04-02 02.00.21] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-04-02_020021.sql
+[2026-04-02 02.00.21] Step 1: Dumping database...
+[2026-04-02 02.00.23] SUCCESS: Database dumped! Size: 3.27 MB
+[2026-04-02 02.00.23] Step 2: Uploading to Google Drive...
+[2026-04-02 02.00.28] 2026/04/02 02:00:28 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-04-02 02.00.28] 2026/04/02 02:00:28 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-04-02 02.00.28] ERROR: Upload to Google Drive failed!
+[2026-04-03 02.00.32] ========== BACKUP STARTED ==========
+[2026-04-03 02.00.33] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-04-03_020033.sql
+[2026-04-03 02.00.34] Step 1: Dumping database...
+[2026-04-03 02.00.39] SUCCESS: Database dumped! Size: 3.32 MB
+[2026-04-03 02.00.39] Step 2: Uploading to Google Drive...
+[2026-04-03 02.00.47] 2026/04/03 02:00:46 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-04-03 02.00.47] 2026/04/03 02:00:46 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-04-03 02.00.47] ERROR: Upload to Google Drive failed!
+[2026-04-04 02.00.46] ========== BACKUP STARTED ==========
+[2026-04-04 02.00.47] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-04-04_020047.sql
+[2026-04-04 02.00.47] Step 1: Dumping database...
+[2026-04-04 02.00.54] SUCCESS: Database dumped! Size: 3.33 MB
+[2026-04-04 02.00.54] Step 2: Uploading to Google Drive...
+[2026-04-04 02.01.02] 2026/04/04 02:01:01 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-04-04 02.01.02] 2026/04/04 02:01:01 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-04-04 02.01.02] ERROR: Upload to Google Drive failed!
+[2026-04-05 02.04.09] ========== BACKUP STARTED ==========
+[2026-04-05 02.04.12] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-04-05_020412.sql
+[2026-04-05 02.04.12] Step 1: Dumping database...
+[2026-04-05 02.04.21] SUCCESS: Database dumped! Size: 3.34 MB
+[2026-04-05 02.04.21] Step 2: Uploading to Google Drive...
+[2026-04-05 02.04.40] 2026/04/05 02:04:36 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-04-05 02.04.40] 2026/04/05 02:04:36 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-04-05 02.04.41] ERROR: Upload to Google Drive failed!
+[2026-04-06 02.00.02] ========== BACKUP STARTED ==========
+[2026-04-06 02.00.02] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-04-06_020002.sql
+[2026-04-06 02.00.02] Step 1: Dumping database...
+[2026-04-06 02.00.04] SUCCESS: Database dumped! Size: 3.34 MB
+[2026-04-06 02.00.04] Step 2: Uploading to Google Drive...
+[2026-04-06 02.00.05] 2026/04/06 02:00:05 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-04-06 02.00.05] 2026/04/06 02:00:05 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-04-06 02.00.05] ERROR: Upload to Google Drive failed!
+[2026-04-07 02.00.15] ========== BACKUP STARTED ==========
+[2026-04-07 02.00.15] Backup file: D:\proyek_management_job\backups\backup_manajemen_pekerjaan_db_2026-04-07_020015.sql
+[2026-04-07 02.00.15] Step 1: Dumping database...
+[2026-04-07 02.00.16] SUCCESS: Database dumped! Size: 3.36 MB
+[2026-04-07 02.00.16] Step 2: Uploading to Google Drive...
+[2026-04-07 02.00.19] 2026/04/07 02:00:19 NOTICE: Config file "C:\\Windows\\system32\\config\\systemprofile\\AppData\\Roaming\\rclone\\rclone.conf" not found - using defaults
+[2026-04-07 02.00.19] 2026/04/07 02:00:19 CRITICAL: Failed to create file system for "gdrive:/proyek_management_backup/": didn't find section in config file ("gdrive")
+
+[2026-04-07 02.00.19] ERROR: Upload to Google Drive failed!

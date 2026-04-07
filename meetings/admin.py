@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Meeting, MeetingPeserta, NotulenItem
+from .models import Meeting, MeetingPeserta, NotulenItem, MeetingReminder
 
 
 @admin.register(Meeting)
@@ -105,3 +105,61 @@ class NotulenItemAdmin(admin.ModelAdmin):
     def pokok_bahasan_short(self, obj):
         return obj.pokok_bahasan[:50] if obj.pokok_bahasan else ''
     pokok_bahasan_short.short_description = 'Pokok Bahasan'
+
+
+@admin.register(MeetingReminder)
+class MeetingReminderAdmin(admin.ModelAdmin):
+    list_display = ('meeting_doc', 'peserta_name', 'timing_type', 'scheduled_time', 'status_badge', 'sent_at')
+    list_filter = ('timing_type', 'status', 'scheduled_time', 'meeting__tanggal_meeting')
+    search_fields = ('meeting__no_dokumen', 'peserta__nama')
+    readonly_fields = ('id', 'created_at', 'updated_at', 'sent_at', 'message_id')
+    
+    fieldsets = (
+        ('Meeting & Peserta', {
+            'fields': ('meeting', 'peserta')
+        }),
+        ('Reminder Schedule', {
+            'fields': ('timing_type', 'scheduled_time')
+        }),
+        ('Status', {
+            'fields': ('status', 'sent_at', 'message_id')
+        }),
+        ('Error Tracking', {
+            'fields': ('error_log',),
+            'classes': ('collapse',)
+        }),
+        ('Metadata', {
+            'fields': ('id', 'created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def meeting_doc(self, obj):
+        return obj.meeting.no_dokumen
+    meeting_doc.short_description = 'Meeting'
+    
+    def peserta_name(self, obj):
+        return obj.peserta.nama
+    peserta_name.short_description = 'Peserta'
+    
+    def status_badge(self, obj):
+        from django.utils.html import format_html
+        colors = {
+            'pending': 'orange',
+            'sent': 'green',
+            'failed': 'red'
+        }
+        color = colors.get(obj.status, 'gray')
+        return format_html(
+            f'<span style="color: {color}; font-weight: bold;">{obj.get_status_display()}</span>'
+        )
+    status_badge.short_description = 'Status'
+    
+    def has_add_permission(self, request):
+        """Reminders auto-created only, tidak bisa manual add"""
+        return False
+    
+    def has_delete_permission(self, request):
+        """Hanya superuser yang bisa delete"""
+        return request.user.is_superuser
+

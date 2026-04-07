@@ -17,6 +17,157 @@ class Jabatan(models.Model):
     def __str__(self):
         return self.nama_jabatan
 
+
+# ==============================================================================
+# MODEL DEPARTEMEN & BAGIAN (UNTUK ROUTING UI/FITUR)
+# ==============================================================================
+class Departemen(models.Model):
+    """
+    Model Departemen - Level parent dalam hierarki organisasi.
+    Misal: Departemen Teknik, Departemen Produksi, dll
+    """
+    nama_departemen = models.CharField(
+        max_length=100, 
+        unique=True,
+        verbose_name="Nama Departemen"
+    )
+    kepala_departemen = models.OneToOneField(
+        'CustomUser',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='departemen_dipimpin',
+        help_text="User yang menjadi kepala departemen ini"
+    )
+    deskripsi = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Deskripsi fungsi departemen"
+    )
+    google_calendar_id = models.CharField(
+        max_length=255,
+        blank=False,
+        null=False,
+        verbose_name="Google Calendar ID",
+        help_text="Calendar ID dari Google Workspace untuk departemen ini (cth: abc123@group.calendar.google.com)"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Departemen"
+        verbose_name_plural = "Daftar Departemen"
+        ordering = ['nama_departemen']
+    
+    def __str__(self):
+        return self.nama_departemen
+
+
+class Bagian(models.Model):
+    """
+    Model Bagian - Level child (subordinat) dari Departemen.
+    Misal: Bagian Pemper, Bagian Elektrik (dalam Departemen Teknik)
+    """
+    nama_bagian = models.CharField(
+        max_length=100,
+        verbose_name="Nama Bagian"
+    )
+    departemen = models.ForeignKey(
+        Departemen,
+        on_delete=models.CASCADE,
+        related_name='daftar_bagian',
+        verbose_name="Departemen"
+    )
+    kepala_bagian = models.OneToOneField(
+        'CustomUser',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='bagian_dipimpin',
+        help_text="User yang menjadi kepala bagian ini"
+    )
+    deskripsi = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Deskripsi fungsi bagian"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Bagian"
+        verbose_name_plural = "Daftar Bagian"
+        unique_together = [('departemen', 'nama_bagian')]
+        ordering = ['departemen', 'nama_bagian']
+        indexes = [
+            models.Index(fields=['departemen']),
+        ]
+    
+    def __str__(self):
+        return f"{self.nama_bagian} ({self.departemen.nama_departemen})"
+
+
+# ==============================================================================
+# MODEL DEPARTEMEN FEATURE (PERMISSION MANAGEMENT)
+# ==============================================================================
+class DepartemenFeature(models.Model):
+    """
+    Model untuk manage fitur/menu mana saja yang bisa diakses per departemen.
+    Misal: Departemen Teknik bisa akses Dashboard, Report, tapi tidak Analytics
+    """
+    
+    FEATURE_CHOICES = [
+        ('dashboard', 'Dashboard'),
+        ('project', 'Project Management'),
+        ('job', 'Job Management'),
+        ('preventive_jobs', 'Preventive Jobs'),
+        ('maintenance_report', 'Maintenance Report'),
+        ('inventory', 'Inventory Management'),
+        ('toolkeeper', 'Toolkeeper'),
+        ('meetings', 'Meetings & Notulen'),
+        ('analytics', 'Analytics & Reports'),
+        ('settings', 'Settings'),
+    ]
+    
+    departemen = models.ForeignKey(
+        Departemen,
+        on_delete=models.CASCADE,
+        related_name='features_allowed'
+    )
+    
+    feature_key = models.CharField(
+        max_length=50,
+        choices=FEATURE_CHOICES,
+        verbose_name="Fitur/Menu"
+    )
+    
+    is_enabled = models.BooleanField(
+        default=True,
+        verbose_name="Aktif"
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Departemen Feature Permission"
+        verbose_name_plural = "Daftar Departemen Feature Permission"
+        unique_together = [('departemen', 'feature_key')]
+        ordering = ['departemen', 'feature_key']
+        indexes = [
+            models.Index(fields=['departemen', 'is_enabled']),
+        ]
+    
+    def __str__(self):
+        return f"{self.departemen.nama_departemen} - {self.get_feature_key_display()}"
+    
+    @staticmethod
+    def get_feature_display_name(feature_key):
+        """Get display name dari feature key"""
+        feature_dict = dict(DepartemenFeature.FEATURE_CHOICES)
+        return feature_dict.get(feature_key, feature_key)
+
+
 class CustomUser(AbstractUser):
     jabatan = models.ForeignKey(Jabatan, on_delete=models.SET_NULL, null=True, blank=True)
     atasan = models.ForeignKey(
@@ -25,6 +176,22 @@ class CustomUser(AbstractUser):
         null=True, 
         blank=True, 
         related_name='bawahan' 
+    )
+    departemen = models.ForeignKey(
+        Departemen,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='anggota_departemen',
+        verbose_name="Departemen"
+    )
+    bagian = models.ForeignKey(
+        Bagian,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='anggota_bagian',
+        verbose_name="Bagian"
     )
     nomor_telepon = models.CharField(
         max_length=20, 
@@ -38,6 +205,8 @@ class CustomUser(AbstractUser):
         indexes = [
             models.Index(fields=['atasan', 'id']),  # For hierarchy traversal
             models.Index(fields=['username']),      # For user lookups
+            models.Index(fields=['departemen']),    # For departemen filtering
+            models.Index(fields=['bagian']),        # For bagian filtering
         ]
     def __str__(self):
         return self.username
@@ -71,7 +240,12 @@ class CustomUser(AbstractUser):
         return nomor_clean
     
     def save(self, *args, **kwargs):
-        """Override save untuk auto-normalize nomor telepon dan invalidate cache"""
+        """
+        Override save untuk:
+        1. Auto-normalize nomor telepon
+        2. Auto-set departemen dari bagian
+        3. Invalidate cache jika hierarchy berubah
+        """
         # Track if atasan changed
         old_atasan = None
         if self.pk:
@@ -83,6 +257,10 @@ class CustomUser(AbstractUser):
         
         if self.nomor_telepon:
             self.nomor_telepon = self.normalize_nomor_telepon(self.nomor_telepon)
+        
+        # Auto-set departemen dari bagian jika bagian sudah set
+        if self.bagian:
+            self.departemen = self.bagian.departemen
         
         super().save(*args, **kwargs)
         
@@ -184,6 +362,82 @@ class AsetMesin(MPTTModel):
             return ' > '.join([ancestor.nama for ancestor in ancestors])
         except:
             return self.nama
+
+
+# ==============================================================================
+# 3.5 MODEL ASET DEPARTEMEN (GENERIC - UNTUK SEMUA DEPARTEMEN NON-TEKNIK)
+# ==============================================================================
+class AsetDepartemen(MPTTModel):
+    """
+    Generic tree-based asset untuk setiap departemen.
+    Menggantikan AsetMesin untuk departemen yang bukan Teknik.
+    
+    Level 0: Wajib dipilih (Unit, Tim, Bagian, dll - tergantung departemen)
+    Level 1: Opsional (Sub Unit, Sub Tim, Sub Bagian, dll)
+    Level 2: Opsional (Sub-Sub Unit, Divisi, dll)
+    
+    Example:
+    OPERASIONAL:
+    └── Bagian Produksi (Level 0)
+        ├── Shift Pagi (Level 1)
+        │   └── Station A (Level 2)
+        └── Shift Sore (Level 1)
+    
+    MARKETING:
+    └── Tim Digital (Level 0)
+        ├── Sub Tim Social (Level 1)
+        └── Sub Tim Content (Level 1)
+    """
+    nama = models.CharField(max_length=100)
+    parent = TreeForeignKey(
+        'self',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='children'
+    )
+    departemen = models.ForeignKey(
+        Departemen,
+        on_delete=models.CASCADE,
+        related_name='aset_departemen_set'
+    )
+    
+    class MPTTMeta:
+        order_insertion_by = ['nama']
+    
+    class Meta:
+        verbose_name = "Aset Departemen"
+        verbose_name_plural = "Daftar Aset Departemen"
+        indexes = [
+            models.Index(fields=['departemen']),
+        ]
+    
+    def __str__(self):
+        """
+        Display name dengan indentasi berdasarkan level untuk hierarchy visual.
+        Level 0: "Operasional"
+        Level 1: "  └─ Exim" atau "  └─ HRD & Umum"
+        Level 2: "    └─ Export &am Import"
+        """
+        if self.level == 0:
+            return self.nama
+        elif self.level == 1:
+            return f"  └─ {self.nama}"
+        elif self.level == 2:
+            return f"    └─ {self.nama}"
+        else:
+            return f"{'  ' * self.level}└─ {self.nama}"
+    
+    @property
+    def level_display(self):
+        """Return level (0, 1, 2) untuk current node"""
+        return self.level
+    
+    def get_level_0_root(self):
+        """Get Level 0 parent (akar/root)"""
+        ancestors = self.get_ancestors()
+        return ancestors.first() if ancestors.exists() else self
+
 
 # ==============================================================================
 # 4. MODEL PROJECT
@@ -301,19 +555,58 @@ class Project(models.Model):
     # ==================================
 
 # ==============================================================================
-# 5. MODEL PEKERJAAN (JOB) DAN LAMPIRANNYA
+# 5. MODEL FOKUS PEKERJAAN (CUSTOM PER DEPARTEMEN)
+# ==============================================================================
+class FokusPekerjaan(models.Model):
+    """
+    Fokus pekerjaan yang bisa customize per departemen.
+    Menggantikan hardcoded FOKUS_CHOICES di Job model.
+    
+    Contoh:
+    TEKNIK:
+    - Perawatan (urutan: 1)
+    - Perbaikan (urutan: 2)
+    - Proyek (urutan: 3)
+    - Lainnya (urutan: 4)
+    
+    OPERASIONAL:
+    - Planning (urutan: 1)
+    - Koordinasi (urutan: 2)
+    - Monitoring (urutan: 3)
+    - Laporan (urutan: 4)
+    - Evaluasi (urutan: 5)
+    """
+    nama = models.CharField(max_length=100)
+    departemen = models.ForeignKey(
+        Departemen,
+        on_delete=models.CASCADE,
+        related_name='fokus_pekerjaan_set'
+    )
+    urutan = models.IntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Fokus Pekerjaan"
+        verbose_name_plural = "Daftar Fokus Pekerjaan"
+        unique_together = [('departemen', 'nama')]
+        ordering = ['departemen', 'urutan', 'nama']
+        indexes = [
+            models.Index(fields=['departemen', 'is_active']),
+        ]
+    
+    def __str__(self):
+        return f"{self.nama} ({self.departemen.nama_departemen})"
+
+
+# ==============================================================================
+# 6. MODEL PEKERJAAN (JOB) DAN LAMPIRANNYA
 # ==============================================================================
 class Job(models.Model):
     TIPE_JOB_CHOICES = [
         ('Daily', 'Daily Job'),
         ('Project', 'Project Job'),
-    ]
-    # === TAMBAHKAN 2 FIELD BARU INI ===
-    FOKUS_CHOICES = [
-        ('Perawatan', 'Perawatan'),
-        ('Perbaikan', 'Perbaikan'),
-        ('Proyek', 'Proyek'),
-        ('Lainnya', 'Lainnya'),
     ]
     PRIORITAS_CHOICES = [
         ('P1', 'P1 - Mendesak'),
@@ -334,12 +627,24 @@ class Job(models.Model):
         related_name='jobs' 
     )
     
+    # Aset untuk Teknik (backward compat)
     aset = models.ForeignKey(
         AsetMesin, 
         on_delete=models.SET_NULL, 
         null=True,
-        help_text="Pilih Sub Mesin (level terendah)"
+        help_text="Pilih Sub Mesin (level terendah) - Untuk Teknik"
     )
+    
+    # === BARU: Aset generic untuk semua departemen ===
+    aset_departemen = models.ForeignKey(
+        AsetDepartemen,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='jobs',
+        help_text="Aset departemen (generic untuk semua departemen non-Teknik)"
+    )
+    # =====================================================
     
     pic = models.ForeignKey(
         CustomUser, 
@@ -370,20 +675,22 @@ class Job(models.Model):
         editable=True   
     )
     
-    # === TAMBAHKAN 2 FIELD BARU INI ===
+    # === FOKUS TETAP CHARFIELD (TANPA HARDCODED CHOICES) ===
+    # Choices dihandle oleh form (dari FokusPekerjaan model)
     fokus = models.CharField(
-        max_length=50, 
-        choices=FOKUS_CHOICES, 
-        default='Perawatan',
-        null=True, blank=True
+        max_length=100,  # Increased to support longer fokus names
+        default='',
+        null=True, blank=True,
+        help_text="Fokus pekerjaan (diisi dari FokusPekerjaan model)"
     )
+    # =====================================================
+    
     prioritas = models.CharField(
         max_length=10, 
         choices=PRIORITAS_CHOICES, 
         default='P3',
         null=True, blank=True
     )
-    # =====================================
     
     # === FIELDS UNTUK NOTULEN INTEGRATION ===
     notulen_item = models.OneToOneField(
@@ -417,7 +724,42 @@ class Job(models.Model):
     def __str__(self):
         return self.nama_pekerjaan
 
-    def get_dates_json(self):
+    # === HELPER METHODS UNTUK MULTI-DEPARTEMEN ===
+    def get_aset_display(self):
+        """
+        Smart display aset berdasarkan departemen.
+        Return string untuk menampilkan hierarchy aset.
+        """
+        if self.aset_mesin:
+            return str(self.aset_mesin)  # "Line > Mesin > Sub Mesin"
+        elif self.aset_departemen:
+            return str(self.aset_departemen)  # Generic hierarchy
+        return "-"
+
+    def get_departemen_aset_type(self):
+        """
+        Return tipe aset yang digunakan.
+        'mesin' for Teknik, 'departemen' for others, or None
+        """
+        if self.aset_mesin:
+            return 'mesin'
+        elif self.aset_departemen:
+            return 'departemen'
+        return None
+
+    def get_departemen(self):
+        """
+        Get departemen dari job.
+        - Jika aset_mesin: ambil dari pic.departemen
+        - Jika aset_departemen: ambil dari aset_departemen.departemen
+        """
+        if self.aset_departemen:
+            return self.aset_departemen.departemen
+        elif self.pic:
+            return self.pic.departemen
+        return None
+    # ==============================================
+
         """ Helper untuk kalender Flatpickr. """
         dates = list(self.tanggal_pelaksanaan.all().values_list('tanggal', flat=True))
         return json.dumps(dates, cls=DjangoJSONEncoder)
@@ -683,6 +1025,17 @@ class LeaveEvent(models.Model):
         blank=True
     )
     
+    # ForeignKey ke Departemen untuk filtering per calendar
+    departemen = models.ForeignKey(
+        Departemen,
+        on_delete=models.CASCADE,
+        related_name='leave_events',
+        verbose_name="Departemen",
+        null=True,
+        blank=True,
+        help_text="Departemen yang punya calendar untuk event ini"
+    )
+    
     # Keep old field untuk backward compatibility (akan deprecated)
     nama_orang = models.CharField(
         max_length=255,
@@ -749,6 +1102,71 @@ class LeaveEvent(models.Model):
         return []
 
 
+# ==============================================================================
+# 7. MODEL USER OVERDUE JOB PREFERENCE (UNTUK FILTER NOTIFIKASI)
+# ==============================================================================
+class UserOverdueJobPreference(models.Model):
+    """
+    Model untuk menyimpan user preferences tentang jenis-jenis overdue job
+    yang ingin ditampilkan dalam notifikasi.
+    
+    Contoh:
+    - User hanya ingin lihat Daily & Project Jobs (tidak Preventive)
+    - Atau User hanya ingin lihat Preventive Jobs saja
+    """
+    
+    user = models.OneToOneField(
+        CustomUser,
+        on_delete=models.CASCADE,
+        related_name='overdue_job_preference'
+    )
+    
+    show_daily_jobs = models.BooleanField(
+        default=True,
+        verbose_name="Tampilkan Daily Jobs",
+        help_text="Cek untuk menampilkan daily jobs dalam overdue notifications"
+    )
+    
+    show_project_jobs = models.BooleanField(
+        default=True,
+        verbose_name="Tampilkan Project Jobs",
+        help_text="Cek untuk menampilkan project jobs dalam overdue notifications"
+    )
+    
+    show_preventive_jobs = models.BooleanField(
+        default=True,
+        verbose_name="Tampilkan Preventive Jobs",
+        help_text="Cek untuk menampilkan preventive jobs dalam overdue notifications"
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "User Overdue Job Preference"
+        verbose_name_plural = "User Overdue Job Preferences"
+    
+    def __str__(self):
+        types = []
+        if self.show_daily_jobs:
+            types.append('Daily')
+        if self.show_project_jobs:
+            types.append('Project')
+        if self.show_preventive_jobs:
+            types.append('Preventive')
+        return f"{self.user.username} - {', '.join(types) if types else 'None'}"
+    
+    @classmethod
+    def get_or_create_for_user(cls, user):
+        """
+        Get or create preference untuk user
+        Returns preference object dengan default values jika belum ada
+        """
+        preference, created = cls.objects.get_or_create(user=user)
+        return preference
+
+
+# ==============================================================================
 # 8. MODEL MAINTENANCE MODE
 # ==============================================================================
 class MaintenanceMode(models.Model):
@@ -794,4 +1212,85 @@ class MaintenanceMode(models.Model):
             mode = MaintenanceMode.objects.first()
             return mode.is_active if mode else False
         except:
+            return False
+
+
+# ==============================================================================
+# FONNTE SETTINGS - WA API Configuration (Admin Access Only)
+# ==============================================================================
+class FonnteSettings(models.Model):
+    """
+    Model untuk menyimpan Fonnte API credentials per departemen.
+    Hanya admin yang bisa manage settings ini.
+    
+    Fonnte API Format:
+    - POST: https://api.fontte.com/send
+    - Auth: Authorization: {token}
+    - Body: form-data (target, message, countryCode)
+    """
+    departemen = models.OneToOneField(
+        Departemen,
+        on_delete=models.CASCADE,
+        related_name='fontte_settings',
+        verbose_name="Departemen"
+    )
+    
+    token = models.CharField(
+        max_length=255,
+        verbose_name="API Token",
+        help_text="Token dari Fontte dashboard (digunakan di Authorization header)"
+    )
+    
+    country_code = models.CharField(
+        max_length=5,
+        default='62',
+        help_text="Country code untuk nomor HP (default: 62 untuk Indonesia)"
+    )
+    
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Enable/disable WA reminders untuk departemen ini"
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    created_by = models.ForeignKey(
+        'CustomUser',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='fonnte_settings_created'
+    )
+    
+    class Meta:
+        verbose_name = "Fonnte Settings"
+        verbose_name_plural = "Fonnte Settings"
+        db_table = 'core_fonntesettings'  # Keep existing table name
+        permissions = [
+            ('can_manage_fonte', 'Can manage Fonnte API settings'),
+        ]
+    
+    def __str__(self):
+        return f"Fontte Settings - {self.departemen.nama_departemen}"
+    
+    def test_connection(self):
+        """Test connection ke Fontte API"""
+        import requests
+        try:
+            response = requests.post(
+                'https://api.fontte.com/send',
+                data={
+                    'target': '628123456789',  # Test number
+                    'message': 'Test dari sistem',
+                    'countryCode': self.country_code
+                },
+                headers={
+                    'Authorization': self.token
+                },
+                timeout=5
+            )
+            # Status 200, 201, 400 masih berarti API responding
+            # 500+ berarti server error
+            return response.status_code < 500
+        except Exception as e:
             return False

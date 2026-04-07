@@ -367,3 +367,99 @@ class NotulenItem(models.Model):
         if self.is_overdue() and self.status != 'done':
             self.status = 'overdue'
             self.save()
+
+
+# ==============================================================================
+# 4. MEETING REMINDER - WA Reminder Tracking
+# ==============================================================================
+class MeetingReminder(models.Model):
+    """
+    Model untuk tracking status reminder WA yang sudah dikirim.
+    Mencegah duplicate reminders dan mencatat delivery status.
+    """
+    TIMING_CHOICES = [
+        ('1day_08am', '1 Hari Sebelum Pukul 08:00'),
+        ('10min_before', '10 Menit Sebelum'),
+    ]
+    
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('sent', 'Sent'),
+        ('failed', 'Failed'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    meeting = models.ForeignKey(
+        Meeting,
+        on_delete=models.CASCADE,
+        related_name='reminders'
+    )
+    peserta = models.ForeignKey(
+        'meetings.MeetingPeserta',
+        on_delete=models.CASCADE,
+        related_name='reminders'
+    )
+    
+    # Timing & Status
+    timing_type = models.CharField(
+        max_length=20,
+        choices=TIMING_CHOICES,
+        help_text="Tipe reminder: 1 hari sebelum 8am atau 10 menit sebelum"
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='pending'
+    )
+    
+    # Scheduling
+    scheduled_time = models.DateTimeField(
+        help_text="Waktu ketika reminder dijadwalkan dikirim"
+    )
+    sent_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Waktu reminder benar-benar dikirim"
+    )
+    
+    # Response tracking
+    message_id = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text="Message ID dari Fontte API"
+    )
+    error_log = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Error detail jika gagal"
+    )
+    
+    # Metadata
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Meeting Reminder"
+        verbose_name_plural = "Daftar Meeting Reminder"
+        ordering = ['scheduled_time']
+        indexes = [
+            models.Index(fields=['meeting', 'status']),
+            models.Index(fields=['scheduled_time']),
+            models.Index(fields=['status']),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=['meeting', 'peserta', 'timing_type'],
+                name='unique_reminder_per_peserta_timing'
+            ),
+        ]
+    
+    def __str__(self):
+        return f"{self.meeting.no_dokumen} - {self.peserta.nama} - {self.timing_type}"
+    
+    def is_due(self):
+        """Check apakah reminder sudah waktunya dikirim"""
+        from django.utils.timezone import now
+        return self.status == 'pending' and now() >= self.scheduled_time
+

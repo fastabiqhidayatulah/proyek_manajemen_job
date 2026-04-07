@@ -119,7 +119,7 @@
     </div>
     <div class="card-body p-0">
         <!-- Kita gunakan template tabel yang sama -->
-        {% with job_data=job_data filter_params=filter_params %}
+        {% with job_data=job_data filter_params=filter_params is_teknik=is_teknik_user %}
             {% include 'job_table.html' %}
         {% endwith %}
     </div>

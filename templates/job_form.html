@@ -83,6 +83,8 @@
                     Aset, Penugasan & Kategori
                 </div>
                 <div class="card-body p-4">
+                    <!-- ASET MESIN (UNTUK TEKNIK) -->
+                    {% if is_teknik_user %}
                     <div class="alert alert-info alert-sm mb-3" role="alert">
                         <i class="bi bi-info-circle"></i>
                         <strong>Panduan Aset:</strong> Pilih <u>Line</u> (wajib). <u>Mesin</u> dan <u>Sub Mesin</u> opsional. 
@@ -115,6 +117,40 @@
                             <div class="text-danger small">{{ form.sub_mesin.errors }}</div>
                         </div>
                     </div>
+                    {% else %}
+                    <!-- ASET DEPARTEMEN (UNTUK NON-TEKNIK) - 3 COLUMN LAYOUT -->
+                    <div class="alert alert-info alert-sm mb-3" role="alert">
+                        <i class="bi bi-info-circle"></i>
+                        <strong>Panduan Aset:</strong> Pilih Departemen, Bagian (wajib), Sub Bagian opsional. Jika hanya pilih Bagian, pekerjaan berlaku untuk semua sub-bagian.
+                    </div>
+                    <h6 class="text-muted">Pilih Aset Departemen</h6>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-3">
+                            <label for="{{ form.aset_departemen_display.id_for_label }}" class="form-label">
+                                {{ form.aset_departemen_display.label }}
+                            </label>
+                            {{ form.aset_departemen_display }}
+                            <small class="form-text text-muted d-block mt-1">Pilih departemen</small>
+                            <div class="text-danger small">{{ form.aset_departemen_display.errors }}</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="{{ form.aset_departemen_bagian.id_for_label }}" class="form-label">
+                                {{ form.aset_departemen_bagian.label }} <span class="text-danger">*</span>
+                            </label>
+                            {{ form.aset_departemen_bagian }}
+                            <small class="form-text text-muted d-block mt-1">Wajib dipilih</small>
+                            <div class="text-danger small">{{ form.aset_departemen_bagian.errors }}</div>
+                        </div>
+                        <div class="col-md-5">
+                            <label for="{{ form.aset_departemen_sub.id_for_label }}" class="form-label">
+                                {{ form.aset_departemen_sub.label }} <span class="badge bg-secondary">Opsional</span>
+                            </label>
+                            {{ form.aset_departemen_sub }}
+                            <small class="form-text text-muted d-block mt-1">Pilih untuk spesifik sub-bagian</small>
+                            <div class="text-danger small">{{ form.aset_departemen_sub.errors }}</div>
+                        </div>
+                    </div>
+                    {% endif %}
                     
                     <hr>
                     
@@ -300,23 +336,39 @@ document.addEventListener('DOMContentLoaded', function() {
 
     
     // === 2. Logika Kalender Flatpickr (BARU) ===
-    const dateInputHidden = document.getElementById('{{ form.tanggal_pelaksanaan.id_for_label }}');
+    console.log('[Flatpickr Init] Starting...');
+    const dateInputHidden = document.getElementById('id_tanggal_pelaksanaan_hidden');
     const calendarInput = document.getElementById('flatpickr-calendar');
     
-    let defaultDates = [];
-    if (dateInputHidden.value) {
-        defaultDates = dateInputHidden.value.split(',');
-    }
-
-    flatpickr(calendarInput, {
-        mode: "multiple", 
-        dateFormat: "Y-m-d", 
-        defaultDate: defaultDates, 
-        inline: true, // Tampilkan kalender langsung di halaman
-        onChange: function(selectedDates, dateStr, instance) {
-            dateInputHidden.value = dateStr;
+    console.log('[Flatpickr] dateInputHidden:', dateInputHidden);
+    console.log('[Flatpickr] calendarInput:', calendarInput);
+    
+    if (calendarInput && dateInputHidden) {
+        let defaultDates = [];
+        if (dateInputHidden.value) {
+            defaultDates = dateInputHidden.value.split(',').filter(d => d.trim());
         }
-    });
+        
+        console.log('[Flatpickr] defaultDates:', defaultDates);
+        
+        try {
+            flatpickr(calendarInput, {
+                mode: "multiple", 
+                dateFormat: "Y-m-d", 
+                defaultDate: defaultDates, 
+                inline: true, // Tampilkan kalender langsung di halaman
+                onChange: function(selectedDates, dateStr, instance) {
+                    console.log('[Flatpickr] onChange:', dateStr);
+                    dateInputHidden.value = dateStr;
+                }
+            });
+            console.log('[Flatpickr] ✓ Initialized successfully');
+        } catch (error) {
+            console.error('[Flatpickr] Error initializing:', error);
+        }
+    } else {
+        console.warn('[Flatpickr] Elements not found', {calendarInput, dateInputHidden});
+    }
 
 
     // === 3. Logika Lampiran (Sama seperti sebelumnya) ===
@@ -454,18 +506,95 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     }
 
-    lineSelect.addEventListener('change', function() {
-        const lineId = this.value;
-        const selectedMesinId = mesinSelect.value;
-        loadChildren(lineId, mesinSelect, selectedMesinId);
-        updateDropdown(subMesinSelect, [], null);
-    });
+    // AsetMesin cascade - hanya jika lineSelect ada (user Teknik)
+    if (lineSelect && mesinSelect && subMesinSelect) {
+        lineSelect.addEventListener('change', function() {
+            const lineId = this.value;
+            const selectedMesinId = mesinSelect.value;
+            loadChildren(lineId, mesinSelect, selectedMesinId);
+            updateDropdown(subMesinSelect, [], null);
+        });
 
-    mesinSelect.addEventListener('change', function() {
-        const mesinId = this.value;
-        const selectedSubMesinId = subMesinSelect.value;
-        loadChildren(mesinId, subMesinSelect, selectedSubMesinId);
-    });
+        mesinSelect.addEventListener('change', function() {
+            const mesinId = this.value;
+            const selectedSubMesinId = subMesinSelect.value;
+            loadChildren(mesinId, subMesinSelect, selectedSubMesinId);
+        });
+    }
+
+    // === CASCADING DROPDOWN untuk ASET DEPARTEMEN (Operasional/Non-Teknik) ===
+    // Menggunakan SAMA LOGIC dengan AsetMesin untuk consistency
+    const departemenSelect = document.getElementById('id_aset_departemen_display');
+    const bagianSelect = document.getElementById('id_aset_departemen_bagian');
+    const subBagianSelect = document.getElementById('id_aset_departemen_sub');
+
+    if (departemenSelect && bagianSelect && subBagianSelect) {
+        console.log('✓ Cascading elements found for AsetDepartemen');
+        
+        // Helper function untuk update dropdown (SAMA seperti AsetMesin)
+        function updateDepartemenDropdown(selectElement, options, selectedId) {
+            selectElement.innerHTML = '<option value="">---------</option>'; 
+            let isSelectedIdInOptions = false;
+            options.forEach(function(option) {
+                let selected = '';
+                if (option.id == selectedId) {
+                    selected = ' selected';
+                    isSelectedIdInOptions = true;
+                }
+                selectElement.innerHTML += `<option value="${option.id}"${selected}>${option.nama}</option>`;
+            });
+            
+            if (selectedId && !isSelectedIdInOptions) {
+                 selectElement.value = "";
+            }
+        }
+
+        // Helper function untuk fetch children (SAMA seperti AsetMesin)
+        function loadDepartemenChildren(parentId, targetSelect, selectedId) {
+            if (!parentId) {
+                updateDepartemenDropdown(targetSelect, [], null);
+                return;
+            }
+            
+            targetSelect.innerHTML = '<option value="">Loading...</option>'; 
+            
+            fetch(`/api/aset-children/?parent_id=${parentId}`)
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Children data:', data);
+                    updateDepartemenDropdown(targetSelect, data, selectedId);
+                    if (selectedId) {
+                        targetSelect.dispatchEvent(new Event('change'));
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching children:', error);
+                    targetSelect.innerHTML = '<option value="">Error loading</option>';
+                });
+        }
+        
+        // Departemen (Level 0) change → populate Bagian (Level 1)
+        departemenSelect.addEventListener('change', function() {
+            const departemenId = this.value;
+            const selectedBagianId = bagianSelect.value;
+            console.log('Departemen changed to:', departemenId);
+            loadDepartemenChildren(departemenId, bagianSelect, selectedBagianId);
+            updateDepartemenDropdown(subBagianSelect, [], null);  // Clear sub-bagian
+        });
+
+        // Bagian (Level 1) change → populate Sub-Bagian (Level 2)
+        bagianSelect.addEventListener('change', function() {
+            const bagianId = this.value;
+            const selectedSubBagianId = subBagianSelect.value;
+            console.log('Bagian changed to:', bagianId);
+            loadDepartemenChildren(bagianId, subBagianSelect, selectedSubBagianId);
+        });
+    } else {
+        console.warn('⚠ Cascading elements not found for AsetDepartemen');
+        console.log('departemenSelect:', departemenSelect);
+        console.log('bagianSelect:', bagianSelect);
+        console.log('subBagianSelect:', subBagianSelect);
+    }
 
 });
 

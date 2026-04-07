@@ -1,7 +1,7 @@
 from django import forms
 from django.forms import inlineformset_factory 
 from django.db.models import Q
-from .models import Personil, Job, JobDate, Attachment, AsetMesin, Project, CustomUser, LeaveEvent, Karyawan 
+from .models import Personil, Job, JobDate, Attachment, AsetMesin, AsetDepartemen, Project, CustomUser, LeaveEvent, Karyawan 
 
 # ==============================================================================
 # FORM PERSONIL (Tidak berubah)
@@ -78,7 +78,7 @@ class JobForm(forms.ModelForm):
     line = forms.ModelChoiceField(
         queryset=AsetMesin.objects.filter(level=0), # Level 0 = Line
         label="Line",
-        required=True,
+        required=False,
         widget=forms.Select(attrs={'class': 'form-select', 'id': 'id_line'})
     )
     mesin = forms.ModelChoiceField(
@@ -94,6 +94,37 @@ class JobForm(forms.ModelForm):
         widget=forms.Select(attrs={'class': 'form-select', 'id': 'id_sub_mesin'})
     )
 
+    # New fields for non-Teknik departments (level-based hierarchy)
+    aset_departemen_display = forms.ModelChoiceField(
+        queryset=AsetDepartemen.objects.filter(level=0),  # ✅ POPULATE Level 0 dari awal
+        label="Departemen",
+        required=False,
+        widget=forms.Select(attrs={'class': 'form-select', 'id': 'id_aset_departemen_display'})
+    )
+    
+    aset_departemen_bagian = forms.ModelChoiceField(
+        queryset=AsetDepartemen.objects.none(),  # ❌ Kosong, diisi JS
+        label="Bagian (Level 1)",
+        required=False,
+        widget=forms.Select(attrs={'class': 'form-select', 'id': 'id_aset_departemen_bagian'})
+    )
+    
+    aset_departemen_sub = forms.ModelChoiceField(
+        queryset=AsetDepartemen.objects.none(),  # ❌ Kosong, diisi JS
+        label="Sub Bagian (Level 2)",
+        required=False,
+        widget=forms.Select(attrs={'class': 'form-select', 'id': 'id_aset_departemen_sub'})
+    )
+
+    # Legacy field for compatibility, now hidden by default
+    # Will be made visible for non-Teknik departments
+    aset_departemen = forms.ModelChoiceField(
+        queryset=AsetDepartemen.objects.none(),
+        label="Aset Departemen",
+        required=False,
+        widget=forms.Select(attrs={'class': 'form-select'})  # Visible by default
+    )
+
     tanggal_pelaksanaan = forms.CharField(
         label="Tanggal Pelaksanaan",
         required=False,
@@ -106,6 +137,14 @@ class JobForm(forms.ModelForm):
         required=False,
         widget=forms.Select(attrs={'class': 'form-select', 'id': 'id_assigned_to'})
     )
+    
+    # === EXPLICIT FOKUS FIELD (Dynamic choices from FokusPekerjaan) ===
+    fokus = forms.ChoiceField(
+        label="Fokus Pekerjaan",
+        choices=[],  # Empty initially, populated in __init__
+        required=False,
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
 
     class Meta:
         model = Job
@@ -113,11 +152,20 @@ class JobForm(forms.ModelForm):
             'nama_pekerjaan', 
             'tipe_job', 
             'project',
-            'assigned_to',  # <-- TAMBAHKAN
+            'assigned_to',
             'fokus',
             'prioritas',
             'personil_ditugaskan',
-            'tanggal_pelaksanaan' 
+            'tanggal_pelaksanaan',
+            # Teknik asset fields (will be hidden for non-Teknik)
+            'line',
+            'mesin',
+            'sub_mesin',
+            # Operasional asset fields (will be hidden for Teknik)
+            'aset_departemen',
+            'aset_departemen_display',
+            'aset_departemen_bagian',
+            'aset_departemen_sub',
         ]
         labels = {
             'nama_pekerjaan': 'Nama Pekerjaan',
@@ -145,59 +193,197 @@ class JobForm(forms.ModelForm):
         self.fields['project'].widget.attrs.update({'class': 'form-select'})
         self.fields['fokus'].widget.attrs.update({'class': 'form-select'})
         self.fields['prioritas'].widget.attrs.update({'class': 'form-select'})
-        self.fields['assigned_to'].widget.attrs.update({'class': 'form-select'})  # <-- TAMBAHKAN
+        self.fields['assigned_to'].widget.attrs.update({'class': 'form-select'})
+        self.fields['aset_departemen'].widget.attrs.update({'class': 'form-select'})
+        self.fields['aset_departemen_bagian'].widget.attrs.update({'class': 'form-select', 'id': 'id_aset_departemen_bagian'})
+        self.fields['aset_departemen_sub'].widget.attrs.update({'class': 'form-select', 'id': 'id_aset_departemen_sub'})
+        self.fields['aset_departemen_display'].widget.attrs.update({'class': 'form-control', 'id': 'id_aset_departemen_display'})
         
         self.fields['personil_ditugaskan'].required = False 
         self.fields['personil_ditugaskan'].help_text = "Tahan Ctrl (atau Cmd di Mac) untuk memilih lebih dari satu."
 
-        # === LOGIKA ASSIGN_TO: Isi dengan daftar bawahan user ===
+        # === MULTI-DEPARTEMEN LOGIC ===
         if user:
-            # Get all subordinates dari current user
-            subordinate_ids = user.get_all_subordinates()
+            user_departemen = user.departemen
             
-            # Jika ada subordinates, tampilkan di dropdown
+            # Debug: Log departemen info
+            import sys
+            print(f"[JobForm] user={user.username}, departemen={user_departemen}", file=sys.stderr)
+            if user_departemen:
+                print(f"[JobForm] nama_departemen='{user_departemen.nama_departemen}'", file=sys.stderr)
+            else:
+                print(f"[JobForm] WARNING: user.departemen is None!", file=sys.stderr)
+            
+            # === ASET FIELDS: Show aset_mesin OR aset_departemen based on departemen ===
+            is_teknik = (
+                user_departemen is not None and 
+                user_departemen.nama_departemen.strip().lower() == 'teknik'
+            )
+            print(f"[JobForm] is_teknik={is_teknik}", file=sys.stderr)
+            
+            if is_teknik:
+                # Teknik: Use aset_mesin (existing logic)
+                print(f"[JobForm] ✓ Using aset_mesin (Teknik)", file=sys.stderr)
+                self.fields['line'].required = True
+                # Hide cascading aset_departemen fields for Teknik
+                self.fields['aset_departemen'].widget = forms.HiddenInput()
+                self.fields['aset_departemen_display'].widget = forms.HiddenInput()
+                self.fields['aset_departemen_bagian'].widget = forms.HiddenInput()
+                self.fields['aset_departemen_sub'].widget = forms.HiddenInput()
+            else:
+                # Non-Teknik: Use aset_departemen (new logic with level-based cascading)
+                print(f"[JobForm] ✓ Using aset_departemen cascading (Non-Teknik)", file=sys.stderr)
+                self.fields['line'].required = False
+                self.fields['mesin'].required = False
+                self.fields['sub_mesin'].required = False
+                # Hide aset_mesin fields for non-Teknik users
+                self.fields['line'].widget = forms.HiddenInput()
+                self.fields['mesin'].widget = forms.HiddenInput()
+                self.fields['sub_mesin'].widget = forms.HiddenInput()
+                
+                if user_departemen:
+                    # Level 0: All top-level departemen (Operasional, Teknik, etc - no departemen filter)
+                    level0_items = AsetDepartemen.objects.filter(
+                        level=0  # Top level in the tree - show ALL, not just user's departemen
+                    ).order_by('nama')
+                    self.fields['aset_departemen_display'].queryset = level0_items  # ✅ POPULATE dengan level 0
+                    
+                    # If there's only one level 0 item, pre-select it
+                    if level0_items.count() == 1:
+                        self.fields['aset_departemen_display'].initial = level0_items.first().id
+                    
+                    # Level 1: Bagian (children of selected Level 0 - KOSONG di awal, diisi JS)
+                    all_bagian = AsetDepartemen.objects.filter(
+                        level=1  # Bagian level
+                    ).order_by('nama')
+                    # START KOSONG - JavaScript akan populate setelah user pilih Level 0
+                    self.fields['aset_departemen_bagian'].queryset = AsetDepartemen.objects.none()  # ❌ Kosong, JS akan isi
+                    
+                    # Level 2: Sub Bagian (children of selected Level 1 - KOSONG di awal, diisi JS)
+                    all_sub_bagian = AsetDepartemen.objects.filter(
+                        level=2  # Sub Bagian level
+                    ).order_by('nama')
+                    # START KOSONG - JavaScript akan populate setelah user pilih Level 1
+                    self.fields['aset_departemen_sub'].queryset = AsetDepartemen.objects.none()  # ❌ Kosong, JS akan isi
+                    
+                    # Handle POST data - filter based on selections
+                    if self.data:
+                        try:
+                            # Get selected departemen (level 0)
+                            dept_id = int(self.data.get('aset_departemen_display')) if self.data.get('aset_departemen_display') else None
+                            # Get selected bagian (level 1)
+                            bagian_id = int(self.data.get('aset_departemen_bagian')) if self.data.get('aset_departemen_bagian') else None
+                            
+                            # Re-filter bagian based on selected departemen (no departemen filter)
+                            if dept_id:
+                                self.fields['aset_departemen_bagian'].queryset = AsetDepartemen.objects.filter(
+                                    parent_id=dept_id,
+                                    level=1
+                                ).order_by('nama')
+                            else:
+                                # ✅ KOSONG jika departemen belum dipilih, bukan all_bagian
+                                self.fields['aset_departemen_bagian'].queryset = AsetDepartemen.objects.none()
+                            
+                            # Re-filter sub-bagian based on selected bagian (no departemen filter)
+                            if bagian_id:
+                                self.fields['aset_departemen_sub'].queryset = AsetDepartemen.objects.filter(
+                                    parent_id=bagian_id,
+                                    level=2
+                                ).order_by('nama')
+                            else:
+                                # ✅ KOSONG jika bagian belum dipilih, bukan all_sub_bagian
+                                self.fields['aset_departemen_sub'].queryset = AsetDepartemen.objects.none()
+                        except (ValueError, TypeError):
+                            pass
+                    elif self.instance and self.instance.aset_departemen:
+                        # Edit mode: pre-populate based on existing aset_departemen
+                        selected_aset = self.instance.aset_departemen
+                        
+                        # Determine which level the selected aset is
+                        if selected_aset.level == 0:
+                            # Selected is departemen level
+                            self.fields['aset_departemen_display'].initial = selected_aset.id
+                        elif selected_aset.level == 1:
+                            # Selected is bagian level
+                            self.fields['aset_departemen_display'].initial = selected_aset.parent_id
+                            self.fields['aset_departemen_bagian'].initial = selected_aset.id
+                            # Populate sub-bagian (no departemen filter)
+                            self.fields['aset_departemen_sub'].queryset = AsetDepartemen.objects.filter(
+                                parent_id=selected_aset.id,
+                                level=2
+                            ).order_by('nama')
+                        elif selected_aset.level == 2:
+                            # Selected is sub-bagian level
+                            self.fields['aset_departemen_display'].initial = selected_aset.parent.parent_id
+                            self.fields['aset_departemen_bagian'].initial = selected_aset.parent_id
+                            self.fields['aset_departemen_sub'].initial = selected_aset.id
+                            # Populate bagian (no departemen filter)
+                            self.fields['aset_departemen_bagian'].queryset = AsetDepartemen.objects.filter(
+                                parent_id=selected_aset.parent.parent_id,
+                                level=1
+                            ).order_by('nama')
+
+            # === FOKUS PEKERJAAN: Filter by user's departemen ===
+            if user_departemen:
+                from core.models import FokusPekerjaan
+                # Get fokus choices from FokusPekerjaan model filtered by departemen
+                fokus_items = FokusPekerjaan.objects.filter(
+                    departemen=user_departemen,
+                    is_active=True
+                ).order_by('urutan', 'nama').values_list('nama', 'nama')
+                
+                # Build choices tuple
+                fokus_choices = [('', '---------')] + list(fokus_items)
+                
+                # Update fokus field widget and choices
+                self.fields['fokus'].choices = fokus_choices
+                self.fields['fokus'].help_text = f"Fokus pekerjaan untuk {user_departemen.nama_departemen}"
+                
+                print(f"[JobForm] Fokus choices for {user_departemen.nama_departemen}: {fokus_choices}", file=__import__('sys').stderr)
+            else:
+                # Fallback: jika user tidak punya departemen
+                self.fields['fokus'].choices = [('', '---------')]
+                self.fields['fokus'].help_text = "Departemen tidak ditetapkan"
+            
+            # === ASSIGN_TO: Isi dengan daftar bawahan user ===
+            subordinate_ids = user.get_all_subordinates()
             if subordinate_ids:
                 self.fields['assigned_to'].queryset = CustomUser.objects.filter(
                     id__in=subordinate_ids
                 ).order_by('username')
             else:
-                # Jika tidak ada subordinates, hide/kosongkan dropdown
                 self.fields['assigned_to'].queryset = CustomUser.objects.none()
             
-            # === SET DEFAULT PERSONIL QUERYSET (PENTING!) ===
-            # Default: gunakan personil milik user sendiri (untuk initial load)
+            # === SET DEFAULT PERSONIL QUERYSET ===
             default_personil = Personil.objects.filter(
                 penanggung_jawab=user
             ).order_by('nama_lengkap')
             
-            # Filter 'personil' berdasarkan 'assigned_to' atau user sendiri
             if self.data:
-                # POST request - ada data dari form
+                # POST request
                 try:
                     assigned_to_id = int(self.data.get('assigned_to')) if self.data.get('assigned_to') else None
                     if assigned_to_id:
-                        # Jika assigned_to dipilih, tampilkan personil milik bawahan itu
                         self.fields['personil_ditugaskan'].queryset = Personil.objects.filter(
                             penanggung_jawab_id=assigned_to_id
                         ).order_by('nama_lengkap')
                     else:
-                        # Jika tidak dipilih, tampilkan personil milik user sendiri
                         self.fields['personil_ditugaskan'].queryset = default_personil
                 except (ValueError, TypeError):
                     self.fields['personil_ditugaskan'].queryset = default_personil
             elif self.instance and self.instance.pk and self.instance.assigned_to:
-                # GET request (Edit mode) - jika sudah ada assigned_to, gunakan personil milik mereka
+                # GET request (Edit mode)
                 self.fields['personil_ditugaskan'].queryset = Personil.objects.filter(
                     penanggung_jawab=self.instance.assigned_to
                 ).order_by('nama_lengkap')
                 self.fields['assigned_to'].initial = self.instance.assigned_to.id
             else:
-                # Default: gunakan personil milik user sendiri
                 self.fields['personil_ditugaskan'].queryset = default_personil
         else:
-            # Fallback jika user kosong (edge case)
+            # Fallback
             self.fields['assigned_to'].queryset = CustomUser.objects.none()
             self.fields['personil_ditugaskan'].queryset = Personil.objects.none()
+            self.fields['aset_departemen'].queryset = AsetDepartemen.objects.none()
         
         # Sembunyikan 'project' awalnya
         self.fields['project'].required = False
@@ -280,7 +466,7 @@ class JobForm(forms.ModelForm):
                 self.fields['line'].initial = line.id
 
     def clean(self):
-        """Override clean untuk handle assigned_to hidden field"""
+        """Override clean untuk handle assigned_to hidden field dan aset_departemen consolidation"""
         cleaned_data = super().clean()
         
         # Jika assigned_to widget adalah HiddenInput, gunakan initial value
@@ -294,6 +480,20 @@ class JobForm(forms.ModelForm):
                 cleaned_data['assigned_to'] = self.instance.assigned_to
             else:
                 cleaned_data['assigned_to'] = None
+        
+        # === Consolidate aset_departemen fields ===
+        # If user is non-Teknik, consolidate display + bagian + sub into aset_departemen field
+        # Priority: sub (level 2) > bagian (level 1) > display (level 0)
+        
+        # Check if we're in non-Teknik mode by checking if display field is a Select widget
+        if isinstance(self.fields.get('aset_departemen_display').widget, forms.Select):
+            # Non-Teknik mode
+            sub_aset = cleaned_data.get('aset_departemen_sub')
+            bagian_aset = cleaned_data.get('aset_departemen_bagian')
+            dept_aset = cleaned_data.get('aset_departemen_display')
+            
+            # Use the most specific level selected (sub > bagian > dept)
+            cleaned_data['aset_departemen'] = sub_aset if sub_aset else (bagian_aset if bagian_aset else dept_aset)
         
         return cleaned_data
 
@@ -547,7 +747,7 @@ class JobFromNotulenForm(forms.Form):
     
     fokus = forms.ChoiceField(
         label='Fokus',
-        choices=[('', '--- Pilih Fokus ---')] + list(Job.FOKUS_CHOICES),
+        choices=[],  # Empty, populated from FokusPekerjaan in __init__
         widget=forms.Select(attrs={
             'class': 'form-select'
         }),
