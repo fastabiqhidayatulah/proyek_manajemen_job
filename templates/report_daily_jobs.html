@@ -404,7 +404,11 @@
     <!-- Header -->
     <div class="header">
         <div class="header-logo">
-            <img src="/media/logos/company-logo.png" alt="Logo Perusahaan">
+            {% if logo_data_uri %}
+                <img src="{{ logo_data_uri }}" alt="Logo Perusahaan">
+            {% else %}
+                <span style="color: #999; font-size: 10px;">Logo Perusahaan</span>
+            {% endif %}
         </div>
         <div class="header-content">
             <h1>LAPORAN DAILY JOBS</h1>
@@ -447,7 +451,14 @@
                 <th class="col-no">No</th>
                 <th class="col-nama">Nama Pekerjaan</th>
                 <th class="col-pic">PIC</th>
-                <th class="col-aset">Line → Mesin → Sub</th>
+                <!-- CONDITIONAL COLUMNS: Teknik vs Operasional -->
+                {% if is_teknik %}
+                    <th class="col-aset">Line → Mesin → Sub</th>
+                {% else %}
+                    <th class="col-aset">Departemen</th>
+                    <th class="col-aset">Bagian</th>
+                    <th class="col-aset">Sub Bagian</th>
+                {% endif %}
                 <th class="col-fokus">Fokus</th>
                 <th class="col-prioritas">Prioritas</th>
                 <th class="col-jadwal">Jadwal</th>
@@ -461,12 +472,44 @@
                 <td class="col-no">{{ forloop.counter }}</td>
                 <td class="col-nama">{{ job.nama_pekerjaan }}</td>
                 <td class="col-pic">{{ job.pic.username }}</td>
-                <td class="col-aset">
-                    {{ job.aset.parent.parent.nama|default:"-" }}<br>
-                    {{ job.aset.parent.nama|default:"-" }}<br>
-                    {{ job.aset.nama|default:"-" }}
-                </td>
-                <td class="col-fokus">{{ job.get_fokus_display }}</td>
+                <!-- CONDITIONAL DATA DISPLAY -->
+                {% if is_teknik %}
+                    <!-- TEKNIK: AsetMesin hierarchy -->
+                    <td class="col-aset">
+                        {{ job.aset.parent.parent.nama|default:"-" }}<br>
+                        {{ job.aset.parent.nama|default:"-" }}<br>
+                        {{ job.aset.nama|default:"-" }}
+                    </td>
+                {% else %}
+                    <!-- OPERASIONAL: AsetDepartemen hierarchy -->
+                    {% if job.aset_departemen %}
+                        {% if job.aset_departemen.level == 0 %}
+                            <!-- Asset is Departemen level (Level 0) -->
+                            <td class="col-aset"><strong>{{ job.aset_departemen.nama }}</strong></td>
+                            <td class="col-aset">-</td>
+                            <td class="col-aset">-</td>
+                        {% elif job.aset_departemen.level == 1 %}
+                            <!-- Asset is Bagian level (Level 1) -->
+                            <td class="col-aset">{{ job.aset_departemen.parent.nama|default:'-' }}</td>
+                            <td class="col-aset"><strong>{{ job.aset_departemen.nama }}</strong></td>
+                            <td class="col-aset">-</td>
+                        {% elif job.aset_departemen.level == 2 %}
+                            <!-- Asset is SubBagian level (Level 2) -->
+                            <td class="col-aset">{{ job.aset_departemen.parent.parent.nama|default:'-' }}</td>
+                            <td class="col-aset">{{ job.aset_departemen.parent.nama|default:'-' }}</td>
+                            <td class="col-aset"><strong>{{ job.aset_departemen.nama }}</strong></td>
+                        {% else %}
+                            <td class="col-aset">-</td>
+                            <td class="col-aset">-</td>
+                            <td class="col-aset">-</td>
+                        {% endif %}
+                    {% else %}
+                        <td class="col-aset">-</td>
+                        <td class="col-aset">-</td>
+                        <td class="col-aset">-</td>
+                    {% endif %}
+                {% endif %}
+                <td class="col-fokus">{{ job.fokus|default:"-" }}</td>
                 <td class="col-prioritas">
                     <span class="badge badge-{{ job.prioritas|lower }}">{{ job.get_prioritas_display }}</span>
                 </td>

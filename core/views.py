@@ -9,6 +9,8 @@ from django.views.decorators.http import require_http_methods
 import requests
 import json
 from io import BytesIO
+import os
+import base64
 # Tambahkan 'Count', 'Case', 'Max' untuk kalkulasi
 from django.db.models import Q, Count, Case, When, IntegerField, Max 
 from django.urls import reverse
@@ -1170,10 +1172,8 @@ def export_daily_jobs_pdf(request):
         daily_job_data = all_jobs_team_base.filter(date_filter).select_related(
             'pic', 
             'project',
-            'aset__parent__parent' 
-        ).prefetch_related(
-            'personil_ditugaskan', 
-            'tanggal_pelaksanaan',
+        'aset__parent__parent',
+        'aset_departemen__parent__parent'  # For Operasional users
             'attachments'
         ).order_by(sort_field).distinct()
 
@@ -1190,6 +1190,14 @@ def export_daily_jobs_pdf(request):
             else:
                 attachment.absolute_url = attachment.file.url if attachment.file else ''
     
+    # === 6b. PREPARE LOGO DATA URI ===
+    logo_path = os.path.join(settings.MEDIA_ROOT, 'logos', 'company-logo.png')
+    logo_data_uri = ""
+    if os.path.exists(logo_path):
+        with open(logo_path, 'rb') as f:
+            logo_b64 = base64.b64encode(f.read()).decode('utf-8')
+            logo_data_uri = f'data:image/png;base64,{logo_b64}'
+    
     # === 7. SIAPKAN CONTEXT UNTUK TEMPLATE ===
     context = {
         'user': user,
@@ -1199,6 +1207,8 @@ def export_daily_jobs_pdf(request):
         'year': current_year,
         'report_date': format_tanggal_id(datetime.date.today()),
         'print_date': datetime.datetime.now().strftime("%d %B %Y %H:%M:%S"),
+        'is_teknik': user.departemen and user.departemen.nama_departemen.strip().lower() == 'teknik',
+        'logo_data_uri': logo_data_uri,
     }
     
     # === 8. RENDER TEMPLATE KE HTML ===
@@ -1206,7 +1216,10 @@ def export_daily_jobs_pdf(request):
     
     # === 9. CONVERT HTML KE PDF DENGAN WEASYPRINT ===
     try:
-        html = HTML(string=html_string)
+        # Construct base_url for WeasyPrint to access media files
+        from pathlib import Path
+        media_root_path = Path(settings.MEDIA_ROOT).as_uri()
+        html = HTML(string=html_string, base_url=media_root_path)
         pdf = html.write_pdf()
         
         # === 10. GENERATE FILENAME ===
@@ -1303,7 +1316,8 @@ def export_daily_jobs_excel(request):
         # Ambil semua daily jobs tanpa filter tanggal
         job_data = all_jobs_team_base.select_related(
             'pic',
-            'aset__parent__parent'
+            'aset__parent__parent',
+            'aset_departemen__parent__parent'  # For Operasional users
         ).prefetch_related(
             'tanggal_pelaksanaan'
         ).distinct()
@@ -1336,7 +1350,8 @@ def export_daily_jobs_excel(request):
         
         job_data = all_jobs_team_base.filter(date_filter).select_related(
             'pic',
-            'aset__parent__parent'
+            'aset__parent__parent',
+            'aset_departemen__parent__parent'  # For Operasional users
         ).prefetch_related(
             'tanggal_pelaksanaan'
         ).distinct()
@@ -1386,7 +1401,14 @@ def export_daily_jobs_excel(request):
     )
     
     # === 5. BUAT HEADER ROW ===
-    headers = ["No", "Nama Pekerjaan", "PIC", "Line", "Mesin", "Sub", "Fokus", "Prioritas", "Jadwal", "Progress (%)"]
+    # Check if user is Teknik
+    is_teknik = user.departemen and user.departemen.nama_departemen.strip().lower() == 'teknik'
+    
+    if is_teknik:
+        headers = ["No", "Nama Pekerjaan", "PIC", "Line", "Mesin", "Sub", "Fokus", "Prioritas", "Jadwal", "Progress (%)"]
+    else:
+        headers = ["No", "Nama Pekerjaan", "PIC", "Departemen", "Bagian", "Sub Bagian", "Fokus", "Prioritas", "Jadwal", "Progress (%)"]
+    
     ws.append(headers)
     
     # Style header
@@ -1398,10 +1420,33 @@ def export_daily_jobs_excel(request):
     
     # === 6. ISI DATA ===
     for idx, job in enumerate(job_data, 1):
-        # Ambil line, mesin, sub dari aset
-        line = job.aset.parent.parent.nama if job.aset and job.aset.parent and job.aset.parent.parent else "-"
-        mesin = job.aset.parent.nama if job.aset and job.aset.parent else "-"
-        sub = job.aset.nama if job.aset else "-"
+        # Ambil asset data conditional (Teknik vs Operasional)
+        if is_teknik:
+            # Teknik: Extract from AsetMesin (aset field)
+            line = job.aset.parent.parent.nama if job.aset and job.aset.parent and job.aset.parent.parent else "-"
+            mesin = job.aset.parent.nama if job.aset and job.aset.parent else "-"
+            sub = job.aset.nama if job.aset else "-"
+            aset_data = [line, mesin, sub]
+        else:
+            # Operasional: Extract from AsetDepartemen (aset_departemen field)
+            if job.aset_departemen:
+                if job.aset_departemen.level == 0:
+                    departemen = job.aset_departemen.nama
+                    bagian = "-"
+                    sub_bagian = "-"
+                elif job.aset_departemen.level == 1:
+                    departemen = job.aset_departemen.parent.nama if job.aset_departemen.parent else "-"
+                    bagian = job.aset_departemen.nama
+                    sub_bagian = "-"
+                else:  # level == 2
+                    departemen = job.aset_departemen.parent.parent.nama if job.aset_departemen.parent and job.aset_departemen.parent.parent else "-"
+                    bagian = job.aset_departemen.parent.nama if job.aset_departemen.parent else "-"
+                    sub_bagian = job.aset_departemen.nama
+            else:
+                departemen = "-"
+                bagian = "-"
+                sub_bagian = "-"
+            aset_data = [departemen, bagian, sub_bagian]
         
         # Ambil jadwal (dengan filter bulan/tahun jika ada)
         if filter_all_dates:
@@ -1425,10 +1470,8 @@ def export_daily_jobs_excel(request):
             idx,
             job.nama_pekerjaan,
             job.pic.username if job.pic else "-",
-            line,
-            mesin,
-            sub,
-            job.get_fokus_display(),
+            *aset_data,  # Unpack either [line, mesin, sub] or [departemen, bagian, sub_bagian]
+            job.fokus if job.fokus else "-",  # fokus is now CharField, not choice field
             job.get_prioritas_display(),
             jadwal_str,
             progress
@@ -1893,6 +1936,14 @@ def export_project_jobs_pdf(request):
                 else:
                     attachment.absolute_url = attachment.file.url if attachment.file else ''
     
+    # === 8b. PREPARE LOGO DATA URI ===
+    logo_path = os.path.join(settings.MEDIA_ROOT, 'logos', 'company-logo.png')
+    logo_data_uri = ""
+    if os.path.exists(logo_path):
+        with open(logo_path, 'rb') as f:
+            logo_b64 = base64.b64encode(f.read()).decode('utf-8')
+            logo_data_uri = f'data:image/png;base64,{logo_b64}'
+    
     # === 9. SIAPKAN CONTEXT UNTUK TEMPLATE ===
     context = {
         'user': user,
@@ -1902,6 +1953,8 @@ def export_project_jobs_pdf(request):
         'year': current_year,
         'report_date': format_tanggal_id(datetime.date.today()),
         'print_date': datetime.datetime.now().strftime("%d %B %Y %H:%M:%S"),
+        'is_teknik': user.departemen and user.departemen.nama_departemen.strip().lower() == 'teknik',
+        'logo_data_uri': logo_data_uri,
     }
     
     # === 10. RENDER TEMPLATE KE HTML ===
@@ -1909,7 +1962,10 @@ def export_project_jobs_pdf(request):
     
     # === 11. CONVERT HTML KE PDF DENGAN WEASYPRINT ===
     try:
-        html = HTML(string=html_string)
+        # Construct base_url for WeasyPrint to access media files
+        from pathlib import Path
+        media_root_path = Path(settings.MEDIA_ROOT).as_uri()
+        html = HTML(string=html_string, base_url=media_root_path)
         pdf = html.write_pdf()
         
         # === 12. GENERATE FILENAME ===
