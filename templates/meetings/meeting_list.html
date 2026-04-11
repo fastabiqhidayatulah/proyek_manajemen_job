@@ -76,13 +76,14 @@
             <table class="table table-hover mb-0">
                 <thead class="table-dark">
                     <tr>
-                        <th style="width: 15%;">No. Dokumen</th>
-                        <th style="width: 30%;">Agenda</th>
-                        <th style="width: 12%;">Tanggal</th>
-                        <th style="width: 12%;">Hari/Jam</th>
-                        <th style="width: 10%;">Peserta</th>
-                        <th style="width: 12%;">Status</th>
-                        <th style="width: 9%;">Aksi</th>
+                        <th style="width: 14%;">No. Dokumen</th>
+                        <th style="width: 25%;">Agenda</th>
+                        <th style="width: 11%;">Tanggal</th>
+                        <th style="width: 11%;">Hari/Jam</th>
+                        <th style="width: 8%;">Peserta</th>
+                        <th style="width: 12%;">Creator</th>
+                        <th style="width: 11%;">Status</th>
+                        <th style="width: 8%;">Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -106,6 +107,15 @@
                             </td>
                             <td>
                                 <span class="badge bg-info">{{ meeting.get_peserta_count }}</span>
+                            </td>
+                            <td>
+                                <small class="text-muted">
+                                    {% if meeting.created_by %}
+                                        {{ meeting.created_by.get_full_name|default:meeting.created_by.username }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </small>
                             </td>
                             <td>
                                 {% if meeting.status == 'draft' %}
@@ -138,7 +148,7 @@
                         {% endfor %}
                     {% else %}
                         <tr>
-                            <td colspan="7" class="text-center text-muted py-4">
+                            <td colspan="8" class="text-center text-muted py-4">
                                 <i class="bi bi-inbox"></i><br>
                                 Tidak ada meeting ditemukan
                             </td>

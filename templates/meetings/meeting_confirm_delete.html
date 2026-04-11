@@ -53,7 +53,7 @@
                     <div class="alert alert-danger">
                         <i class="bi bi-lock"></i>
                         <strong>Tidak Bisa Dihapus</strong><br>
-                        <small>Hanya meeting dengan status DRAFT yang bisa dihapus.</small>
+                        <small>Hanya meeting dengan status DRAFT yang bisa dihapus, dan hanya oleh creator-nya.</small>
                     </div>
                     <a href="{% url 'meetings:meeting-detail' meeting.pk %}" class="btn btn-primary">
                         <i class="bi bi-arrow-left"></i> Kembali

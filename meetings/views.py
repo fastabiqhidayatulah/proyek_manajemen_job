@@ -76,7 +76,7 @@ class MeetingListView(LoginRequiredMixin, ListView):
     login_url = 'login'
     
     def get_queryset(self):
-        queryset = Meeting.objects.all().order_by('-created_at')
+        queryset = Meeting.objects.select_related('created_by').order_by('-created_at')
         
         # Filter by status
         status = self.request.GET.get('status')
