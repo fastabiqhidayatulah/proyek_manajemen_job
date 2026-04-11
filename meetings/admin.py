@@ -7,7 +7,7 @@ class MeetingAdmin(admin.ModelAdmin):
     list_display = ('no_dokumen', 'tanggal_meeting', 'hari', 'status', 'agenda_short', 'get_peserta_count')
     list_filter = ('status', 'tanggal_meeting', 'created_at')
     search_fields = ('no_dokumen', 'agenda', 'tempat')
-    readonly_fields = ('no_dokumen', 'hari', 'qr_code_token', 'qr_code_created_at', 'created_at', 'updated_at', 'id')
+    readonly_fields = ('no_dokumen', 'hari', 'qr_code_token', 'qr_code_created_at', 'created_at', 'updated_at', 'id', 'tanggal_dokumen')
     fieldsets = (
         ('Dokumen', {
             'fields': ('id', 'no_dokumen_base', 'no_urut', 'no_dokumen', 'revisi', 'terbitan')
