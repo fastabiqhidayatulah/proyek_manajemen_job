@@ -39,6 +39,11 @@ urlpatterns = [
          views.create_job_from_notulen_view, 
          name='create-job-from-notulen'),
     
+    # Update Notulen Status (untuk External PIC)
+    path('notulen/<uuid:item_pk>/update-status/', 
+         views.update_notulen_status_view, 
+         name='update-notulen-status'),
+    
     # Export Notulen ke PDF
     path('<uuid:pk>/export-pdf/', 
          views.ExportNotulenPDFView.as_view(), 

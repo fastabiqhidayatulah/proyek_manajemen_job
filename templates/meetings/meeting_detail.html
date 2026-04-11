@@ -311,14 +311,28 @@
                                         </a>
                                         {% endif %}
                                         
-                                        <!-- CREATE JOB Button -->
-                                        {% if item.status != 'done' and not item.job_created and meeting.status == 'final' %}
+                                        <!-- CREATE JOB Button - untuk PIC Internal -->
+                                        {% if item.pic and item.status != 'done' and not item.job_created and meeting.status == 'final' %}
                                         <a href="{% url 'meetings:create-job-from-notulen' item.pk %}" 
                                            class="btn btn-xs btn-sm btn-link text-success"
                                            title="Buat Job dari item ini"
                                            data-bs-toggle="tooltip">
                                             <i class="bi bi-arrow-right-circle"></i>
                                         </a>
+                                        {% endif %}
+                                        
+                                        <!-- UPDATE STATUS Modal Button - untuk PIC Eksternal -->
+                                        {% if not item.pic and item.status != 'done' and meeting.status == 'final' and request.user == meeting.created_by %}
+                                        <button type="button" class="btn btn-xs btn-sm btn-link text-warning"
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#updateStatusModal"
+                                                data-item-id="{{ item.pk }}"
+                                                data-item-name="{{ item.pokok_bahasan|truncatewords:5 }}"
+                                                data-item-status="{{ item.status }}"
+                                                title="Update status (PIC eksternal)"
+                                                data-bs-toggle="tooltip">
+                                            <i class="bi bi-pencil-square"></i>
+                                        </button>
                                         {% endif %}
                                     </td>
                                 </tr>
@@ -909,8 +923,116 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     }
+
+    // Handle Update Status Modal untuk External PIC
+    const updateStatusModal = document.getElementById('updateStatusModal');
+    if (updateStatusModal) {
+        updateStatusModal.addEventListener('show.bs.modal', function (e) {
+            const button = e.relatedTarget;
+            if (button) {
+                const itemId = button.dataset.itemId;
+                const itemName = button.dataset.itemName;
+                const currentStatus = button.dataset.itemStatus;
+                
+                // Populate modal fields
+                document.getElementById('updateStatusItemName').textContent = itemName;
+                document.getElementById('updateStatusItemId').value = itemId;
+                document.getElementById('updateStatusCurrentStatus').value = currentStatus;
+                
+                // Disable current status option in dropdown
+                const statusSelect = document.getElementById('updateStatusNewStatus');
+                if (statusSelect) {
+                    Array.from(statusSelect.options).forEach(opt => {
+                        opt.disabled = opt.value === currentStatus;
+                    });
+                }
+            }
+        });
+
+        // Handle form submission
+        const updateStatusForm = document.getElementById('updateStatusForm');
+        if (updateStatusForm) {
+            updateStatusForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const itemId = document.getElementById('updateStatusItemId').value;
+                const newStatus = document.getElementById('updateStatusNewStatus').value;
+                
+                fetch(`/meetings/notulen/${itemId}/update-status/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || ''
+                    },
+                    body: `status=${newStatus}`
+                })
+                .then(response => {
+                    // Redirect will happen server-side
+                    window.location.reload();
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error updating status');
+                });
+            });
+        }
+    }
 });
 </script>
+
+<!-- Modal Update Status Notulen (untuk External PIC) -->
+<div class="modal fade" id="updateStatusModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-pencil-square"></i> Update Status Notulen
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            
+            <form id="updateStatusForm" method="POST">
+                <input type="hidden" id="updateStatusItemId" name="item_id">
+                <input type="hidden" id="updateStatusCurrentStatus" name="current_status">
+                
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Item Notulen:</label>
+                        <p id="updateStatusItemName" class="text-muted"></p>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="updateStatusNewStatus" class="form-label">
+                            Status Baru <span class="text-danger">*</span>
+                        </label>
+                        <select id="updateStatusNewStatus" name="status" class="form-select" required>
+                            <option value="">-- Pilih Status --</option>
+                            <option value="open">Open</option>
+                            <option value="progress">Progress (Sedang Dikerjakan)</option>
+                            <option value="done">Done (Selesai)</option>
+                            <option value="overdue">Overdue (Melewati Deadline)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="alert alert-info" role="alert">
+                        <small>
+                            <i class="bi bi-info-circle"></i>
+                            Notulen dengan PIC eksternal tidak dapat dijadikan Job, 
+                            hanya status yang dapat diperbarui di sini.
+                        </small>
+                    </div>
+                </div>
+                
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-circle"></i> Update Status
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
 <style>
     .btn-xs {

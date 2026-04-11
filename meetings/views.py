@@ -730,6 +730,22 @@ def create_job_from_notulen_view(request, item_pk):
     notulen_item = get_object_or_404(NotulenItem, pk=item_pk)
     meeting = notulen_item.meeting
     
+    # ===== CHECK IF PIC IS EXTERNAL =====
+    # Jika PIC adalah eksternal (tidak punya akun):
+    # - Tidak bisa create job (eksternal tidak punya akun untuk tracking)
+    # - Only meeting creator bisa update status via modal
+    pic = notulen_item.pic
+    if pic is None:
+        # PIC adalah eksternal
+        if request.user != meeting.created_by and not request.user.is_staff:
+            messages.error(request, 
+                "Hanya meeting creator yang bisa update status untuk notulen dengan PIC eksternal.")
+            return redirect('meetings:meeting-detail', pk=meeting.pk)
+        # Redirect ke update status modal/form
+        messages.info(request, 
+            "PIC notulen ini adalah orang eksternal. Anda dapat mengupdate status langsung di sini.")
+        return redirect('meetings:meeting-detail', pk=meeting.pk)
+    
     # ===== MEETING STATUS CHECK =====
     # Jobs hanya bisa dibuat dari notulen saat meeting status = FINAL
     if meeting.status != 'final':
@@ -742,8 +758,6 @@ def create_job_from_notulen_view(request, item_pk):
     # ===== PERMISSION CHECK =====
     # Admin/superuser bypass
     if not (user.is_superuser or user.is_staff):
-        # Check hierarchy
-        pic = notulen_item.pic
         
         # PIC sendiri bisa
         if user.id != pic.id:
@@ -952,8 +966,52 @@ def create_job_from_notulen_view(request, item_pk):
 
 
 # ==============================================================================
+# 14A. UPDATE NOTULEN STATUS VIEW (untuk External PIC)
 # ==============================================================================
-# 14A. MEETING ADD PESERTA VIEW
+@require_http_methods(["POST"])
+def update_notulen_status_view(request, item_pk):
+    """
+    Update status notulen item untuk PIC eksternal.
+    Hanya meeting creator yang bisa update.
+    
+    Status options: open, progress, done, overdue
+    """
+    user = request.user
+    notulen_item = get_object_or_404(NotulenItem, pk=item_pk)
+    meeting = notulen_item.meeting
+    
+    # ===== PERMISSION CHECK =====
+    # Only meeting creator dan staff/admin bisa update status
+    if user != meeting.created_by and not user.is_staff:
+        messages.error(request, "Hanya meeting creator yang bisa update status notulen.")
+        return redirect('meetings:meeting-detail', pk=meeting.pk)
+    
+    # Check PIC harus eksternal (pic is None)
+    if notulen_item.pic is not None:
+        messages.warning(request, 
+            "Notulen ini memiliki PIC internal. Gunakan 'Create Job' untuk track.")
+        return redirect('meetings:meeting-detail', pk=meeting.pk)
+    
+    # Get status dari request
+    new_status = request.POST.get('status', '').strip()
+    if new_status not in dict(NotulenItem.STATUS_CHOICES):
+        messages.error(request, "Status tidak valid.")
+        return redirect('meetings:meeting-detail', pk=meeting.pk)
+    
+    # Update status
+    old_status = notulen_item.status
+    notulen_item.status = new_status
+    notulen_item.save()
+    
+    messages.success(request, 
+        f"Status notulen '{notulen_item.pokok_bahasan[:50]}' "
+        f"diperbarui dari {old_status} → {new_status}")
+    
+    return redirect('meetings:meeting-detail', pk=meeting.pk)
+
+
+# ==============================================================================
+# 14B. MEETING ADD PESERTA VIEW
 # ==============================================================================
 class MeetingAddPesertaView(LoginRequiredMixin, View):
     """Add peserta ke meeting (dari modal di detail page)"""
