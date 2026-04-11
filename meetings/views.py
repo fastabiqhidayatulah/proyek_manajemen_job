@@ -2,13 +2,14 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import ListView, CreateView, DetailView, UpdateView, DeleteView, View, TemplateView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
-from django.http import JsonResponse, HttpResponseForbidden, HttpResponse
+from django.http import JsonResponse, HttpResponse
 from django.urls import reverse_lazy, reverse
 from django.utils.timezone import now
 from django.views.decorators.http import require_http_methods
 from django.utils.decorators import method_decorator
 from django.db import transaction
 from django.core.paginator import Paginator
+from django.core.exceptions import PermissionDenied
 from django.conf import settings
 from django.template.loader import render_to_string
 from weasyprint import HTML
@@ -235,7 +236,7 @@ class MeetingEditView(LoginRequiredMixin, UpdateView):
         meeting = super().get_object()
         # Check permission
         if meeting.status != 'draft' or self.request.user != meeting.created_by:
-            raise HttpResponseForbidden('Anda tidak boleh edit meeting ini')
+            raise PermissionDenied('Anda tidak boleh edit meeting ini')
         return meeting
     
     def get_form_kwargs(self):
@@ -341,7 +342,7 @@ class MeetingDeleteView(LoginRequiredMixin, DeleteView):
     def get_object(self):
         meeting = super().get_object()
         if meeting.status != 'draft' or self.request.user != meeting.created_by:
-            raise HttpResponseForbidden('Anda tidak boleh delete meeting ini')
+            raise PermissionDenied('Anda tidak boleh delete meeting ini')
         return meeting
 
     def get_context_data(self, **kwargs):
@@ -396,7 +397,7 @@ class QRCodeDisplayView(LoginRequiredMixin, TemplateView):
         
         # Check permission
         if self.request.user != meeting.created_by:
-            raise HttpResponseForbidden('Anda tidak boleh view QR code ini')
+            raise PermissionDenied('Anda tidak boleh view QR code ini')
         
         # Generate QR code image - use helper function untuk ngrok support
         presensi_path = reverse('meetings:presensi-external', kwargs={'token': token})
@@ -512,7 +513,7 @@ class NotulenItemAddView(LoginRequiredMixin, CreateView):
         
         # Check permission
         if meeting.status != 'draft' or self.request.user != meeting.created_by:
-            raise HttpResponseForbidden('Anda tidak boleh add notulen item')
+            raise PermissionDenied('Anda tidak boleh add notulen item')
         
         context['meeting'] = meeting
         return context
@@ -676,7 +677,7 @@ class NotulenItemEditView(LoginRequiredMixin, UpdateView):
         
         # Check permission
         if meeting.status != 'draft' or self.request.user != meeting.created_by:
-            raise HttpResponseForbidden('Anda tidak boleh edit notulen item')
+            raise PermissionDenied('Anda tidak boleh edit notulen item')
         
         return item
     
@@ -704,7 +705,7 @@ class NotulenItemDeleteView(LoginRequiredMixin, DeleteView):
         
         # Check permission
         if meeting.status != 'draft' or self.request.user != meeting.created_by:
-            raise HttpResponseForbidden('Anda tidak boleh delete notulen item')
+            raise PermissionDenied('Anda tidak boleh delete notulen item')
         
         return item
     
