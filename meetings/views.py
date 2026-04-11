@@ -338,17 +338,18 @@ class MeetingDeleteView(LoginRequiredMixin, DeleteView):
     template_name = 'meetings/meeting_confirm_delete.html'
     success_url = reverse_lazy('meetings:meeting-list')
     login_url = 'login'
-    
-    def get_object(self):
-        meeting = super().get_object()
-        if meeting.status != 'draft' or self.request.user != meeting.created_by:
-            raise PermissionDenied('Anda tidak boleh delete meeting ini')
-        return meeting
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['can_delete'] = self.object.status == 'draft' and self.request.user == self.object.created_by
         return context
+
+    def delete(self, request, *args, **kwargs):
+        """Override delete() untuk check permission sebelum delete"""
+        meeting = self.get_object()
+        if meeting.status != 'draft' or self.request.user != meeting.created_by:
+            raise PermissionDenied('Anda tidak boleh delete meeting ini')
+        return super().delete(request, *args, **kwargs)
 
 
 # ==============================================================================
@@ -723,10 +724,20 @@ def create_job_from_notulen_view(request, item_pk):
     
     Permission Model:
     - Hanya users dalam hierarchy notulen PIC yang bisa create
+    - Meeting harus status FINAL (locked & finalized)
     """
     user = request.user
     notulen_item = get_object_or_404(NotulenItem, pk=item_pk)
     meeting = notulen_item.meeting
+    
+    # ===== MEETING STATUS CHECK =====
+    # Jobs hanya bisa dibuat dari notulen saat meeting status = FINAL
+    if meeting.status != 'final':
+        messages.error(request, 
+            f"Job hanya bisa dibuat dari notulen saat meeting status FINAL. "
+            f"Status meeting saat ini: {meeting.get_status_display()}. "
+            f"Silakan finalize meeting terlebih dahulu.")
+        return redirect('meetings:meeting-detail', pk=meeting.pk)
     
     # ===== PERMISSION CHECK =====
     # Admin/superuser bypass

@@ -312,7 +312,7 @@
                                         {% endif %}
                                         
                                         <!-- CREATE JOB Button -->
-                                        {% if item.status != 'done' and not item.job_created %}
+                                        {% if item.status != 'done' and not item.job_created and meeting.status == 'final' %}
                                         <a href="{% url 'meetings:create-job-from-notulen' item.pk %}" 
                                            class="btn btn-xs btn-sm btn-link text-success"
                                            title="Buat Job dari item ini"
