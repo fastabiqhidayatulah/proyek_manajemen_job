@@ -2,6 +2,8 @@
 
 Aplikasi **Preventive Job Management System** berbasis Django untuk mengelola pekerjaan preventif, penjadwalan maintenance, tracking eksekusi, dan checklist inspeksi dengan sistem recycle bin terintegrasi.
 
+> **Production-Ready**: Fully environment-based configuration, zero hardcoded secrets, deployment-ready with PM2 orchestration.
+
 ## ✨ Fitur Utama
 
 ### 🎯 Job Management
@@ -37,35 +39,41 @@ Aplikasi **Preventive Job Management System** berbasis Django untuk mengelola pe
 
 ## 🛠 Tech Stack
 
-```
-Backend:
+**Backend:**
 - Django 5.2.8
 - Python 3.11+
-- PostgreSQL 12+
+- PostgreSQL 16
 
-Frontend:
+**Production Stack:**
+- Gunicorn 21.2.0 (WSGI server)
+- Celery 5.3.4 (task queue)
+- Redis 5.0.1 (message broker & cache)
+- WhiteNoise 6.6.0 (static files)
+- PM2 (process manager)
+
+**Frontend:**
 - Bootstrap 5.3.3
 - Bootstrap Icons
 - Font Awesome 6
 - JavaScript ES6+
 
-External Services:
+**External Services:**
 - Google Calendar API
-- WhatsApp Business API
-- ngrok (untuk local development)
-```
+- WhatsApp Business API (Fontte)
+- Google Sheets API
 
 ## 📋 Requirements
 
-- **Python** 3.11 atau lebih tinggi
-- **PostgreSQL** 12 atau lebih tinggi
+- **Python** 3.11+
+- **PostgreSQL** 16
+- **Redis** 6.0+ (untuk production)
 - **pip** (Python package manager)
 - **Git**
+- **PM2** (optional, untuk production orchestration)
 
-### Dependencies
-Semua dependencies sudah didefinisikan di `requirements.txt`
+Semua dependencies Python sudah didefinisikan di `requirements.txt`
 
-## 🚀 Installation
+## 🚀 Quick Start - Development
 
 ### 1. Clone Repository
 ```bash
@@ -90,142 +98,296 @@ pip install -r requirements.txt
 ```
 
 ### 4. Environment Configuration
-Buat file `.env` di root directory:
+```bash
+# Copy template
+cp .env.example .env
+
+# Edit .env dengan nilai development (atau gunakan defaults)
 ```
-DEBUG=False
-SECRET_KEY=your-secret-key-here
+
+**Development defaults** (sudah tersedia di `.env.example`):
+```bash
+DJANGO_ENVIRONMENT=development
+DEBUG=True
+DB_NAME=proyek_management_job
+DB_USER=manajemen_app_user
+DB_PASSWORD=<your-password>
 ALLOWED_HOSTS=localhost,127.0.0.1
-
-DATABASE_URL=postgresql://user:password@localhost:5432/proyek_management_job
-
-GOOGLE_CALENDAR_CREDENTIALS_PATH=config/credentials/google-calendar-sa.json
-
-WHATSAPP_API_KEY=your-whatsapp-api-key
-WHATSAPP_PHONE_ID=your-phone-id
 ```
 
 ### 5. Database Setup
 ```bash
-# Run migrations
 python manage.py migrate
-
-# Create superuser
 python manage.py createsuperuser
-
-# Load fixtures (opsional)
-python manage.py loaddata initial_data
-```
-
-### 6. Collect Static Files
-```bash
 python manage.py collectstatic --noinput
 ```
 
-## 🎯 Running the Application
-
-### Development Server
+### 6. Run Development Server
 ```bash
 python manage.py runserver
 ```
-Akses di: `http://localhost:8000`
+Akses: `http://localhost:8000`
 
-### Production (using Gunicorn)
+---
+
+## 🚀 Production Deployment
+
+### Environment Setup
 ```bash
-gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 4
+# Copy template
+cp .env.example .env
+
+# Edit .env dengan production values:
+DJANGO_ENVIRONMENT=production
+DEBUG=False
+SECRET_KEY=<generate-strong-key>
+DB_HOST=<database-server>
+DB_PASSWORD=<secure-password>
+ALLOWED_HOSTS=yourdomain.com,www.yourdomain.com
+SECURE_SSL_REDIRECT=True
+CSRF_COOKIE_SECURE=True
+SESSION_COOKIE_SECURE=True
 ```
 
-### Setup sebagai Windows Service (NSSM)
-```bash
-# Install NSSM (use provided scripts)
-scripts\install_nssm_service.bat
+### Option 1: Using PM2 (Recommended)
 
-# Start service
-net start DjangoPreventiveJobService
+**Install PM2:**
+```bash
+npm install -g pm2
 ```
 
-### Using ngrok untuk Local Tunnel
+**Start Services:**
 ```bash
-# Setup ngrok
-scripts\setup_ngrok.ps1
-
-# Run ngrok
-ngrok http 8000
+pm2 start ecosystem.config.js
+pm2 save
+pm2 startup
 ```
+
+**View Logs:**
+```bash
+pm2 logs
+pm2 monit
+```
+
+### Option 2: Using Batch Scripts (Windows)
+
+**Terminal 1 - Gunicorn:**
+```bash
+run_gunicorn.bat
+```
+
+**Terminal 2 - Celery Worker:**
+```bash
+run_celery_worker.bat
+```
+
+**Terminal 3 - Celery Beat:**
+```bash
+run_celery_beat.bat
+```
+
+### Option 3: Using Direct Commands
+
+```bash
+# Set environment
+set DJANGO_ENVIRONMENT=production
+
+# Collect static files
+python manage.py collectstatic --noinput
+
+# Run Gunicorn
+gunicorn config.wsgi:application --bind 127.0.0.1:8001 --workers 4
+
+# In another terminal - Celery worker
+celery -A config worker --loglevel=info --concurrency=4
+
+# In another terminal - Celery beat
+celery -A config beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+```
+
+### Reverse Proxy Setup (Caddy)
+
+```bash
+# Copy template
+cp Caddyfile.example Caddyfile
+
+# Edit with your domain:
+# yourdomain.com {
+#   reverse_proxy localhost:8001
+# }
+
+# Run Caddy
+caddy run
+```
+
+---
 
 ## 📁 Project Structure
 
 ```
 proyek_manajemen_job/
 ├── config/                          # Django configuration
-│   ├── settings.py                 # Settings
+│   ├── settings.py                 # Environment-based settings ⭐
+│   ├── settings_production.py      # Production wrapper
+│   ├── wsgi.py                     # WSGI application
+│   ├── asgi.py                     # ASGI application
+│   ├── celery.py                   # Celery configuration
 │   ├── urls.py                     # URL routing
-│   ├── wsgi.py                     # WSGI config
-│   └── credentials/                # Google Calendar credentials
+│   └── credentials/                # 🔒 Credentials (git-ignored)
 │
 ├── core/                            # Core application
 │   ├── models.py                   # Database models
 │   ├── views.py                    # View functions
 │   ├── forms.py                    # Django forms
-│   ├── admin.py                    # Admin interface
-│   ├── urls.py                     # App URLs
-│   ├── templates/                  # HTML templates
+│   ├── admin.py                    # Admin customization
+│   ├── services/                   # Business logic services
+│   ├── templatetags/               # Custom template tags
+│   ├── management/                 # Django management commands
+│   ├── migrations/                 # Database migrations
+│   ├── templates/
+│   │   ├── base.html              # Base template
+│   │   ├── dashboard.html         # Main dashboard
+│   │   └── core/                  # App-specific templates
 │   └── static/                     # CSS, JS, images
 │
 ├── preventive_jobs/                 # Preventive Job Management
-│   ├── models.py                   # Job models
-│   ├── views.py                    # Job views
-│   ├── forms.py                    # Job forms
-│   ├── recycle_bin_views.py        # Recycle bin logic
+│   ├── models.py
+│   ├── views.py
+│   ├── forms.py
+│   ├── recycle_bin_views.py        # Soft delete logic
 │   ├── whatsapp_utils.py           # WhatsApp integration
-│   ├── templates/                  # Job templates
-│   ├── static/                     # Job static files
-│   ├── migrations/                 # Database migrations
-│   └── management/                 # Django management commands
+│   ├── migrations/
+│   ├── templates/
+│   ├── static/
+│   └── management/
 │
-├── templates/                       # Global templates
-│   ├── base.html                   # Base template
-│   ├── dashboard.html              # Dashboard
-│   └── core/                       # Core app templates
+├── meetings/                        # Meeting Management
+├── inventory/                       # Inventory Management
+├── toolkeeper/                      # Toolkeeper Management
 │
-├── static/                          # Global static files
-│   ├── css/
-│   └── js/
+├── scripts/                         # Automation scripts
+│   ├── backup.bat                  # Database backup (batch)
+│   ├── backup_automation.ps1       # Automated backup (PowerShell)
+│   ├── backup_gdrive.bat           # Backup to Google Drive
+│   ├── setup_ngrok.ps1             # ngrok setup
+│   ├── setup_scheduler.ps1         # Windows Task Scheduler
+│   ├── start_django_service.bat    # Django service starter
+│   └── test_backup.bat             # Backup testing
 │
-├── media/                           # User uploaded files
-│   ├── attachments/                # Job attachments
-│   ├── logos/                      # Company logos
-│   └── preventive_jobs/            # Job related images
+├── panduan/                         # Documentation & Guides
+├── documentation/                   # Technical documentation
 │
-├── scripts/                         # Utility scripts
-│   ├── setup_ngrok.ps1            # ngrok setup
-│   ├── install_nssm_service.bat    # Windows service setup
-│   └── ...
-│
-├── panduan/                         # Setup guides
-│   ├── QUICK_START_NGROK.md
-│   └── NGROK_SETUP_GUIDE.md
-│
+├── .env.example ⭐                 # Environment variables template
+├── ecosystem.config.js ⭐          # PM2 configuration
+├── Caddyfile.example ⭐            # Reverse proxy template
+├── run_gunicorn.bat ⭐             # Gunicorn startup
+├── run_celery_worker.bat ⭐        # Celery worker startup
+├── run_celery_beat.bat ⭐          # Celery beat startup
 ├── requirements.txt                 # Python dependencies
-├── manage.py                        # Django management
+├── manage.py                        # Django CLI
 └── README.md                        # This file
 ```
 
-## 🔑 Key Features Explanation
+⭐ = New in production-ready release
+
+## 🔑 Environment Variables
+
+All configuration via `.env` file. See `.env.example` for complete reference.
+
+**Critical Settings:**
+```bash
+# Deployment
+DJANGO_ENVIRONMENT=production        # development, staging, production
+DEBUG=False                          # Must be False in production
+SECRET_KEY=your-50-char-key         # Generate with secrets.token_urlsafe(50)
+
+# Database
+DB_ENGINE=django.db.backends.postgresql
+DB_NAME=proyek_management_job
+DB_USER=manajemen_app_user
+DB_PASSWORD=<secure-password>
+DB_HOST=localhost                    # Or your database server
+DB_PORT=5432
+
+# Cache & Message Queue
+REDIS_URL=redis://localhost:6379/0
+CACHE_BACKEND=django_redis          # Or locmem for development
+
+# Security (Production)
+ALLOWED_HOSTS=yourdomain.com,www.yourdomain.com
+CSRF_TRUSTED_ORIGINS=https://yourdomain.com
+SECURE_SSL_REDIRECT=True
+SESSION_COOKIE_SECURE=True
+CSRF_COOKIE_SECURE=True
+SECURE_HSTS_SECONDS=31536000        # 1 year
+
+# Storage & Files
+STATIC_ROOT=/data/management-job/static
+MEDIA_ROOT=/data/management-job/media
+LOG_DIR=/logs/management-job
+
+# External APIs
+GOOGLE_CALENDAR_CREDENTIALS_FILE=config/credentials/google-calendar-sa.json
+FONTTE_API_TOKEN=<your-fontte-token>
+WABOT_API_URL=<your-wabot-url>
+```
+
+Complete list available in `.env.example` (59+ variables)
+
+---
+
+## 💾 Database Backups
+
+Automated backup scripts provided:
+
+**Automatic Backups (Windows Task Scheduler):**
+```bash
+# Setup scheduled backup (daily at 02:00)
+scripts\setup_scheduler.ps1
+```
+
+**Manual Backup:**
+```bash
+# Full backup with Google Drive upload
+scripts\backup_gdrive.bat
+
+# Simple local backup
+scripts\backup.bat
+
+# Test backup
+scripts\test_backup.bat
+```
+
+Backup files stored in: `C:\backup\management-job\`
+(Configurable via `BACKUP_PATH` in `.env`)
+
+---
+
+## 📊 Database Information
+
+**Database Name:** `proyek_management_job`
+**Default User:** `manajemen_app_user`
+**Default Port:** 5432
+
+**Supported Versions:**
+- PostgreSQL 12+
+- Recommended: PostgreSQL 16
+
+**Connection Features:**
+- Connection pooling with CONN_MAX_AGE
+- Health checks enabled
+- Transaction isolation: read_committed
+
+---
+
+## 🔄 Key Features Explanation
 
 ### Preventive Job Management
-- **Template-based Jobs** - Create reusable job templates
-- **Automatic Scheduling** - System automatically generates executions berdasarkan schedule
+- **Template-based Jobs** - Create reusable job templates with checklists
+- **Automatic Scheduling** - System generates executions berdasarkan schedule configuration
 - **Status Workflow** - Scheduled → In Progress → Done → Closed
-- **Compliance Tracking** - Track compliance rate per job/template
-
-### Checklist System
-- **Three Item Types:**
-  - **Numeric** - Input nilai dengan min/max validation
-  - **Free Text** - Open text untuk observasi/notes
-  - **Dropdown** - Select dari predefined options
-  
-- **Result Storage** - Simpan nilai + status (OK/NG) per item
-- **Compliance Report** - Auto-calculate overall status berdasarkan item results
+- **Soft Delete** - Delete dengan opsi restore via recycle bin
+- **Compliance Tracking** - Track completion rate per job/template
 
 ### WhatsApp Integration
 - **Share Checklist via WhatsApp** - Generate share link, kirim ke personil via WhatsApp
@@ -291,6 +453,125 @@ proyek_manajemen_job/
 - `GET /preventive/recycle-bin/` - View deleted items
 - `POST /preventive/recycle-bin/{id}/restore/` - Restore item
 - `DELETE /preventive/recycle-bin/{id}/delete/` - Permanent delete
+
+## 🏗️ Troubleshooting & Support
+
+### Common Issues
+
+**Port Already in Use**
+```bash
+# Find what's using port 8001
+netstat -ano | findstr :8001
+
+# Kill process (replace PID)
+taskkill /PID <PID> /F
+```
+
+**Database Connection Error**
+```bash
+# Verify PostgreSQL is running
+# Check .env database credentials
+# Ensure database exists and user has permissions
+psql -h localhost -U manajemen_app_user -d proyek_management_job
+```
+
+**Static Files Not Loading**
+```bash
+# Recollect static files
+python manage.py collectstatic --clear --noinput
+
+# Check STATIC_ROOT path in .env
+```
+
+**Celery Tasks Not Running**
+```bash
+# Check Redis connection
+redis-cli ping
+
+# Verify Celery worker is running
+# Check logs in C:\logs\management-job\celery_worker.log
+
+# Clear celery tasks
+celery -A config purge
+```
+
+**Permission Denied on Windows Services**
+```bash
+# Run terminal as Administrator
+# Check log files: C:\logs\management-job\
+```
+
+### Logs Location
+
+```
+C:\logs\management-job\
+├── django.log          # Django application logs
+├── errors.log          # Error logs only
+├── celery.log          # Celery task logs
+└── gunicorn_*.log      # Gunicorn server logs (if using PM2)
+```
+
+### Monitoring
+
+**PM2 Dashboard:**
+```bash
+pm2 monit
+pm2 logs
+pm2 save
+```
+
+**Database Monitoring:**
+```bash
+# Check active connections
+SELECT * FROM pg_stat_activity;
+
+# Check slow queries (enable query logging in settings)
+```
+
+**Log Monitoring:**
+```bash
+# Watch Django logs in real-time
+tail -f C:\logs\management-job\django.log
+```
+
+---
+
+## 📚 Documentation Files
+
+Key documentation provided:
+
+| File | Description |
+|------|-------------|
+| `.env.example` | Complete environment variables reference |
+| `DEPLOYMENT_CLEAN_SETUP.md` | Fresh server deployment guide |
+| `WINDOWS_SERVICE_PM2_SETUP.md` | PM2 setup for Windows services |
+| `PERMISSION_GUIDE.md` | User roles and permissions documentation |
+| `COMPATIBILITY_CHECKLIST.md` | Server compatibility requirements |
+| `panduan/` | Indonesian setup guides |
+
+---
+
+## 🔄 Version History
+
+### v2.0.0 - Production-Ready Release (May 2026)
+- ✅ Environment-based configuration (.env system)
+- ✅ Production WSGI server (Gunicorn)
+- ✅ Task queue (Celery + Redis)
+- ✅ PM2 process management
+- ✅ Zero hardcoded secrets
+- ✅ Automated backups with scheduling
+- ✅ Reverse proxy support (Caddy)
+- ✅ Complete logging infrastructure
+- ✅ Deployment-ready with guides
+
+### v1.0.0 - Initial Release (December 2025)
+- ✅ Preventive Job Management System
+- ✅ Recycle Bin Implementation
+- ✅ WhatsApp Integration
+- ✅ Google Calendar Sync
+- ✅ Compliance Reporting
+
+---
 
 ## 🤝 Contributing
 
