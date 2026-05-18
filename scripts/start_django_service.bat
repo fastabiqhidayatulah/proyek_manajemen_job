@@ -6,7 +6,7 @@ REM Port: 4321
 REM ========================================================
 
 REM Set working directory ke lokasi project
-cd /d "D:\proyek_management_job"
+cd /d "C:\repos\proyek_manajemen_job"
 
 REM Aktifkan virtual environment
 call venv\Scripts\activate.bat
@@ -18,7 +18,7 @@ REM Set encoding UTF-8 untuk handle Unicode characters di template
 set PYTHONIOENCODING=utf-8
 
 REM Set public URL untuk Ngrok tunnel
-set DJANGO_PUBLIC_URL=https://one-chimp-hardly.ngrok-free.app
+set DJANGO_PUBLIC_URL=http://localhost:8000
 
 REM Jalankan Django development server di port 4321
 REM Gunakan 0.0.0.0 agar bisa diakses dari network

@@ -223,6 +223,91 @@ def _calculate_reminder_time_10min_before(meeting_date, meeting_time):
     return reminder_datetime
 
 
+# ==============================================================================
+# GOOGLE SHEETS SYNC SIGNAL
+# ==============================================================================
+
+@receiver(post_save, sender=Meeting)
+def sync_meeting_to_google_sheets(sender, instance, created, **kwargs):
+    """
+    Auto-sync meeting ke Google Sheets ketika meeting dibuat atau updated.
+    
+    Hanya sync jika:
+    1. Meeting baru (created=True)
+    2. Status meeting adalah 'final' (meeting sudah finalized)
+    3. Departemen punya google_sheet_id yang dikonfigurasi
+    
+    Sync data: [No_Dokumen, Agenda, Tanggal, Waktu_Mulai, Waktu_Selesai, Lokasi, Peserta, "No"]
+    """
+    if not created:
+        return  # Only sync untuk meeting baru
+    
+    meeting = instance
+    
+    # Check: Status meeting harus 'final' untuk di-sync ke sheets
+    if meeting.status != 'final':
+        logger.info(f'[GoogleSheets] Meeting {meeting.no_dokumen} berstatus {meeting.status}, skip sync')
+        return
+    
+    try:
+        # Get departemen dari pemilik meeting (created_by)
+        if not meeting.created_by or not meeting.created_by.departemen:
+            logger.warning(f'[GoogleSheets] Meeting {meeting.no_dokumen} tidak punya departemen info')
+            return
+        
+        departemen = meeting.created_by.departemen
+        
+        # Check: Departemen harus punya google_sheet_id
+        if not departemen.google_sheet_id:
+            logger.warning(
+                f'[GoogleSheets] Departemen {departemen.nama_departemen} '
+                f'tidak punya google_sheet_id, skip sync'
+            )
+            return
+        
+        # Get list peserta sebagai comma-separated string
+        peserta_names = list(
+            meeting.peserta.values_list('username', flat=True)
+        )
+        peserta_str = ', '.join(peserta_names) if peserta_names else ''
+        
+        # Prepare meeting data untuk append ke sheets
+        meeting_data = {
+            'no_dokumen': meeting.no_dokumen,
+            'agenda': meeting.agenda,
+            'tanggal': meeting.tanggal_meeting,  # Date object, akan di-convert di service
+            'waktu_mulai': meeting.jam_mulai,    # Time object, akan di-convert di service
+            'waktu_selesai': meeting.jam_selesai,  # Time object
+            'lokasi': meeting.tempat,
+            'peserta': peserta_str
+        }
+        
+        # Initialize Google Sheets service dan append
+        from core.services import get_sheets_service
+        sheets_service = get_sheets_service()
+        
+        if not sheets_service:
+            logger.error(f'[GoogleSheets] Failed to initialize sheets service')
+            return
+        
+        # Append meeting row ke sheets
+        result = sheets_service.append_meeting_row(
+            spreadsheet_id=departemen.google_sheet_id,
+            meeting_data=meeting_data
+        )
+        
+        logger.info(
+            f'✅ [GoogleSheets] Meeting {meeting.no_dokumen} synced ke sheet '
+            f'{departemen.google_sheet_id}'
+        )
+        
+    except Exception as e:
+        logger.exception(
+            f'❌ [GoogleSheets] Error syncing meeting {meeting.no_dokumen}: {str(e)}'
+        )
+        # Don't raise - ini optional feature, don't break meeting creation
+
+
 def ready():
     """Called when app is ready"""
     # Signals are auto-registered when this module is imported

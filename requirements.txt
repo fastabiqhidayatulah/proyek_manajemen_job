@@ -1,16 +1,50 @@
+# Django & Database
 Django==5.2.8
 psycopg2-binary==2.9.9
+
+# Django Extensions
 django-mptt==0.15.0
 django-import-export==3.3.1
+
+# Environment Configuration
+python-dotenv==1.0.0
+
+# Task Queue & Scheduling
+celery==5.3.4
+redis==5.0.1
+
+# HTTP & API
 requests==2.31.0
+
+# Date & Time
 python-dateutil==2.8.2
+
+# Excel & Data Export
 openpyxl==3.1.5
+
+# Google APIs
 google-auth==2.25.2
 google-auth-oauthlib==1.2.0
 google-auth-httplib2==0.2.0
-google-api-python-client==1.12.8
+google-api-python-client==2.108.0
+
+# QR Code & Image Generation
 qrcode==7.4.2
-Pillow==10.0.0weasyprint==60.1
+Pillow==10.1.0
+
+# PDF Generation & Reports
+weasyprint==60.1
 reportlab==4.0.9
 lxml==4.9.3
-python-multipart==0.0.6
+
+# Production WSGI Server
+gunicorn==21.2.0
+
+# Static Files Serving
+whitenoise==6.6.0
+
+# Cache & Session (Redis)
+django-redis==5.4.0
+
+# Security
+cryptography==41.0.7

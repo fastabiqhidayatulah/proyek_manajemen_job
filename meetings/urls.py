@@ -54,4 +54,12 @@ urlpatterns = [
     
     # AJAX Endpoints
     path('peserta/<uuid:peserta_pk>/status/', views.PesertaStatusUpdateView.as_view(), name='peserta-update-status'),
+    
+    # ====== MEETING REMINDER CONFIGURATION ======
+    path('config/reminder-settings/', 
+         views.MeetingReminderSettingsView.as_view(), 
+         name='reminder-settings'),
+    path('config/google-api-settings/', 
+         views.GoogleAPISettingsView.as_view(), 
+         name='google-api-settings'),
 ]

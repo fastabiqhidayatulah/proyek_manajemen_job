@@ -4,15 +4,15 @@ REM ============================
 
 setlocal enabledelayedexpansion
 
-set PROJECT_PATH=D:\proyek_management_job
+set "PROJECT_PATH=C:\repos\proyek_manajemen_job"
 set BACKUP_DIR=%PROJECT_PATH%\backups
 set POSTGRESQL_BIN=C:\Program Files\PostgreSQL\16\bin
 set RCLONE_PATH=C:\Program Files\rclone\rclone.exe
-set DB_NAME=manajemen_pekerjaan_db
+set DB_NAME=proyek_management_job
 set DB_USER=manajemen_app_user
 set DB_HOST=localhost
 set DB_PORT=5432
-set DB_PASSWORD=AppsPassword123!
+
 
 REM Add PostgreSQL to PATH
 set PATH=%PATH%;%POSTGRESQL_BIN%

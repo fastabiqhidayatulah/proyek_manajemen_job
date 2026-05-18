@@ -5,10 +5,10 @@ REM ====================================
 setlocal disabledelayedexpansion
 
 set POSTGRESQL_BIN=C:\Program Files\PostgreSQL\16\bin
-set BACKUP_DIR=D:\proyek_management_job\backups
-set DB_NAME=manajemen_pekerjaan_db
+set BACKUP_DIR=C:\backup\management-job
+set DB_NAME=proyek_management_job
 set DB_USER=manajemen_app_user
-set DB_PASSWORD=AppsPassword123!
+
 set DB_HOST=localhost
 
 echo.
@@ -35,6 +35,7 @@ echo.
 REM Dump database
 echo Dumping database...
 setlocal enabledelayedexpansion
+set /p DB_PASSWORD="Enter PostgreSQL password for '%DB_USER%': "
 set PGPASSWORD=%DB_PASSWORD%
 "%POSTGRESQL_BIN%\pg_dump" -h %DB_HOST% -U %DB_USER% -d %DB_NAME% -f "%BACKUP_FILE%"
 setlocal disabledelayedexpansion

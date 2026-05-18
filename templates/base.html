@@ -288,10 +288,33 @@
                                 <i class="bi bi-gear-fill"></i> <span id="maintenance-status">Mode</span>
                             </button>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'admin:index' %}" target="_blank">
-                                <i class="bi bi-gear-fill"></i> Admin Panel
+                        
+                        <!-- ADMIN DROPDOWN MENU -->
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-shield-check"></i> Admin
                             </a>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="adminDropdown">
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'admin:index' %}" target="_blank">
+                                        <i class="bi bi-sliders"></i> Django Admin Panel
+                                        <small class="d-block text-muted">Kelola data & permissions</small>
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'meetings:google-api-settings' %}">
+                                        <i class="bi bi-api"></i> Pengaturan API Global
+                                        <small class="d-block text-muted">Fonnte Token, Reminder Time</small>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'meetings:reminder-settings' %}">
+                                        <i class="bi bi-calendar-check"></i> Pengaturan Reminder
+                                        <small class="d-block text-muted">Google Sheets Configuration</small>
+                                    </a>
+                                </li>
+                            </ul>
                         </li>
                         {% endif %}
 

@@ -84,7 +84,7 @@ echo ║  NEXT STEPS                                                ║
 echo ╚════════════════════════════════════════════════════════════╝
 echo.
 echo 1. Buka Terminal Baru (untuk Django)
-echo    cd \\192.168.10.239\proyek_management_job
+echo    cd to project directory
 echo.
 echo 2. Jalankan Django:
 echo    python manage.py runserver 0.0.0.0:4321

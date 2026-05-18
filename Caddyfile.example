@@ -1,0 +1,10 @@
+# Caddy reverse proxy example for Proyek Manajemen Job
+
+management-job.localhost {
+    reverse_proxy 127.0.0.1:8001
+}
+
+# Example for public domain:
+# yourdomain.com {
+#     reverse_proxy 127.0.0.1:8001
+# }

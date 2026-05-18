@@ -48,6 +48,7 @@ db.sqlite3
 db.sqlite3-journal
 media/
 /static
+staticfiles/
 
 # IDE & Editor
 .vscode/
@@ -65,9 +66,41 @@ config/credentials/
 config/secret_key.txt
 .env
 .env.local
+.env.*.local
+
+# Environment-specific files
+.env.production
+.env.staging
+.env.development
+
+# Celery schedule database
+celerybeat-schedule
+celerybeat-schedule.bak
+celerybeat-schedule.dir
+celerybeat-schedule.dat
+
+# Backup files
+backup_*.json
+backup_*.sql
+*.backup
+*.bak
 
 # Test files
 test_google_calendar.py
 
-# Logs
+# Logs directory
 logs/
+/logs/
+
+# IDE specific
+.vscode/settings.json
+.idea/workspace.xml
+
+# OS-specific
+.env.local.php
+.env.swp
+
+# Node modules (for PM2/npm)
+node_modules/
+package-lock.json
+JSON GCP/*.json

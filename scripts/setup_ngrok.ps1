@@ -4,7 +4,7 @@
 # Nama file: setup_ngrok.ps1
 # Cara pakai: 
 #   1. Open PowerShell as Administrator
-#   2. cd \\192.168.10.239\proyek_management_job\scripts
+#   2. cd to project directory\scripts
 #   3. Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope CurrentUser
 #   4. .\setup_ngrok.ps1
 
@@ -140,7 +140,7 @@ Write-Host "╚═════════════════════�
 Write-Host ""
 
 Write-Host "1️⃣  Start Django Server" -ForegroundColor Yellow
-Write-Host "   cd \\192.168.10.239\proyek_management_job" -ForegroundColor Gray
+Write-Host "   cd to project directory" -ForegroundColor Gray
 Write-Host "   python manage.py runserver 0.0.0.0:4321" -ForegroundColor Gray
 Write-Host ""
 

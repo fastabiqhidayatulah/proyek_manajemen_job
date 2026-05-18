@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}
+  Meeting Reminder Settings - {{ departemen.nama_departemen }}
+{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+  <div class="row">
+    <div class="col-md-8 mx-auto">
+      <!-- Header -->
+      <div class="d-flex align-items-center mb-4">
+        <h2>📅 Meeting Reminder Configuration</h2>
+        {% if departemen %}
+        <span class="badge badge-primary ms-3">
+          {{ departemen.nama_departemen }}
+          {% if is_admin %}
+          <br><small>(+ semua departemen lainnya)</small>
+          {% endif %}
+        </span>
+        {% endif %}
+      </div>
+
+      <!-- Info Card -->
+      <div class="alert alert-info">
+        <h5>ℹ️ Bagaimana cara kerja?</h5>
+        <ol>
+          <li>Isi Google Spreadsheet ID dari "Meeting Reminders" sheet</li>
+          <li>Setiap meeting baru akan otomatis ter-sync ke spreadsheet</li>
+          <li>Google Apps Script akan mengirim reminder WA setiap hari jam 08:00</li>
+          <li>Peserta akan menerima reminder meeting di WhatsApp</li>
+        </ol>
+      </div>
+
+      <!-- Configuration Form -->
+      <form method="POST" class="card p-4">
+        {% csrf_token %}
+
+        <!-- Spreadsheet ID Field -->
+        <div class="mb-3">
+          <label for="google_sheet_id" class="form-label">
+            <strong>Google Spreadsheet ID</strong>
+          </label>
+          <input 
+            type="text" 
+            id="google_sheet_id" 
+            name="google_sheet_id" 
+            class="form-control"
+            placeholder="Copy dari: docs.google.com/spreadsheets/d/[ID]/edit"
+            value="{{ sheet_id }}"
+            pattern="[a-zA-Z0-9\-_]+"
+            required
+          >
+          <small class="form-text text-muted">
+            📋 <strong>Cara mendapatkan ID:</strong><br>
+            1. Buka spreadsheet "Meeting Reminders" di Google Sheets<br>
+            2. Copy ID dari URL: <code>docs.google.com/spreadsheets/d/<strong>[ID DISINI]</strong>/edit</code><br>
+            3. Paste di field di atas
+          </small>
+        </div>
+
+        <!-- Current Status -->
+        {% if departemen %}
+          {% if has_google_sheet_id %}
+          <div class="alert alert-success">
+            {% if is_admin %}
+            <strong>✅ Spreadsheet dikonfigurasi untuk SEMUA departemen!</strong><br>
+            Meeting baru akan otomatis ter-sync ke: <code>{{ sheet_id }}</code>
+            {% else %}
+            <strong>✅ Spreadsheet sudah terhubung untuk {{ departemen.nama_departemen }}!</strong><br>
+            Meeting baru akan otomatis ter-sync ke: <code>{{ sheet_id }}</code>
+            {% endif %}
+          </div>
+          {% else %}
+          <div class="alert alert-warning">
+            {% if is_admin %}
+            <strong>⚠️ Spreadsheet belum dikonfigurasi</strong><br>
+            Silakan isi spreadsheet ID di bawah untuk mengaktifkan auto-sync untuk SEMUA departemen
+            {% else %}
+            <strong>⚠️ Spreadsheet belum dikonfigurasi untuk {{ departemen.nama_departemen }}</strong><br>
+            Silakan isi spreadsheet ID di bawah untuk mengaktifkan auto-sync
+            {% endif %}
+          </div>
+          {% endif %}
+        {% else %}
+          <div class="alert alert-info">
+            <strong>ℹ️ Konfigurasi Spreadsheet</strong><br>
+            Isi spreadsheet ID yang akan digunakan untuk semua departemen
+          </div>
+        {% endif %}
+
+        <!-- Form Errors -->
+        {% if form.errors %}
+        <div class="alert alert-danger">
+          {% for field, errors in form.errors.items %}
+            <div><strong>{{ field }}:</strong>
+              {% for error in errors %}
+                {{ error }}
+              {% endfor %}
+            </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Action Buttons -->
+        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+          <a href="{% url 'meetings:meeting-list' %}" class="btn btn-secondary">
+            ↩️ Kembali
+          </a>
+          <button type="submit" class="btn btn-primary">
+            💾 Simpan Konfigurasi
+          </button>
+        </div>
+      </form>
+
+      <!-- Help Section -->
+      <div class="card mt-4 p-4 bg-light">
+        <h5>📞 Bantuan & Troubleshooting</h5>
+        <ul>
+          <li><strong>Spreadsheet tidak terdeteksi?</strong><br>
+            Pastikan shared ke service account: <code>django-calendar-app@cuti-gcal.iam.gserviceaccount.com</code>
+          </li>
+          <li><strong>Meeting tidak ter-sync?</strong><br>
+            - Pastikan meeting status "Final" saat disimpan<br>
+            - Cek Google Sheets API nya aktif di GCP Project
+          </li>
+          <li><strong>Ingin ubah waktu reminder?</strong><br>
+            Hubungi admin untuk mengubah di Global Google API Settings
+          </li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<style>
+  code {
+    background-color: #f0f0f0;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: monospace;
+  }
+</style>
+{% endblock %}

@@ -51,6 +51,13 @@ class Departemen(models.Model):
         verbose_name="Google Calendar ID",
         help_text="Calendar ID dari Google Workspace untuk departemen ini (cth: abc123@group.calendar.google.com)"
     )
+    google_sheet_id = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        verbose_name="Google Spreadsheet ID (Meeting Reminder)",
+        help_text="ID spreadsheet untuk meeting reminder auto-sync (copy dari URL: docs.google.com/spreadsheets/d/{ID}/edit)"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
@@ -1294,3 +1301,62 @@ class FonnteSettings(models.Model):
             return response.status_code < 500
         except Exception as e:
             return False
+
+
+# ==============================================================================
+# 8. MODEL GOOGLE API SETTINGS (GLOBAL CONFIGURATION)
+# ==============================================================================
+class GoogleAPISettings(models.Model):
+    """
+    Model untuk menyimpan global Google API settings.
+    Digunakan untuk konfigurasi Fonnte API token dan reminder send time.
+    
+    Singleton pattern: Hanya ada 1 record (pk=1)
+    """
+    
+    fonnte_api_token = models.CharField(
+        max_length=500,
+        blank=True,
+        null=True,
+        verbose_name="Fonnte API Token",
+        help_text="Token dari Fonnte untuk WhatsApp API"
+    )
+    
+    reminder_send_time = models.TimeField(
+        default='08:00',
+        verbose_name="Waktu Kirim Reminder",
+        help_text="Jam berapa reminder meeting dikirim (format HH:MM, timezone Asia/Jakarta)"
+    )
+    
+    # JSON credentials untuk Google Sheets/Calendar
+    google_credentials_path = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        verbose_name="Path ke Google Credentials JSON",
+        help_text="Path relatif ke file JSON credentials (misal: JSON GCP/credentials.json)"
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Google API Settings"
+        verbose_name_plural = "Google API Settings"
+    
+    def __str__(self):
+        return "Global Google API Settings"
+    
+    @classmethod
+    def get_instance(cls):
+        """
+        Singleton getter: Selalu return instance dengan pk=1.
+        Create jika tidak ada.
+        """
+        obj, created = cls.objects.get_or_create(pk=1)
+        return obj
+    
+    def save(self, *args, **kwargs):
+        """Override save untuk ensure hanya ada 1 instance"""
+        self.pk = 1
+        super().save(*args, **kwargs)

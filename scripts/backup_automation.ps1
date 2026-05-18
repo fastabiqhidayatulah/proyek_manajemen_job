@@ -3,13 +3,12 @@
 
 $RclonePath = "C:\Program Files\rclone\rclone.exe"
 $PostgreSQLBin = "C:\Program Files\PostgreSQL\16\bin"
-$BackupDir = "D:\proyek_management_job\backups"
+$BackupDir = "C:\backup\management-job"
 $LogFile = "$BackupDir\backup_log.txt"
 
 # Database config
-$DBName = "manajemen_pekerjaan_db"
+$DBName = "proyek_management_job"
 $DBUser = "manajemen_app_user"
-$DBPassword = "AppsPassword123!"
 $DBHost = "localhost"
 $DBPort = "5432"
 
@@ -51,7 +50,10 @@ Log-Message "Backup file: $BackupFile"
 
 # Step 1: Dump database
 Log-Message "Step 1: Dumping database..."
-$env:PGPASSWORD = $DBPassword
+$SecurePassword = Read-Host "Enter PostgreSQL password for $DBUser" -AsSecureString
+$BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($SecurePassword)
+$PlainPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
+$env:PGPASSWORD = $PlainPassword
 pg_dump -h $DBHost -U $DBUser -d $DBName -f $BackupFile 2>&1 | ForEach-Object { Log-Message $_ }
 
 if ($LASTEXITCODE -ne 0) {

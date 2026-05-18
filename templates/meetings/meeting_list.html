@@ -17,6 +17,31 @@
             <a href="{% url 'meetings:meeting-create' %}" class="btn btn-primary">
                 <i class="bi bi-plus-circle"></i> Buat Meeting Baru
             </a>
+            
+            <!-- Settings Dropdown Menu -->
+            <div class="btn-group" role="group">
+                <button id="settingsDropdown" type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-gear"></i> Pengaturan
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="settingsDropdown">
+                    {% if user.is_staff %}
+                    <li>
+                        <a class="dropdown-item" href="{% url 'meetings:google-api-settings' %}">
+                            <i class="bi bi-shield-check"></i> Pengaturan API Global
+                            <small class="d-block text-muted">Fonnte Token, Reminder Time</small>
+                        </a>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    {% endif %}
+                    
+                    <li>
+                        <a class="dropdown-item" href="{% url 'meetings:reminder-settings' %}">
+                            <i class="bi bi-calendar-check"></i> Pengaturan Reminder Spreadsheet
+                            <small class="d-block text-muted">Google Sheets ID per Departemen</small>
+                        </a>
+                    </li>
+                </ul>
+            </div>
         </div>
     </div>
 

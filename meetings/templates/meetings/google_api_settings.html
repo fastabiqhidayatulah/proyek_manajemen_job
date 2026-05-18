@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}
+  Google API Settings
+{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+  <div class="row">
+    <div class="col-md-8 mx-auto">
+      <!-- Header -->
+      <div class="d-flex align-items-center mb-4">
+        <h2>🔧 Global Google API Settings</h2>
+        <span class="badge badge-danger ms-3">Admin Only</span>
+      </div>
+
+      <!-- Info Card -->
+      <div class="alert alert-warning">
+        <h5>⚠️ Perhatian</h5>
+        <p>Halaman ini hanya untuk <strong>Admin/Superuser</strong>. Settings di sini akan berlaku global untuk semua departemen.</p>
+      </div>
+
+      <!-- Configuration Form -->
+      <form method="POST" class="card p-4">
+        {% csrf_token %}
+
+        <!-- Fonnte API Token -->
+        <div class="mb-3">
+          <label for="fonnte_api_token" class="form-label">
+            <strong>Fonnte API Token</strong> <span class="text-danger">*</span>
+          </label>
+          <input 
+            type="password" 
+            id="fonnte_api_token" 
+            name="fonnte_api_token" 
+            class="form-control"
+            placeholder="Paste token dari https://dashboard.fonnte.com"
+            value="{{ form.fonnte_api_token.value|default:'' }}"
+            required
+          >
+          <small class="form-text text-muted">
+            📲 <strong>Dapatkan token:</strong><br>
+            1. Login ke <a href="https://dashboard.fonnte.com" target="_blank">Fonnte Dashboard</a><br>
+            2. Masuk ke menu Integration → API<br>
+            3. Copy API Token<br>
+            4. Paste di field ini
+          </small>
+        </div>
+
+        <!-- Reminder Send Time -->
+        <div class="mb-3">
+          <label for="reminder_send_time" class="form-label">
+            <strong>Waktu Kirim Reminder</strong> <span class="text-danger">*</span>
+          </label>
+          <input 
+            type="time" 
+            id="reminder_send_time" 
+            name="reminder_send_time" 
+            class="form-control"
+            value="{{ form.reminder_send_time.value|default:'08:00'|time:'H:i' }}"
+            required
+          >
+          <small class="form-text text-muted">
+            🕐 Jam berapa reminder dikirim setiap hari (format HH:MM)<br>
+            Timezone: <strong>Asia/Jakarta (WIB)</strong>
+          </small>
+        </div>
+
+        <!-- Google Credentials Path -->
+        <div class="mb-3">
+          <label for="google_credentials_path" class="form-label">
+            <strong>Path ke Google Credentials JSON</strong> (Opsional)
+          </label>
+          <input 
+            type="text" 
+            id="google_credentials_path" 
+            name="google_credentials_path" 
+            class="form-control"
+            placeholder="Contoh: JSON GCP/credentials.json"
+            value="{{ form.google_credentials_path.value|default:'' }}"
+          >
+          <small class="form-text text-muted">
+            🔐 <strong>Path relatif</strong> dari project root<br>
+            Default: <code>JSON GCP/credentials.json</code><br>
+            Credentials file harus berisi service account key dari Google Cloud Project
+          </small>
+        </div>
+
+        <!-- Form Errors -->
+        {% if form.errors %}
+        <div class="alert alert-danger">
+          {% for field, errors in form.errors.items %}
+            <div><strong>{{ field }}:</strong>
+              {% for error in errors %}
+                {{ error }}<br>
+              {% endfor %}
+            </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Messages -->
+        {% if messages %}
+        <div class="alert alert-info">
+          {% for message in messages %}
+            <div>{{ message }}</div>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Action Buttons -->
+        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+          <a href="{% url 'meetings:meeting-list' %}" class="btn btn-secondary">
+            ↩️ Kembali
+          </a>
+          <button type="submit" class="btn btn-primary">
+            💾 Simpan Konfigurasi
+          </button>
+        </div>
+      </form>
+
+      <!-- Current Settings Summary -->
+      <div class="card mt-4 p-4 bg-light">
+        <h5>📊 Status Konfigurasi Saat Ini</h5>
+        <table class="table table-sm">
+          <tr>
+            <td><strong>Fonnte API Token</strong></td>
+            <td>
+              {% if fonnte_token %}
+                ✅ Sudah dikonfigurasi ({{ fonnte_token|length }} characters)
+              {% else %}
+                ❌ Belum dikonfigurasi
+              {% endif %}
+            </td>
+          </tr>
+          <tr>
+            <td><strong>Waktu Kirim Reminder</strong></td>
+            <td>{{ reminder_time|time:'H:i'|default:'08:00' }} WIB</td>
+          </tr>
+          <tr>
+            <td><strong>Google Credentials Path</strong></td>
+            <td><code>{{ creds_path }}</code></td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- Setup Instructions -->
+      <div class="card mt-4 p-4">
+        <h5>📝 Petunjuk Setup Lengkap</h5>
+        
+        <h6>1️⃣ Setup Fonnte API (WhatsApp)</h6>
+        <ol>
+          <li>Buat akun <a href="https://app.fonnte.com" target="_blank">Fonnte</a></li>
+          <li>Verifikasi WhatsApp bot</li>
+          <li>Get API token dari dashboard</li>
+          <li>Paste token di field "Fonnte API Token" di atas</li>
+        </ol>
+
+        <h6>2️⃣ Setup Google Cloud Project</h6>
+        <ol>
+          <li>Buat project di <a href="https://console.cloud.google.com" target="_blank">Google Cloud Console</a></li>
+          <li>Enable APIs: Google Sheets API + Google Calendar API</li>
+          <li>Buat Service Account dan download JSON key</li>
+          <li>Store JSON key di path: <code>JSON GCP/credentials.json</code></li>
+        </ol>
+
+        <h6>3️⃣ Setup Google Spreadsheet</h6>
+        <ol>
+          <li>Buat spreadsheet baru di Google Sheets</li>
+          <li>Share ke service account email: <code>django-calendar-app@cuti-gcal.iam.gserviceaccount.com</code></li>
+          <li>Buat 4 sheets: Pengaturan, TargetPenerimaWA, Meetings, Logs</li>
+          <li>Copy spreadsheet ID ke Meeting Reminder Settings per departemen</li>
+        </ol>
+
+        <h6>4️⃣ Deploy Google Apps Script</h6>
+        <ol>
+          <li>Buka spreadsheet → Tools → Script Editor</li>
+          <li>Paste GAS code dari <code>MEETING_REMINDER_GAS_CODE.gs</code></li>
+          <li>Save dan authorize</li>
+          <li>Klik menu "2. Atur Trigger Harian" untuk setup daily trigger</li>
+        </ol>
+      </div>
+
+      <!-- Support -->
+      <div class="card mt-4 p-4 bg-warning bg-opacity-10">
+        <h5>❓ Butuh Bantuan?</h5>
+        <p>Hubungi developer untuk:</p>
+        <ul>
+          <li>Setup Google Cloud Project</li>
+          <li>Create Service Account & credentials</li>
+          <li>Deploy Google Apps Script</li>
+          <li>Troubleshooting koneksi</li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<style>
+  code {
+    background-color: #f0f0f0;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: monospace;
+    font-size: 0.9em;
+  }
+  .alert-warning {
+    background-color: #fff3cd !important;
+  }
+</style>
+{% endblock %}

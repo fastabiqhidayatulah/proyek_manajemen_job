@@ -1284,3 +1284,186 @@ class ExportNotulenPDFV2View(LoginRequiredMixin, View):
             print(traceback.format_exc())
             return HttpResponseForbidden(f'Error: {str(e)}')
 
+
+# ==============================================================================
+# 17. MEETING REMINDER CONFIGURATION VIEWS
+# ==============================================================================
+
+class MeetingReminderSettingsView(LoginRequiredMixin, View):
+    """
+    Configuration page untuk meeting reminder.
+    - Departemen Head: Konfigurasi untuk departemen mereka saja
+    - Admin/Staff: Konfigurasi untuk SEMUA departemen (1 spreadsheet global)
+    """
+    login_url = 'login'
+    template_name = 'meetings/reminder_settings.html'
+    
+    def get(self, request):
+        """Show configuration form"""
+        from core.models import Departemen
+        
+        user = request.user
+        
+        # Check permission: user harus departemen head atau staff
+        if not user.is_staff and not hasattr(user, 'departemen_dipimpin'):
+            messages.error(request, "Anda tidak memiliki akses ke halaman ini.")
+            return redirect('meetings:meeting-list')
+        
+        # Get departemen
+        departemen = getattr(user, 'departemen_dipimpin', None)
+        
+        context = {
+            'departemen': departemen,
+            'has_google_sheet_id': bool(departemen and departemen.google_sheet_id) if departemen else False,
+            'sheet_id': departemen.google_sheet_id if departemen else '',
+            'is_admin': user.is_staff,
+        }
+        
+        return render(request, self.template_name, context)
+    
+    def post(self, request):
+        """Save configuration"""
+        from .forms import DepartemenGoogleSettingsForm
+        from core.models import Departemen
+        
+        user = request.user
+        
+        # Get departemen from user
+        departemen = getattr(user, 'departemen_dipimpin', None)
+        
+        # If admin (no departemen), apply to ALL departemen
+        if user.is_staff and not departemen:
+            departemen_list = list(Departemen.objects.all())
+            if not departemen_list:
+                messages.error(request, "Tidak ada departemen yang tersedia.")
+                return redirect('meetings:reminder-settings')
+        else:
+            if not departemen:
+                messages.error(request, "Departemen tidak ditemukan. Hubungi admin.")
+                return redirect('meetings:meeting-list')
+            departemen_list = [departemen]
+        
+        form = DepartemenGoogleSettingsForm(request.POST)
+        
+        if form.is_valid():
+            # Save google_sheet_id to departemen(s)
+            sheet_id = form.cleaned_data['google_sheet_id']
+            
+            saved_count = 0
+            for dept in departemen_list:
+                dept.google_sheet_id = sheet_id
+                dept.save()
+                saved_count += 1
+            
+            # Test connection (use first departemen)
+            try:
+                from core.services import get_sheets_service
+                sheets_service = get_sheets_service()
+                
+                if sheets_service and sheets_service.test_connection(sheet_id):
+                    if user.is_staff and len(departemen_list) > 1:
+                        messages.success(
+                            request,
+                            f"✅ Konfigurasi berhasil untuk {saved_count} departemen! Spreadsheet ID: {sheet_id}"
+                        )
+                    else:
+                        messages.success(
+                            request,
+                            f"✅ Configurasi berhasil untuk {departemen_list[0].nama_departemen}! Spreadsheet ID: {sheet_id}"
+                        )
+                else:
+                    messages.warning(
+                        request,
+                        f"⚠️ Spreadsheet ID disimpan tapi koneksi gagal. "
+                        f"Pastikan sheet 'Meetings' ada dan spreadsheet dapat diakses."
+                    )
+            except Exception as e:
+                messages.warning(
+                    request,
+                    f"⚠️ Spreadsheet ID disimpan. Error saat test koneksi: {str(e)}"
+                )
+            
+            return redirect('meetings:reminder-settings')
+        else:
+            # Show form errors
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f"{field}: {error}")
+        
+        context = {
+            'departemen': departemen_list[0] if departemen_list else None,
+            'has_google_sheet_id': bool(departemen_list[0] and departemen_list[0].google_sheet_id) if departemen_list else False,
+            'sheet_id': departemen_list[0].google_sheet_id if departemen_list else '',
+            'form': form,
+            'is_admin': user.is_staff,
+        }
+        
+        return render(request, self.template_name, context)
+
+
+
+class GoogleAPISettingsView(LoginRequiredMixin, View):
+    """
+    Global Google API settings page.
+    Only admin/superuser dapat akses.
+    Configure: Fonnte API token, reminder send time, Google credentials path.
+    """
+    login_url = 'login'
+    template_name = 'meetings/google_api_settings.html'
+    
+    def dispatch(self, request, *args, **kwargs):
+        """Check admin permission"""
+        if not request.user.is_staff:
+            messages.error(request, "Hanya admin yang bisa akses halaman ini.")
+            return redirect('meetings:meeting-list')
+        return super().dispatch(request, *args, **kwargs)
+    
+    def get(self, request):
+        """Show settings form"""
+        from core.models import GoogleAPISettings
+        
+        settings_obj = GoogleAPISettings.get_instance()
+        
+        context = {
+            'fonnte_token': settings_obj.fonnte_api_token,
+            'reminder_time': settings_obj.reminder_send_time,
+            'creds_path': settings_obj.google_credentials_path or 'JSON GCP/credentials.json',
+        }
+        
+        return render(request, self.template_name, context)
+    
+    def post(self, request):
+        """Save global settings"""
+        from .forms import GoogleAPISettingsForm
+        from core.models import GoogleAPISettings
+        
+        form = GoogleAPISettingsForm(request.POST)
+        
+        if form.is_valid():
+            settings_obj = GoogleAPISettings.get_instance()
+            
+            # Update fields
+            settings_obj.fonnte_api_token = form.cleaned_data['fonnte_api_token']
+            settings_obj.reminder_send_time = form.cleaned_data['reminder_send_time']
+            settings_obj.google_credentials_path = (
+                form.cleaned_data.get('google_credentials_path') or 'JSON GCP/credentials.json'
+            )
+            
+            settings_obj.save()
+            
+            messages.success(request, "✅ Google API settings berhasil disimpan!")
+            
+            return redirect('meetings:google-api-settings')
+        else:
+            # Show form errors
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f"{field}: {error}")
+        
+        context = {
+            'form': form,
+        }
+        
+        return render(request, self.template_name, context)
+
+

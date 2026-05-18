@@ -175,3 +175,98 @@ class PresensiExternalForm(forms.ModelForm):
                 raise forms.ValidationError('Anda sudah absen di meeting ini!')
         
         return cleaned_data
+
+
+# ==============================================================================
+# CONFIGURATION FORMS UNTUK MEETING REMINDER SETUP
+# ==============================================================================
+
+class DepartemenGoogleSettingsForm(forms.Form):
+    """
+    Form untuk konfigurasi Google Sheets ID per Departemen.
+    Field: google_sheet_id
+    """
+    google_sheet_id = forms.CharField(
+        label='Google Spreadsheet ID (Meeting Reminder)',
+        max_length=255,
+        required=True,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Copy dari URL: docs.google.com/spreadsheets/d/{ID}/edit',
+            'pattern': '[a-zA-Z0-9-_]+',
+        }),
+        help_text='Copy ID dari URL spreadsheet. Contoh: 1kzzz_ABC123xyz'
+    )
+    
+    def clean_google_sheet_id(self):
+        """Validate spreadsheet ID format"""
+        sheet_id = self.cleaned_data.get('google_sheet_id', '').strip()
+        
+        if not sheet_id:
+            raise forms.ValidationError('Spreadsheet ID tidak boleh kosong')
+        
+        # Check format: alphanumeric, dash, underscore only
+        import re
+        if not re.match(r'^[a-zA-Z0-9\-_]+$', sheet_id):
+            raise forms.ValidationError(
+                'Spreadsheet ID hanya boleh mengandung: A-Z, 0-9, dash (-), underscore (_)'
+            )
+        
+        # Optional: Can add actual validation dengan coba connect ke Google Sheets
+        # Tapi untuk saat ini skip
+        
+        return sheet_id
+
+
+class GoogleAPISettingsForm(forms.Form):
+    """
+    Form untuk global Google API settings.
+    Fields: fonnte_api_token, reminder_send_time
+    """
+    fonnte_api_token = forms.CharField(
+        label='Fonnte API Token',
+        max_length=500,
+        required=True,
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Paste Fonnte API token dari https://dashboard.fonnte.com',
+        }),
+        help_text='Token dari Fonnte untuk WhatsApp API'
+    )
+    
+    reminder_send_time = forms.TimeField(
+        label='Waktu Kirim Reminder',
+        required=True,
+        widget=forms.TimeInput(attrs={
+            'type': 'time',
+            'class': 'form-control',
+        }, format='%H:%M'),
+        initial='08:00',
+        help_text='Jam berapa reminder meeting dikirim setiap hari (format HH:MM)'
+    )
+    
+    google_credentials_path = forms.CharField(
+        label='Path ke Google Credentials JSON (Opsional)',
+        max_length=255,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Contoh: JSON GCP/credentials.json',
+        }),
+        help_text='Path relatif dari BASE_DIR. Default: JSON GCP/credentials.json'
+    )
+    
+    def clean_fonnte_api_token(self):
+        """Validate token tidak kosong"""
+        token = self.cleaned_data.get('fonnte_api_token', '').strip()
+        if not token:
+            raise forms.ValidationError('Fonnte API Token tidak boleh kosong')
+        return token
+    
+    def clean_reminder_send_time(self):
+        """Validate time format"""
+        send_time = self.cleaned_data.get('reminder_send_time')
+        if not send_time:
+            raise forms.ValidationError('Waktu kirim tidak boleh kosong')
+        return send_time
+

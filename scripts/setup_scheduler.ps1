@@ -1,9 +1,9 @@
 # Setup Windows Task Scheduler for Automated Backup
 # =================================================
 
-$ScriptPath = "D:\proyek_management_job\scripts\backup_automation.ps1"
+$ScriptPath = "C:\repos\proyek_manajemen_job\scripts\backup_automation.ps1"
 $TaskName = "Backup_Database_GDrive"
-$TaskDescription = "Backup database manajemen_pekerjaan_db ke Google Drive setiap hari jam 02:00"
+$TaskDescription = "Backup database proyek_management_job ke Google Drive setiap hari jam 02:00"
 $ScheduleTime = "02:00"
 
 Write-Host ""
