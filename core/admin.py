@@ -549,3 +549,26 @@ class FokusPekerjaanAdmin(admin.ModelAdmin):
             if Job.objects.filter(fokus=obj.nama).exists():
                 return False
         return request.user.is_superuser
+
+
+# ============================================================
+# CUSTOM ADMIN INDEX WITH BACKUP/RESTORE LINK
+# ============================================================
+class CustomAdminSite(admin.AdminSite):
+    """Custom admin site with additional links"""
+    
+    def index(self, request, extra_context=None):
+        """Add custom links to admin index"""
+        if extra_context is None:
+            extra_context = {}
+        
+        # Add backup/restore link if user is superuser
+        if request.user.is_superuser:
+            extra_context['backup_restore_url'] = '/admin/backup-restore/'
+            extra_context['database_health_url'] = '/admin/database-health/'
+        
+        return super().index(request, extra_context)
+
+
+# Optional: Replace default admin site (uncomment if needed)
+# admin.site.__class__ = CustomAdminSite

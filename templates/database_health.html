@@ -1,0 +1,241 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Database Health Check - Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1>
+                    <i class="bi bi-heart-pulse"></i> Database Health Check
+                </h1>
+                <div class="btn-group">
+                    <a href="{% url 'core:backup_restore' %}" class="btn btn-primary">
+                        <i class="bi bi-cloud-upload"></i> Backup & Restore
+                    </a>
+                    <a href="{% url 'core:dashboard' %}" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left"></i> Back
+                    </a>
+                </div>
+            </div>
+            <p class="text-muted">Monitor kesehatan dan performa database</p>
+        </div>
+    </div>
+
+    {% if error %}
+    <div class="alert alert-danger">
+        <i class="bi bi-exclamation-triangle"></i> Error: {{ error }}
+    </div>
+    {% else %}
+
+    <!-- Summary Stats -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <h6 class="card-subtitle mb-2 text-muted">
+                        <i class="bi bi-database"></i> Database Size
+                    </h6>
+                    <h3 class="text-success">{{ database_size }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <h6 class="card-subtitle mb-2 text-muted">
+                        <i class="bi bi-diagram-3"></i> Active Connections
+                    </h6>
+                    <h3 class="text-info">{{ connection_count }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Table Sizes -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-table"></i> Table Sizes (Largest First)
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th width="50%">Table Name</th>
+                                    <th width="30%">Size</th>
+                                    <th width="20%">Schema</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in table_sizes %}
+                                <tr>
+                                    <td>
+                                        <code>{{ item.table }}</code>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info">{{ item.size }}</span>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">{{ item.schema }}</small>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="3" class="text-center text-muted">
+                                        No tables found
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Row Counts -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-diagram-2"></i> Row Counts (Largest First)
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Table</th>
+                                    <th>Rows</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in table_rows %}
+                                <tr>
+                                    <td>
+                                        <code>{{ item.table }}</code>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-success">
+                                            {{ item.rows|floatformat:0 }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="2" class="text-center text-muted">
+                                        No data
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Last Maintenance -->
+        <div class="col-md-6">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">
+                        <i class="bi bi-tools"></i> Last Maintenance (5 Recent)
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Table</th>
+                                    <th>Last Vacuum</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in last_vacuums %}
+                                <tr>
+                                    <td>
+                                        <code>{{ item.table }}</code>
+                                    </td>
+                                    <td>
+                                        <small>
+                                            {% if item.last_autovacuum %}
+                                                {{ item.last_autovacuum|date:"d/m H:i" }}
+                                            {% elif item.last_vacuum %}
+                                                {{ item.last_vacuum|date:"d/m H:i" }}
+                                            {% else %}
+                                                Never
+                                            {% endif %}
+                                        </small>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="2" class="text-center text-muted">
+                                        No data
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Health Status -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card shadow-sm border-0 bg-light">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-check-circle"></i> Status & Rekomendasi
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled">
+                        <li class="mb-2">
+                            <i class="bi bi-check-circle-fill text-success"></i>
+                            <strong>Database Size:</strong> {{ database_size }}
+                            <small class="text-muted">(Normal)</small>
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-check-circle-fill text-success"></i>
+                            <strong>Active Connections:</strong> {{ connection_count }}
+                            <small class="text-muted">({% if connection_count > 10 %}High - Monitor{% else %}Normal{% endif %})</small>
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-info-circle-fill text-info"></i>
+                            <strong>Rekomendasi:</strong>
+                            <ul class="small mt-2">
+                                <li>✅ Buat backup regular (minimal mingguan)</li>
+                                <li>✅ Monitor log files untuk errors</li>
+                                <li>✅ Lakukan VACUUM/ANALYZE secara periodic</li>
+                                <li>✅ Cek disk space tersedia</li>
+                                <li>{% if connection_count > 20 %}⚠️ Connection count tinggi - pertimbangkan connection pooling{% else %}✅ Connection count normal{% endif %}</li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% endif %}
+
+</div>
+{% endblock %}

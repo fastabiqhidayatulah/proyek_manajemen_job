@@ -1,6 +1,7 @@
 from django.urls import path
 from django.contrib.auth import views as auth_views
 from . import views
+from .views_backup import backup_restore_management, backup_create_now, database_health_check
 
 app_name = 'core'
 
@@ -131,4 +132,9 @@ urlpatterns = [
     
     # TEMPORARY: Helper untuk run migration
     path('_run_migration/', views.run_migration_helper, name='run_migration_helper'),
+    
+    # DATABASE BACKUP & RESTORE (ADMIN ONLY)
+    path('backup-restore/', backup_restore_management, name='backup_restore'),
+    path('backup-create/', backup_create_now, name='backup_create_now'),
+    path('database-health/', database_health_check, name='database_health'),
 ]

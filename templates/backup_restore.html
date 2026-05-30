@@ -1,0 +1,270 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Database Backup & Restore - Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1>
+                    <i class="bi bi-shield-check"></i> Database Backup & Restore
+                </h1>
+                <a href="{% url 'core:dashboard' %}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Kembali
+                </a>
+            </div>
+            <p class="text-muted">⚠️ Area khusus admin. Hati-hati saat restore - data lama akan ditimpa!</p>
+        </div>
+    </div>
+
+    {% if restore_success %}
+    <!-- Success Alert -->
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <h4 class="alert-heading">✅ Restore Berhasil!</h4>
+        <p>
+            Database telah berhasil di-restore dari backup file <strong>{{ backup_file }}</strong>
+            pada <strong>{{ restore_time }}</strong>
+        </p>
+        <hr>
+        <p class="mb-0">
+            Aplikasi akan melanjutkan menggunakan data baru. Jika ada masalah, hubungi admin untuk restore dari backup sebelumnya.
+        </p>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endif %}
+
+    <!-- Messages -->
+    {% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    <div class="row">
+        
+        <!-- Main Restore Section -->
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-exclamation-triangle"></i> Restore Database dari Backup
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-danger mb-3">
+                        <strong>⚠️ PERINGATAN:</strong> Restore akan menghapus data database saat ini dan menggantinya dengan data dari backup file.
+                    </p>
+
+                    <form method="post" enctype="multipart/form-data" id="restoreForm">
+                        {% csrf_token %}
+
+                        <!-- Database Name (Read-only) -->
+                        <div class="mb-3">
+                            <label for="{{ form.database_name.id_for_label }}" class="form-label">
+                                Database
+                            </label>
+                            {{ form.database_name }}
+                            <small class="text-muted d-block mt-1">Database yang akan di-restore</small>
+                        </div>
+
+                        <!-- Backup File Upload -->
+                        <div class="mb-3">
+                            <label for="{{ form.backup_file.id_for_label }}" class="form-label">
+                                <strong>Pilih File Backup (.sql)</strong>
+                            </label>
+                            {{ form.backup_file }}
+                            {% if form.backup_file.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.backup_file.errors }}
+                            </div>
+                            {% endif %}
+                            <small class="text-muted d-block mt-2">
+                                📄 Format: SQL backup file (.sql) | Max: 1GB
+                            </small>
+                        </div>
+
+                        <!-- Confirmation Checkbox -->
+                        <div class="mb-3">
+                            <div class="form-check">
+                                {{ form.confirm_restore }}
+                                <label class="form-check-label" for="{{ form.confirm_restore.id_for_label }}">
+                                    <strong class="text-danger">Saya yakin ingin restore database (DATA LAMA AKAN HILANG)</strong>
+                                </label>
+                            </div>
+                            {% if form.confirm_restore.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.confirm_restore.errors }}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-danger">
+                                <i class="bi bi-arrow-down-circle"></i> Restore Database
+                            </button>
+                            <button type="reset" class="btn btn-secondary">
+                                <i class="bi bi-arrow-clockwise"></i> Reset
+                            </button>
+                        </div>
+
+                        <hr>
+
+                        <p class="text-muted small">
+                            💡 <strong>Tips:</strong>
+                            <ul>
+                                <li>Pastikan PostgreSQL sudah running</li>
+                                <li>Proses restore dapat memakan waktu sesuai ukuran file</li>
+                                <li>Jangan tutup halaman sampai proses selesai</li>
+                                <li>Sebelum restore, sistem akan membuat backup otomatis dari database saat ini</li>
+                            </ul>
+                        </p>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar Actions -->
+        <div class="col-lg-4">
+            
+            <!-- Backup Now -->
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-cloud-upload"></i> Backup Sekarang
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted">Buat backup database saat ini untuk safety.</p>
+                    <form method="post" action="{% url 'core:backup_create_now' %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-success w-100">
+                            <i class="bi bi-plus-circle"></i> Buat Backup
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Database Health -->
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-heart-pulse"></i> Database Health
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted">Check kesehatan database dan statistik.</p>
+                    <a href="{% url 'core:database_health' %}" class="btn btn-info w-100">
+                        <i class="bi bi-speedometer2"></i> Check Health
+                    </a>
+                </div>
+            </div>
+
+            <!-- Info Box -->
+            <div class="card shadow-sm border-0 bg-light">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-info-circle"></i> Informasi
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <ul class="small mb-0">
+                        <li><strong>Lokasi Backup:</strong> /backups/</li>
+                        <li><strong>Auto-backup:</strong> Sebelum restore</li>
+                        <li><strong>Format:</strong> SQL dump (PostgreSQL)</li>
+                        <li><strong>Retention:</strong> Keep manually</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Backups List -->
+    {% if backup_files %}
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-files"></i> Backup Files Tersedia ({{ total_backups }} total)
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th width="50%">File Name</th>
+                                    <th width="20%">Size</th>
+                                    <th width="30%">Modified</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for backup in backup_files %}
+                                <tr>
+                                    <td>
+                                        <i class="bi bi-file-earmark-zip"></i>
+                                        <strong>{{ backup.name }}</strong>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info">{{ backup.size }}</span>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">{{ backup.modified }}</small>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <small class="text-muted mt-3 d-block">
+                        📋 Showing 10 latest backups. Untuk restore, upload file di form di atas.
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info mt-4">
+        <i class="bi bi-info-circle"></i> Belum ada backup files. Klik "Buat Backup" untuk membuat backup pertama.
+    </div>
+    {% endif %}
+
+    <!-- Footer -->
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <p class="text-muted text-center small">
+                <i class="bi bi-shield-lock"></i> 
+                Area ini terbatas hanya untuk admin. Semua aktivitas dicatat di log.
+            </p>
+        </div>
+    </div>
+
+</div>
+
+<script>
+document.getElementById('restoreForm').addEventListener('submit', function(e) {
+    const confirmed = confirm(
+        '⚠️ PERHATIAN!\n\n' +
+        'Anda akan melakukan restore database.\n' +
+        'Data saat ini akan DITIMPA dengan data backup.\n\n' +
+        'Pastikan:\n' +
+        '✓ File backup sudah dipilih\n' +
+        '✓ Anda yakin ingin melanjutkan\n\n' +
+        'Lanjutkan?'
+    );
+    
+    if (!confirmed) {
+        e.preventDefault();
+        return false;
+    }
+});
+</script>
+{% endblock %}
