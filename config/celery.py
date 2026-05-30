@@ -38,3 +38,12 @@ app.conf.beat_schedule = {
 
 # Default queue name
 app.conf.task_default_queue = 'default'
+
+# Windows compatibility settings
+# Disable prefork on Windows, use solo worker instead
+import sys
+if sys.platform.startswith('win'):
+    app.conf.worker_pool = 'solo'
+    app.conf.worker_disable_rate_limits = True
+    app.conf.broker_connection_retry_on_startup = True
+    app.conf.task_acks_late = True

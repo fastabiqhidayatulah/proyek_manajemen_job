@@ -16,7 +16,6 @@ from django.db.models import Q, Count, Case, When, IntegerField, Max
 from django.urls import reverse
 import datetime 
 import calendar
-from weasyprint import HTML, CSS
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from .utils import format_tanggal_id, get_month_name_id, calculate_daily_jobs_summary, calculate_project_jobs_summary, generate_pdf_filename 
@@ -1218,6 +1217,7 @@ def export_daily_jobs_pdf(request):
     try:
         # Construct base_url for WeasyPrint to access media files
         from pathlib import Path
+        from weasyprint import HTML
         media_root_path = Path(settings.MEDIA_ROOT).as_uri()
         html = HTML(string=html_string, base_url=media_root_path)
         pdf = html.write_pdf()
@@ -1964,6 +1964,7 @@ def export_project_jobs_pdf(request):
     try:
         # Construct base_url for WeasyPrint to access media files
         from pathlib import Path
+        from weasyprint import HTML
         media_root_path = Path(settings.MEDIA_ROOT).as_uri()
         html = HTML(string=html_string, base_url=media_root_path)
         pdf = html.write_pdf()
@@ -2371,7 +2372,11 @@ def leave_event_view(request):
         form = LeaveEventForm()
     
     # Ambil daftar leave events yang pernah dibuat
-    all_leave_events = LeaveEvent.objects.filter(departemen=user.departemen).order_by('-created_at')
+    # Admin/superuser bisa lihat semua events, user biasa hanya departemen mereka
+    if user.is_superuser or user.is_staff:
+        all_leave_events = LeaveEvent.objects.all().order_by('-created_at')
+    else:
+        all_leave_events = LeaveEvent.objects.filter(departemen=user.departemen).order_by('-created_at')
     
     # Split data ke upcoming vs past (berdasarkan tanggal terakhir)
     from datetime import datetime as dt
@@ -3137,6 +3142,7 @@ def export_project_detail_pdf(request, project_id):
     html_string = render(request, 'report_project_detail.html', context).content.decode('utf-8')
     
     try:
+        from weasyprint import HTML
         html = HTML(string=html_string)
         pdf = html.write_pdf()
         
