@@ -9,8 +9,34 @@ from django.conf import settings
 from django.db import connection
 from .forms_backup import DatabaseBackupForm
 import logging
+import platform
 
 logger = logging.getLogger(__name__)
+
+# Detect PostgreSQL path based on OS
+if platform.system() == 'Windows':
+    # PostgreSQL Windows installation path
+    PSQL_PATHS = [
+        'C:\\apps\\postgresql\\bin\\psql.exe',
+        'C:\\Program Files\\PostgreSQL\\16\\bin\\psql.exe',
+        'C:\\Program Files\\PostgreSQL\\15\\bin\\psql.exe',
+        'C:\\Program Files\\PostgreSQL\\14\\bin\\psql.exe',
+        'C:\\Program Files (x86)\\PostgreSQL\\16\\bin\\psql.exe',
+    ]
+    PG_DUMP_PATHS = [
+        'C:\\apps\\postgresql\\bin\\pg_dump.exe',
+        'C:\\Program Files\\PostgreSQL\\16\\bin\\pg_dump.exe',
+        'C:\\Program Files\\PostgreSQL\\15\\bin\\pg_dump.exe',
+        'C:\\Program Files\\PostgreSQL\\14\\bin\\pg_dump.exe',
+        'C:\\Program Files (x86)\\PostgreSQL\\16\\bin\\pg_dump.exe',
+    ]
+    
+    # Find first available path
+    PSQL_CMD = next((p for p in PSQL_PATHS if os.path.exists(p)), 'psql')
+    PG_DUMP_CMD = next((p for p in PG_DUMP_PATHS if os.path.exists(p)), 'pg_dump')
+else:
+    PSQL_CMD = 'psql'
+    PG_DUMP_CMD = 'pg_dump'
 
 
 def is_admin(user):
@@ -61,17 +87,17 @@ def backup_restore_management(request):
                 messages.info(request, f'🔄 Backing up current database ke {backup_current_filename}...')
                 
                 # Create backup of current data
-                backup_cmd = f'pg_dump -U {db_user} -h {db_host} -p {db_port} -d {db_name}'
+                backup_cmd = [PG_DUMP_CMD, '-U', db_user, '-h', db_host, '-p', str(db_port), '-d', db_name]
                 with open(backup_current_path, 'w') as backup_file_handle:
                     try:
+                        env = os.environ.copy()
+                        env['PGPASSWORD'] = db_password
                         result = subprocess.run(
                             backup_cmd,
-                            shell=True,
                             stdout=backup_file_handle,
                             stderr=subprocess.PIPE,
                             text=True,
-                            input=f"{db_password}\n",
-                            env={**os.environ, 'PGPASSWORD': db_password},
+                            env=env,
                             timeout=300
                         )
                         
@@ -90,18 +116,19 @@ def backup_restore_management(request):
                 # Restore from uploaded backup
                 messages.info(request, '🔄 Melakukan restore database...')
                 
-                restore_cmd = f'psql -U {db_user} -h {db_host} -p {db_port} -d {db_name}'
+                restore_cmd = [PSQL_CMD, '-U', db_user, '-h', db_host, '-p', str(db_port), '-d', db_name]
                 
                 try:
                     with open(temp_file_path, 'r') as restore_file:
+                        env = os.environ.copy()
+                        env['PGPASSWORD'] = db_password
                         result = subprocess.run(
                             restore_cmd,
-                            shell=True,
                             stdin=restore_file,
                             stdout=subprocess.PIPE,
                             stderr=subprocess.PIPE,
                             text=True,
-                            env={**os.environ, 'PGPASSWORD': db_password},
+                            env=env,
                             timeout=600
                         )
                     
@@ -192,16 +219,17 @@ def backup_create_now(request):
             # Make sure backups directory exists
             os.makedirs(os.path.dirname(filepath), exist_ok=True)
             
-            backup_cmd = f'pg_dump -U {db_user} -h {db_host} -p {db_port} -d {db_name}'
+            backup_cmd = [PG_DUMP_CMD, '-U', db_user, '-h', db_host, '-p', str(db_port), '-d', db_name]
             
             with open(filepath, 'w') as f:
+                env = os.environ.copy()
+                env['PGPASSWORD'] = db_password
                 result = subprocess.run(
                     backup_cmd,
-                    shell=True,
                     stdout=f,
                     stderr=subprocess.PIPE,
                     text=True,
-                    env={**os.environ, 'PGPASSWORD': db_password},
+                    env=env,
                     timeout=300
                 )
             
@@ -219,7 +247,7 @@ def backup_create_now(request):
             messages.error(request, f'❌ Error: {str(e)}')
             logger.error(f'Backup error: {str(e)}', exc_info=True)
     
-    return redirect('backup_restore')
+    return redirect('core:backup_restore')
 
 
 @login_required
