@@ -33,6 +33,17 @@ DEBUG = os.environ.get('DEBUG', 'True' if not IS_PRODUCTION else 'False').lower(
 ALLOWED_HOSTS_STR = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1')
 ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS_STR.split(',')]
 
+# For development: allow all hosts (safer than using wildcard *)
+if DEBUG:
+    # Add all common local addresses for development
+    ALLOWED_HOSTS.extend([
+        '*',  # Allow all hosts in development
+        '127.0.0.1',
+        'localhost',
+    ])
+    # Remove duplicates but keep order
+    ALLOWED_HOSTS = list(dict.fromkeys(ALLOWED_HOSTS))
+
 
 # Application definition
 
@@ -166,20 +177,27 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = '/static/'
+STATIC_ROOT = os.environ.get('STATIC_ROOT', os.path.join(BASE_DIR, 'staticfiles'))
+STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 
 if IS_PRODUCTION or IS_STAGING:
-    STATIC_ROOT = os.environ.get('STATIC_ROOT', os.path.join(BASE_DIR, 'staticfiles'))
+    STORAGES = {
+        'default': {
+            'BACKEND': 'django.core.files.storage.FileSystemStorage',
+        },
+        'staticfiles': {
+            'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
+        },
+    }
 else:
-    STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
-
-STORAGES = {
-    'default': {
-        'BACKEND': 'django.core.files.storage.FileSystemStorage',
-    },
-    'staticfiles': {
-        'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
-    },
-}
+    STORAGES = {
+        'default': {
+            'BACKEND': 'django.core.files.storage.FileSystemStorage',
+        },
+        'staticfiles': {
+            'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage',
+        },
+    }
 
 # Media files (File Upload dari User)
 MEDIA_URL = '/media/'
@@ -346,12 +364,12 @@ LOGGING = {
     },
     'root': {
         'handlers': ['console', 'django_file', 'error_file'],
-        'level': os.environ.get('LOG_LEVEL', 'INFO'),
+        'level': os.environ.get('LOG_LEVEL', 'INFO').upper(),
     },
     'loggers': {
         'django': {
             'handlers': ['console', 'django_file', 'error_file'],
-            'level': os.environ.get('DJANGO_LOG_LEVEL', 'INFO'),
+            'level': os.environ.get('DJANGO_LOG_LEVEL', 'INFO').upper(),
             'propagate': False,
         },
         'django.request': {
@@ -361,7 +379,7 @@ LOGGING = {
         },
         'celery': {
             'handlers': ['console', 'celery_file', 'error_file'],
-            'level': os.environ.get('CELERY_LOG_LEVEL', 'INFO'),
+            'level': os.environ.get('CELERY_LOG_LEVEL', 'INFO').upper(),
             'propagate': False,
         },
     },

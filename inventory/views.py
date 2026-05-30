@@ -6,7 +6,6 @@ from django.http import JsonResponse, HttpResponse
 from django.urls import reverse_lazy
 from django.template.loader import render_to_string
 from django.db import models
-from weasyprint import HTML
 from datetime import datetime
 
 
@@ -263,6 +262,7 @@ class StockExportPDFView(LoginRequiredMixin, View):
             html_string = render_to_string('inventory/stock_export_pdf.html', context, request=request)
             
             # Convert ke PDF
+            from weasyprint import HTML
             html = HTML(string=html_string)
             pdf = html.write_pdf()
             

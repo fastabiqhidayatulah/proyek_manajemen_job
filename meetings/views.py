@@ -12,7 +12,6 @@ from django.core.paginator import Paginator
 from django.core.exceptions import PermissionDenied
 from django.conf import settings
 from django.template.loader import render_to_string
-from weasyprint import HTML
 import json
 import qrcode
 from io import BytesIO
@@ -1198,6 +1197,7 @@ class ExportNotulenPDFView(LoginRequiredMixin, View):
             html_string = render_to_string('meetings/report_notulen.html', context, request=request)
             
             # Convert ke PDF
+            from weasyprint import HTML
             html = HTML(string=html_string)
             pdf = html.write_pdf()
             
@@ -1264,6 +1264,7 @@ class ExportNotulenPDFV2View(LoginRequiredMixin, View):
             html_string = render_to_string('meetings/report_notulen_v2.html', context, request=request)
             
             # Convert ke PDF
+            from weasyprint import HTML
             html = HTML(string=html_string)
             pdf = html.write_pdf()
             
